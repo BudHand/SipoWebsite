@@ -601,28 +601,28 @@
                                 if ($isStaff) {
                                     // Staff: pakai hierarchy paling spesifik
                                     if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
-                                        $bagianKerja = 'Unit ' . $unitMap[$user->unit_id_unit];
+                                        $bagianKerja = $unitMap[$user->unit_id_unit];
                                     } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
-                                        $bagianKerja = 'Bagian ' . $sectionMap[$user->section_id_section];
+                                        $bagianKerja = $sectionMap[$user->section_id_section];
                                     } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
-                                        $bagianKerja = 'Departemen ' . $departmentMap[$user->department_id_department];
+                                        $bagianKerja = $departmentMap[$user->department_id_department];
                                     } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
-                                        $bagianKerja = 'Divisi ' . $divisionMap[$user->divisi_id_divisi];
+                                        $bagianKerja = $divisionMap[$user->divisi_id_divisi];
                                     } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
-                                        $bagianKerja = 'Direktur ' . $directorMap[$user->director_id_director];
+                                        $bagianKerja = $directorMap[$user->director_id_director];
                                     }
                                 } else {
                                     // Di atas staff: pakai hierarchy jabatan yang lebih representatif
                                     if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
-                                        $bagianKerja = 'Departemen ' . $departmentMap[$user->department_id_department];
+                                        $bagianKerja = $departmentMap[$user->department_id_department];
                                     } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
-                                        $bagianKerja = 'Divisi ' . $divisionMap[$user->divisi_id_divisi];
+                                        $bagianKerja = $divisionMap[$user->divisi_id_divisi];
                                     } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
-                                        $bagianKerja = 'Bagian ' . $sectionMap[$user->section_id_section];
+                                        $bagianKerja = $sectionMap[$user->section_id_section];
                                     } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
-                                        $bagianKerja = 'Unit ' . $unitMap[$user->unit_id_unit];
+                                        $bagianKerja = $unitMap[$user->unit_id_unit];
                                     } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
-                                        $bagianKerja = 'Direktur ' . $directorMap[$user->director_id_director];
+                                        $bagianKerja = $directorMap[$user->director_id_director];
                                     }
                                 }
 
