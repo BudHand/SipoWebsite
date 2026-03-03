@@ -509,18 +509,97 @@
                     </table>
 
                     @php
-                        $rawTembusan = array_filter(explode(';', $memo->tembusan ?? ''));
-                        $tembusanUserIds = array_values(array_filter($rawTembusan, fn($t) => is_numeric($t)));
-                        $tembusanUsers = !empty($tembusanUserIds)
-                            ? \App\Models\User::whereIn('id', $tembusanUserIds)->get(['id', 'firstname', 'lastname'])->keyBy('id')
-                            : collect();
-                        $tembusanList = array_map(function ($tembusan) use ($tembusanUsers) {
-                            if (is_numeric($tembusan) && $tembusanUsers->has((int) $tembusan)) {
-                                $user = $tembusanUsers[(int) $tembusan];
-                                return trim($user->firstname . ' ' . $user->lastname);
+                        $rawTembusan = array_values(array_filter(explode(';', $memo->tembusan ?? ''), fn($t) => trim($t) !== ''));
+
+                        // Pisahkan data baru (id user) vs data lama (nama teks)
+                        $tembusanUserIds = collect($rawTembusan)
+                            ->filter(fn($t) => is_numeric($t))
+                            ->map(fn($t) => (int) $t)
+                            ->unique()
+                            ->values();
+
+                        $legacyTembusan = collect($rawTembusan)
+                            ->filter(fn($t) => !is_numeric($t))
+                            ->values()
+                            ->all();
+
+                        $tembusanRingkas = [];
+
+                        if ($tembusanUserIds->isNotEmpty()) {
+                            $selectedUsers = \App\Models\User::with(['position:id_position,nm_position', 'department:id_department,name_department'])
+                                ->whereIn('id', $tembusanUserIds)
+                                ->get([
+                                    'id',
+                                    'firstname',
+                                    'lastname',
+                                    'position_id_position',
+                                    'director_id_director',
+                                    'divisi_id_divisi',
+                                    'department_id_department',
+                                    'section_id_section',
+                                    'unit_id_unit',
+                                ]);
+
+                            $selectedIdSet = $selectedUsers->pluck('id')->flip();
+                            $remainingIds = $selectedUsers->pluck('id')->all();
+
+                            $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
+                            $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
+                            $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                            $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
+                            $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
+
+                            // Prioritas dari scope paling besar ke kecil agar hasil ringkas.
+                            $scopes = [
+                                ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
+                                ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
+                                ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
+                                ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
+                                ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
+                            ];
+
+                            foreach ($scopes as $scope) {
+                                $groupIds = $selectedUsers
+                                    ->whereIn('id', $remainingIds)
+                                    ->pluck($scope['col'])
+                                    ->filter()
+                                    ->unique()
+                                    ->values();
+
+                                foreach ($groupIds as $groupId) {
+                                    $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+
+                                    if ($allMemberIds->isEmpty()) {
+                                        continue;
+                                    }
+
+                                    $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+
+                                    if ($allSelected) {
+                                        $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                        $tembusanRingkas[] = $scope['label'] . ': ' . $scopeName;
+
+                                        // Hapus anggota scope ini dari sisa perorangan agar tidak duplikat
+                                        $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                    }
+                                }
                             }
-                            return $tembusan;
-                        }, $rawTembusan);
+
+                            // Sisa user yang tidak bisa diringkas ditampilkan per-orang
+                            $remainingUsers = $selectedUsers
+                                ->whereIn('id', $remainingIds)
+                                ->sortBy(fn($u) => trim($u->firstname . ' ' . $u->lastname));
+
+                            foreach ($remainingUsers as $user) {
+                                $fullName = trim($user->firstname . ' ' . $user->lastname);
+                                $position = $user->position->nm_position ?? '-';
+                                $department = $user->department->name_department ?? '-';
+                                $tembusanRingkas[] = $fullName . ' - ' . $position . ' (' . $department . ')';
+                            }
+                        }
+
+                        // Gabungkan fallback data lama agar tetap kompatibel.
+                        $tembusanList = array_values(array_filter(array_merge($tembusanRingkas, $legacyTembusan)));
                     @endphp
 
                     @if ($memo->tembusan)
