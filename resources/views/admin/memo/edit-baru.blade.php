@@ -47,6 +47,7 @@
                         </div>
                         <div class="card-body">
                             <div id="tujuan-container"></div>
+                            <div id="tembusan-container"></div>
                             {{-- Row 1: Tanggal Surat & Seri Tahunan Surat --}}
                             <div class="row mb-3">
                                 @if ($parentMemo)
@@ -351,20 +352,20 @@
                             </div>
                         </div>
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="tembusan" class="form-label">
+                            <div class="col-md-12">
+                                <label for="tembusan-tree" class="form-label">
                                     <i class="fas fa-user text-primary me-1"></i>
-                                    Tembusan <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
-                                        jika
-                                        tidak ada.)</span>
+                                    Tembusan <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                 </label>
-                                <select name="tembusan[]" id="tembusan" class="select2" multiple="multiple">
-                                    @foreach ($tembusan as $t)
-                                        <option value="{{ $t['id'] }}"
-                                            @if (in_array($t['id'], $selectedTembusan)) selected @endif>{{ $t['name'] }}</option>
-                                    @endforeach
-                                </select>
-
+                                <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                    <div style="font-size: small;" id="tembusan-tree"></div>
+                                </div>
+                                <div style="display: none;" id="selected-tembusan-section" class="mt-2">
+                                    <label style="font-size: small;" class="form-label">Tembusan Terpilih:</label>
+                                    <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                        <ul id="selected-tembusan" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                         {{-- Hidden Fields --}}
@@ -531,12 +532,40 @@
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM Content Loaded - Script dimulai');
 
-            $('#tembusan').select2({
-                theme: "bootstrap-5",
-                placeholder: "Pilih Tembusan Memo",
-                allowClear: true,
-                width: "100%"
+            const selectedTembusanNodes = @json($selectedTembusan);
+
+            $('#tembusan-tree').jstree({
+                'core': { 'data': @json(json_decode($jsTreeData)) },
+                'plugins': ["checkbox", "search"],
+                'checkbox': { 'three_state': false, 'cascade': 'none' }
+            }).on('ready.jstree', function(e, data) {
+                $('#tembusan-tree li').each(function() {
+                    var node = data.instance.get_node(this.id);
+                    if (node && node.parent === "#") {
+                        $(this).find('.jstree-checkbox').css('display', 'none');
+                    }
+                });
+
+                selectedTembusanNodes.forEach(function(nodeId) {
+                    if (data.instance.get_node(nodeId)) {
+                        data.instance.check_node(nodeId);
+                    }
+                });
+            }).on('changed.jstree', function(e, data) {
+                let selectedNodes = data.instance.get_selected(true);
+                let list = $('#selected-tembusan');
+                let section = $('#selected-tembusan-section');
+                list.empty();
+
+                if (selectedNodes.length) {
+                    selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
+                    section.show();
+                } else {
+                    section.hide();
+                }
             });
+
+
             $(document).ready(function() {
                 console.log("Select2 loaded?", typeof $.fn.select2);
             });
@@ -1262,6 +1291,14 @@
                         $('#tujuan-container').append(
                             `<input type="hidden" name="tujuan[]" value="${node.id}">` +
                             `<input type="hidden" name="tujuanString[]" value="${node.text}">`
+                        );
+                    });
+
+                    $('#tembusan-container').empty();
+                    const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
+                    selectedTembusan.forEach(node => {
+                        $('#tembusan-container').append(
+                            `<input type="hidden" name="tembusan[]" value="${node.id}">`
                         );
                     });
 
