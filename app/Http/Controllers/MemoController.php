@@ -2845,47 +2845,13 @@ class MemoController extends Controller
 
         $selectedTembusan = [];
         if ($memo->tembusan) {
-            $type = null;
-            $id = null;
-            $cc = explode(';', $memo->tembusan ?? '');
-
-            foreach ($cc as $t) {
-                $unit = Unit::where('name_unit', $t)->first() ?? '';
-                if ($unit) {
-                    $type = 'unit';
-                    $id = $unit->id_unit;
-                } else {
-                    $section = Section::where('name_section', $t)->first() ?? '';
-                    if ($section) {
-                        $type = 'section';
-                        $id = $section->id_section;
-                    } else {
-                        $department = Department::where('name_department', $t)->first() ?? '';
-                        if ($department) {
-                            $type = 'department';
-                            $id = $department->id_department;
-                        } else {
-                            $divisi = Divisi::where('nm_divisi', $t)->first() ?? '';
-                            if ($divisi) {
-                                $type = 'division';
-                                $id = $divisi->id_divisi;
-                            } else {
-                                $director = Director::where('name_director', $t)->first() ?? '';
-                                if ($director) {
-                                    $type = 'director';
-                                    $id = $director->id_director;
-                                }
-                            }
-                        }
-                    }
-                }
-                $selectedTembusan[] = implode('_', [$type, $id]);
-            }
+            $cc = array_values(array_filter(explode(';', $memo->tembusan), fn($v) => trim($v) !== ''));
+            $selectedTembusan = collect($cc)
+                ->filter(fn($v) => is_numeric($v))
+                ->map(fn($v) => 'user-' . (int) $v)
+                ->values()
+                ->all();
         }
-
-        $selectedTembusan = is_array($selectedTembusan)
-            ? $selectedTembusan
-            : [$selectedTembusan];
 
         return view(
             Auth::user()->role->nm_role . '.memo.edit-baru',
@@ -2953,49 +2919,13 @@ class MemoController extends Controller
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
             ],
         );
-        // CC Memo :p
+        // CC Memo: samakan dengan tujuan (simpan id user)
         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
-        // dd($tujuanId, $request->all());
-        if ($request->has('tembusan')) {
-            foreach ($request->tembusan as $t) {
-                $type = explode('_', $t)[0];
-                $id = explode('_', $t)[1];
-
-                switch ($type) {
-                    case 'director':
-                        $tujuanList = User::where('director_id_director', $id)->pluck('id')->toArray();
-                        $tujuanDupe = array_merge($tujuanId, $tujuanList);
-                        $tujuanId = array_unique($tujuanDupe);
-                        $tembusanString[] = Director::where('id_director', $id)->first()->name_director;
-                        break;
-                    case 'division':
-                        $tujuanList = User::where('divisi_id_divisi', $id)->pluck('id')->toArray();
-                        $tujuanDupe = array_merge($tujuanId, $tujuanList);
-                        $tujuanId = array_unique($tujuanDupe);
-                        $tembusanString[] = Divisi::where('id_divisi', $id)->first()->nm_divisi;
-                        break;
-                    case 'department':
-                        $tujuanList = User::where('department_id_department', $id)->pluck('id')->toArray();
-                        $tujuanDupe = array_merge($tujuanId, $tujuanList);
-                        $tujuanId = array_unique($tujuanDupe);
-                        $tembusanString[] = Department::where('id_department', $id)->first()->name_department;
-                        break;
-                    case 'section':
-                        $tujuanList = User::where('section_id_section', $id)->pluck('id')->toArray();
-                        $tujuanDupe = array_merge($tujuanId, $tujuanList);
-                        $tujuanId = array_unique($tujuanDupe);
-                        $tembusanString[] = Section::where('id_section', $id)->first()->name_section;
-                        break;
-                    case 'unit':
-                        $tujuanList = User::where('unit_id_unit', $id)->pluck('id')->toArray();
-                        $tujuanDupe = array_merge($tujuanId, $tujuanList);
-                        $tujuanId = array_unique($tujuanDupe);
-                        $tembusanString[] = Unit::where('id_unit', $id)->first()->name_unit;
-                        break;
-                }
-            }
-            //dd($request->all(), $tembusanString, $tujuanId);
-            $memo->tembusan = implode(';', $tembusanString);
+        $tembusanUserIds = [];
+        if ($request->has('tembusan') && is_array($request->tembusan)) {
+            $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
+            $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
         } else {
             $memo->tembusan = null;
         }
