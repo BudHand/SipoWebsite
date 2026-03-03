@@ -28,6 +28,53 @@ use App\Models\BagianKerja;
 
 class KirimController extends Controller
 {
+
+    private function convertTujuanToUserId(array $rawTujuan)
+    {
+        $departments = [];
+        $sections = [];
+        $divisions = [];
+        $units = [];
+        $users = [];
+
+        foreach ($rawTujuan as $item) {
+            if (is_numeric($item)) {
+                $users[] = (int) $item;
+                continue;
+            }
+
+            if (Str::startsWith($item, 'dept-')) {
+                $departments[] = (int) Str::after($item, 'dept-');
+            } elseif (Str::startsWith($item, 'section-')) {
+                $sections[] = (int) Str::after($item, 'section-');
+            } elseif (Str::startsWith($item, 'divisi-')) {
+                $divisions[] = (int) Str::after($item, 'divisi-');
+            } elseif (Str::startsWith($item, 'unit-')) {
+                $units[] = (int) Str::after($item, 'unit-');
+            } elseif (Str::startsWith($item, 'user-')) {
+                $users[] = (int) Str::after($item, 'user-');
+            }
+        }
+
+        return User::where(function ($query) use ($departments, $sections, $divisions, $units, $users) {
+            if (!empty($departments)) {
+                $query->orWhereIn('department_id_department', $departments);
+            }
+            if (!empty($sections)) {
+                $query->orWhereIn('section_id_section', $sections);
+            }
+            if (!empty($divisions)) {
+                $query->orWhereIn('divisi_id_divisi', $divisions);
+            }
+            if (!empty($units)) {
+                $query->orWhereIn('unit_id_unit', $units);
+            }
+            if (!empty($users)) {
+                $query->orWhereIn('id', $users);
+            }
+        })->pluck('id')->toArray();
+    }
+
     public function index($id)
     {
         $memo = Memo::find($id);
@@ -1126,7 +1173,7 @@ class KirimController extends Controller
                 $tujuan = explode(';', $undangan->tujuan);
             }
         } else {
-            $tujuan = $request->tujuan;
+            $tujuan = $this->convertTujuanToUserId($request->tujuan);
         }
         // Simpan risalah utama
         $risalah = null;

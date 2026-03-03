@@ -453,7 +453,7 @@
                             });
 
                             console.log('Selected users:', selectedNodes);
-                            console.log('User IDs:', userIds);
+                            console.log('Tujuan Nodes:', userIds);
 
                             // Add hidden inputs for form submission
                             userIds.forEach(function(userId) {
@@ -534,14 +534,13 @@
                         }
 
                         const selected = $('#org-tree').jstree('get_selected', true);
-                        const userIds = selected
-                            .filter(node => node.id.startsWith('user-'))
-                            .map(node => node.id.replace('user-', ''));
+                        const tujuanNodes = selected
+                            .map(node => node.id);
 
-                        console.log('Form validation - User IDs:', userIds);
+                        console.log('Form validation - Tujuan Nodes:', tujuanNodes);
 
                         // Validate at least one recipient is selected
-                        if (userIds.length === 0) {
+                        if (tujuanNodes.length === 0) {
                             $('#tujuanError').text("Minimal pilih satu tujuan!");
                             $('#tujuanError').show();
 
