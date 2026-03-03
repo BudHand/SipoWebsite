@@ -2671,41 +2671,11 @@ class MemoController extends Controller
             }
         }
 
-        // CC Memo
-        $tembusanString = [];
-        if ($request->has('tembusan')) {
-            foreach ($request->tembusan as $t) {
-                $type = explode('_', $t)[0];
-                $id = explode('_', $t)[1];
-
-                switch ($type) {
-                    case 'director':
-                        $tujuanList = User::where('director_id_director', $id)->pluck('id')->toArray();
-                        $tujuanId = array_merge($tujuanId, $tujuanList);
-                        $tembusanString[] = Director::where('id_director', $id)->first()->name_director;
-                        break;
-                    case 'division':
-                        $tujuanList = User::where('divisi_id_divisi', $id)->pluck('id')->toArray();
-                        $tujuanId = array_merge($tujuanId, $tujuanList);
-                        $tembusanString[] = Divisi::where('id_divisi', $id)->first()->nm_divisi;
-                        break;
-                    case 'department':
-                        $tujuanList = User::where('department_id_department', $id)->pluck('id')->toArray();
-                        $tujuanId = array_merge($tujuanId, $tujuanList);
-                        $tembusanString[] = Department::where('id_department', $id)->first()->name_department;
-                        break;
-                    case 'section':
-                        $tujuanList = User::where('section_id_section', $id)->pluck('id')->toArray();
-                        $tujuanId = array_merge($tujuanId, $tujuanList);
-                        $tembusanString[] = Section::where('id_section', $id)->first()->name_section;
-                        break;
-                    case 'unit':
-                        $tujuanList = User::where('unit_id_unit', $id)->pluck('id')->toArray();
-                        $tujuanId = array_merge($tujuanId, $tujuanList);
-                        $tembusanString[] = Unit::where('id_unit', $id)->first()->name_unit;
-                        break;
-                }
-            }
+        // CC Memo: samakan dengan tujuan (simpan sebagai id user)
+        $tembusanUserIds = [];
+        if ($request->has('tembusan') && is_array($request->tembusan)) {
+            $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
         }
 
         // ===================================================================
@@ -2729,7 +2699,7 @@ class MemoController extends Controller
             'nama_bertandatangan' => $request->input('nama_bertandatangan'),
             'lampiran' => $lampiranPath,
             'feedback' => $idMemoLama,
-            'tembusan' => implode(';', $tembusanString ?? [])
+            'tembusan' => !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null
         ]);
 
         // Handle kategori barang
