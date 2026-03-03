@@ -704,9 +704,7 @@
                             if (node.icon && node.icon === 'fa fa-user') {
                                 selectedNodes.push(node.text);
                                 // Extract user ID from node.id (assuming format is 'user-{id}')
-                                if (node.id.startsWith('user-')) {
-                                    userIds.push(node.id.replace('user-', ''));
-                                }
+                                userIds.push(node.id);
                             }
 
                             // Auto expand selected nodes to show their children
@@ -719,9 +717,9 @@
                         console.log('User IDs:', userIds);
 
                         // Add hidden inputs for form submission
-                        userIds.forEach(function(userId) {
+                        userIds.forEach(function(nodeId) {
                             $('#tujuan-container').append(
-                                '<input type="hidden" name="tujuan[]" value="' + userId + '">');
+                                '<input type="hidden" name="tujuan[]" value="' + nodeId + '">');
                         });
 
                         // Sort selectedNodes by position hierarchy

@@ -26,9 +26,57 @@ use App\Models\CounterNomorSurat;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\Api\NotifApiController;
 use App\Services\QrCodeService;
+use Illuminate\Support\Str;
 
 class RisalahController extends Controller
 {
+
+    private function convertTujuanToUserId(array $rawTujuan)
+    {
+        $departments = [];
+        $sections = [];
+        $divisions = [];
+        $units = [];
+        $users = [];
+
+        foreach ($rawTujuan as $item) {
+            if (is_numeric($item)) {
+                $users[] = (int) $item;
+                continue;
+            }
+
+            if (Str::startsWith($item, 'dept-')) {
+                $departments[] = (int) Str::after($item, 'dept-');
+            } elseif (Str::startsWith($item, 'section-')) {
+                $sections[] = (int) Str::after($item, 'section-');
+            } elseif (Str::startsWith($item, 'divisi-')) {
+                $divisions[] = (int) Str::after($item, 'divisi-');
+            } elseif (Str::startsWith($item, 'unit-')) {
+                $units[] = (int) Str::after($item, 'unit-');
+            } elseif (Str::startsWith($item, 'user-')) {
+                $users[] = (int) Str::after($item, 'user-');
+            }
+        }
+
+        return User::where(function ($query) use ($departments, $sections, $divisions, $units, $users) {
+            if (!empty($departments)) {
+                $query->orWhereIn('department_id_department', $departments);
+            }
+            if (!empty($sections)) {
+                $query->orWhereIn('section_id_section', $sections);
+            }
+            if (!empty($divisions)) {
+                $query->orWhereIn('divisi_id_divisi', $divisions);
+            }
+            if (!empty($units)) {
+                $query->orWhereIn('unit_id_unit', $units);
+            }
+            if (!empty($users)) {
+                $query->orWhereIn('id', $users);
+            }
+        })->pluck('id')->toArray();
+    }
+
     public function index(Request $request)
     {
         // $divisi = Divisi::all();
@@ -595,7 +643,7 @@ class RisalahController extends Controller
                 $tujuan = explode(';', $undangan->tujuan);
             }
         } else {
-            $tujuan = $request->tujuan;
+            $tujuan = $this->convertTujuanToUserId($request->tujuan);
         }
 
         // Generate QR Code untuk Notulis (tanpa nomor risalah karena belum ada)
@@ -894,7 +942,7 @@ class RisalahController extends Controller
         if ($request->with_undangan) {
             $tujuan = $risalah->tujuan;
         } else {
-            $tujuan = implode(';', $request->tujuan);
+            $tujuan = implode(';', $this->convertTujuanToUserId($request->tujuan));
         }
 
         $risalah->update([

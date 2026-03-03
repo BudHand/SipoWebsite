@@ -23,6 +23,7 @@ use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use App\Services\QrCodeService;
 use App\Models\BagianKerja;
 
@@ -855,6 +856,53 @@ class UndanganController extends Controller
         return $names[$field] ?? ucfirst($field);
     }
 
+
+    private function convertTujuanToUserId(array $rawTujuan)
+    {
+        $departments = [];
+        $sections = [];
+        $divisions = [];
+        $units = [];
+        $users = [];
+
+        foreach ($rawTujuan as $item) {
+            if (is_numeric($item)) {
+                $users[] = (int) $item;
+                continue;
+            }
+
+            if (Str::startsWith($item, 'dept-')) {
+                $departments[] = (int) Str::after($item, 'dept-');
+            } elseif (Str::startsWith($item, 'section-')) {
+                $sections[] = (int) Str::after($item, 'section-');
+            } elseif (Str::startsWith($item, 'divisi-')) {
+                $divisions[] = (int) Str::after($item, 'divisi-');
+            } elseif (Str::startsWith($item, 'unit-')) {
+                $units[] = (int) Str::after($item, 'unit-');
+            } elseif (Str::startsWith($item, 'user-')) {
+                $users[] = (int) Str::after($item, 'user-');
+            }
+        }
+
+        return User::where(function ($query) use ($departments, $sections, $divisions, $units, $users) {
+            if (!empty($departments)) {
+                $query->orWhereIn('department_id_department', $departments);
+            }
+            if (!empty($sections)) {
+                $query->orWhereIn('section_id_section', $sections);
+            }
+            if (!empty($divisions)) {
+                $query->orWhereIn('divisi_id_divisi', $divisions);
+            }
+            if (!empty($units)) {
+                $query->orWhereIn('unit_id_unit', $units);
+            }
+            if (!empty($users)) {
+                $query->orWhereIn('id', $users);
+            }
+        })->pluck('id')->toArray();
+    }
+
     public function store(Request $request)
     {
         $emojiErrors = $this->validateNoEmoji($request);
@@ -917,8 +965,9 @@ class UndanganController extends Controller
             $lampiranPath = !empty($newFiles) ? json_encode($newFiles) : null;
         }
 
-        $tujuanArray = is_array($request->tujuan) ? $request->tujuan : explode(';', $request->tujuan);
-        $tujuanString = implode(';', $tujuanArray);
+        $tujuanRaw = is_array($request->tujuan) ? $request->tujuan : explode(';', $request->tujuan);
+        $tujuanIds = $this->convertTujuanToUserId($tujuanRaw);
+        $tujuanString = implode(';', $tujuanIds);
 
         $manager = User::findOrFail($request->input('manager_user_id'));
 
@@ -1325,7 +1374,8 @@ class UndanganController extends Controller
             $undangan->isi_undangan = $rawIsiUndangan;
         }
         if ($request->filled('tujuan')) {
-            $undangan->tujuan = implode(';', $request->tujuan);
+            $tujuanIds = $this->convertTujuanToUserId($request->tujuan);
+            $undangan->tujuan = implode(';', $tujuanIds);
         }
         // Set status ke pending saat update (opsional, seperti memo)
         $undangan->status = 'pending';

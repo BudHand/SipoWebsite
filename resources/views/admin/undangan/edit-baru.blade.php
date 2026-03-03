@@ -638,11 +638,9 @@
             tujuanContainer.html('');
 
             const selected = $('#org-tree').jstree('get_selected', true);
-            const userIds = selected
-                .filter(node => node.id.startsWith('user-'))
-                .map(node => node.id.replace('user-', ''));
+            const tujuanNodes = selected.map(node => node.id);
 
-            if (userIds.length === 0) {
+            if (tujuanNodes.length === 0) {
                 tujuanError.text("Minimal pilih satu tujuan!");
                 tujuanError.show();
 
@@ -659,8 +657,8 @@
 
             tujuanError.hide();
 
-            userIds.forEach(userId => {
-                tujuanContainer.append(`<input type="hidden" name="tujuan[]" value="${userId}">`);
+            tujuanNodes.forEach(nodeId => {
+                tujuanContainer.append(`<input type="hidden" name="tujuan[]" value="${nodeId}">`);
             });
 
             this.submit();
