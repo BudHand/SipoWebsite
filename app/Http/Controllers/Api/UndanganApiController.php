@@ -12,6 +12,9 @@ use Clegginabox\PDFMerger\PDFMerger;
 use Barryvdh\DomPDF\Facade\PDF;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Services\QrCodeService;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use App\Models\CounterNomorSurat;
 
 class UndanganApiController extends Controller
 {
@@ -180,120 +183,196 @@ class UndanganApiController extends Controller
     public function updateStatus(Request $request, $id)
     {
         $push = new NotifApiController();
+
         try {
             $undangan = Undangan::findOrFail($id);
-            $user = Auth::user();
+            $userId   = Auth::id();
 
-            if ($request->status === 'approve') {
-                $request->validate([
-                    'status' => 'required',
-                ]);
-            } else {
-                $request->validate([
-                    'status' => 'required',
-                    'catatan' => 'required',
-                ]);
+            // =========================
+            // Validasi dinamis
+            // =========================
+            $rules = [
+                'status' => 'required|in:approve,reject,correction',
+                'catatan' => 'nullable|string',
+            ];
+
+            if (in_array($request->status, ['reject', 'correction'])) {
+                $rules['catatan'] = 'required|string';
             }
 
-            switch ($request->status) {
-                case 'approve':
-                    $undangan->status = 'approve';
-                    $undangan->tgl_disahkan = now();
+            $validated = $request->validate($rules);
 
-                    $qrText = 'Disetujui oleh: ' . Auth::user()->firstname . ' ' . Auth::user()->lastname
-                        . "\nNomor Undangan: " . ($undangan->nomor_undangan ?? '-')
-                        . "\nTanggal: " . $undangan->tgl_disahkan->translatedFormat('l, d F Y H:i:s')
-                        . "\nDikeluarkan oleh Website SIPO PT Rekaindo Global Jasa";
-                    $qrService = new QrCodeService;
+            DB::transaction(function () use ($request, $undangan, $userId, $push) {
 
-                    $qrBase64 = $qrService->generateWithLogo($qrText);
+                // =========================
+                // Update status undangan
+                // =========================
+                $undangan->status = $request->status;
 
-                    $undangan->qr_approved_by = $qrBase64;
+                // Update kirim_document milik approver (yang sedang login)
+                $currentKirim = Kirim_Document::where('id_document', $undangan->id_undangan)
+                    ->where('jenis_document', 'undangan')
+                    ->where('id_penerima', $userId)
+                    ->first();
 
-                    $tujuanArray = explode(';', $undangan->tujuan);
-                    foreach ($tujuanArray as $tujuanId) {
-                        Kirim_Document::create([
-                            'id_document' => $undangan->id_undangan,
-                            'jenis_document' => 'undangan',
-                            'id_pengirim' => $undangan->pembuat,
-                            'id_penerima' => $tujuanId,
-                            'status' => 'approve',
-                            'created_at' => now(),
-                            'updated_at' => now(),
+                if ($currentKirim) {
+                    $currentKirim->status     = $request->status;
+                    $currentKirim->updated_at = now();
+                    $currentKirim->save();
+                }
+
+                // =========================
+                // APPROVE
+                // =========================
+                if ($request->status === 'approve') {
+                    $tglDisahkan = now();
+                    $undangan->tgl_disahkan = $tglDisahkan;
+
+                    // 1) Generate nomor surat (jika masih kosong)
+                    if (empty($undangan->nomor_undangan)) {
+                        $bulanRomawi = CounterNomorSurat::getBulanRomawi($tglDisahkan->month);
+
+                        // divisi/kode bagian untuk counter (sesuai web controller)
+                        $divisiCounter = $undangan->kode_bagian;
+
+                        // Kalau kode_bagian kosong, fallback minimal (hindari error)
+                        // (web controller fallback ke getDivDeptKode(Auth::user()))
+                        if (empty($divisiCounter)) {
+                            // Fallback sederhana: pakai kode yang ada di field kode, atau 'GEN'
+                            $divisiCounter = $undangan->kode ?: 'GEN';
+                        }
+
+                        $counter = CounterNomorSurat::createNomorSurat([
+                            'tanggal_permintaan' => $tglDisahkan,
+                            'perusahaan' => 'REKA',
+                            'kode_tipe_surat' => 'GEN',
+                            'divisi' => $divisiCounter,
+                            'bulan' => $bulanRomawi,
+                            'tahun' => $tglDisahkan->year,
+                            'pic_peminta' => Auth::user()->fullname,
+                            'jenis' => 'Undangan',
+                            'perihal' => $undangan->judul,
                         ]);
 
+                        $undangan->nomor_undangan = $counter->nomor_surat_generated;
+                    }
+
+                    // 2) Generate QR approved_by (pakai nomor undangan final)
+                    $qrText = "Disetujui oleh: " . Auth::user()->firstname . ' ' . Auth::user()->lastname
+                        . "\nNomor Undangan: " . ($undangan->nomor_undangan ?? '-')
+                        . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s')
+                        . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+
+                    $qrService = new QrCodeService();
+                    $undangan->qr_approved_by = $qrService->generateWithLogo($qrText);
+
+                    // 3) Kirim ke tujuan (anti dobel)
+                    $tujuanUserIds = is_array($undangan->tujuan)
+                        ? $undangan->tujuan
+                        : explode(';', (string) $undangan->tujuan);
+
+                    foreach ($tujuanUserIds as $tujuanId) {
+                        $tujuanId = trim((string) $tujuanId);
+                        if ($tujuanId === '') continue;
+
+                        // skip pembuat (sesuai web controller)
+                        if ((int)$tujuanId === (int)$undangan->pembuat) continue;
+
+                        // anti duplikat kirim_document approve
+                        $exists = Kirim_Document::where([
+                            ['id_document', '=', $undangan->id_undangan],
+                            ['jenis_document', '=', 'undangan'],
+                            ['id_pengirim', '=', $undangan->pembuat],
+                            ['id_penerima', '=', $tujuanId],
+                            ['status', '=', 'approve'],
+                        ])->exists();
+
+                        if (!$exists) {
+                            Kirim_Document::create([
+                                'id_document' => $undangan->id_undangan,
+                                'jenis_document' => 'undangan',
+                                'id_pengirim' => $undangan->pembuat,
+                                'id_penerima' => $tujuanId,
+                                'status' => 'approve',
+                                'updated_at' => now(),
+                            ]);
+                        }
+
                         Notifikasi::create([
-                            'judul' => 'Undangan Masuk',
+                            'judul' => "Undangan Masuk",
                             'judul_document' => $undangan->judul,
                             'id_user' => $tujuanId,
                             'updated_at' => now(),
                         ]);
-                        $push->sendToUser(
-                            $tujuanId,
-                            'Undangan Masuk',
-                            $undangan->judul
-                        );
+
+                        $push->sendToUser($tujuanId, 'Undangan Masuk', $undangan->judul);
                     }
 
+                    // notif ke pembuat (sesuai web controller)
                     Notifikasi::create([
-                        'judul' => 'Undangan Disetujui',
+                        'judul' => "Undangan Disetujui dan Telah Terkirim",
                         'judul_document' => $undangan->judul,
                         'id_user' => $undangan->pembuat,
                         'updated_at' => now(),
                     ]);
-                    $push->sendToUser(
-                        $undangan->pembuat,
-                        'Undangan Disetujui',
-                        $undangan->judul
-                    );
-                    break;
-                case 'reject':
-                    $undangan->status = 'reject';
+                    $push->sendToUser($undangan->pembuat, 'Undangan Disetujui dan Telah Terkirim', $undangan->judul);
+
+                // =========================
+                // REJECT
+                // =========================
+                } elseif ($request->status === 'reject') {
                     $undangan->tgl_disahkan = now();
+
                     Notifikasi::create([
-                        'judul' => 'Undangan Ditolak',
+                        'judul' => "Undangan Ditolak",
                         'judul_document' => $undangan->judul,
                         'id_user' => $undangan->pembuat,
                         'updated_at' => now(),
                     ]);
-                    $push->sendToUser(
-                        $undangan->pembuat,
-                        'Undangan Ditolak',
-                        $undangan->judul
-                    );
-                    break;
-                case 'correction':
-                    $undangan->status = 'correction';
+                    $push->sendToUser($undangan->pembuat, 'Undangan Ditolak', $undangan->judul);
+
+                // =========================
+                // CORRECTION
+                // =========================
+                } elseif ($request->status === 'correction') {
+                    $undangan->tgl_disahkan = now();
+
                     Notifikasi::create([
-                        'judul' => 'Undangan Perlu Revisi',
+                        'judul' => "Undangan Perlu Dikoreksi",
                         'judul_document' => $undangan->judul,
                         'id_user' => $undangan->pembuat,
                         'updated_at' => now(),
                     ]);
-                    $push->sendToUser(
-                        $undangan->pembuat,
-                        'Undangan Perlu Revisi',
-                        $undangan->judul
-                    );
-                    break;
-            }
+                    $push->sendToUser($undangan->pembuat, 'Undangan Perlu Dikoreksi', $undangan->judul);
+                }
 
-            Kirim_Document::where('id_document', $undangan->id_undangan)
-                ->where('jenis_document', 'undangan')
-                ->where('id_penerima', $user->id)
-                ->update(['status' => $request->status ?? null]);
+                // Simpan catatan
+                $undangan->catatan = $request->catatan ?? null;
 
-            $undangan->catatan = $request->catatan ?? null;
-            $undangan->save();
+                // Save undangan
+                $undangan->save();
+            });
 
             return response()->json([
-                'status' => 'success',
-                'message' => 'Status dokumen berhasil diperbarui'
+                'status'  => 'success',
+                'message' => 'Status undangan berhasil diperbarui.',
+                'data' => [
+                    'id_undangan' => $undangan->id_undangan,
+                    'status_doc' => $undangan->status,
+                    'nomor_undangan' => $undangan->nomor_undangan,
+                    'tgl_disahkan' => $undangan->tgl_disahkan,
+                ]
             ], 200);
-        } catch (\Exception $e) {
+
+        } catch (\Throwable $e) {
+            Log::error('Error updateStatus Undangan API: ' . $e->getMessage(), [
+                'id_undangan' => $id,
+                'user_id' => Auth::id(),
+            ]);
+
             return response()->json([
-                'status' => 'error',
-                'message' => 'Terjadi kesalahan: ' . $e->getMessage()
+                'status'  => 'error',
+                'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
             ], 500);
         }
     }

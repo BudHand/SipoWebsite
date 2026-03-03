@@ -173,6 +173,7 @@ class UserController extends Controller
 
         return redirect()->route('user.manage')->with('success', 'Data user berhasil diperbarui');
     }
+
     public function destroy($id)
     {
         $user = User::find($id);

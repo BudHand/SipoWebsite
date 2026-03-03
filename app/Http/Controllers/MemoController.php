@@ -512,7 +512,7 @@ class MemoController extends Controller
         if ($user->role_id_role !== 1) {
             $managers = User::with('position:id_position,nm_position')
                 ->where('role_id_role', 3)
-                ->where('position_id_position', '!=', 9)
+                // ->where('position_id_position', '!=', 9)
                 ->where(function ($q) use ($user) {
                     $q->where(function ($q2) use ($user) {
                         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
@@ -2471,7 +2471,7 @@ class MemoController extends Controller
         if ($user->role_id_role !== 1) {
             $managers = User::with('position:id_position,nm_position')
                 ->where('role_id_role', 3)
-                ->where('position_id_position', '!=', 9)
+                // ->where('position_id_position', '!=', 9)
                 ->where(function ($q) use ($user) {
                     $q->where(function ($q2) use ($user) {
                         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);

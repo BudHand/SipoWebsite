@@ -87,7 +87,7 @@
                                 <th class="text-center" style="width:12%;">Tanggal Masuk</th>
                                 <th class="text-center" style="width:20%;">Dokumen</th>
                                 <th class="text-center" style="width:12%;">Tanggal Disahkan</th>
-                                <th class="text-center" style="width:10%;">Divisi</th>
+                                {{-- <th class="text-center" style="width:10%;">Kode Bagian</th> --}}
                                 <th class="text-center" style="width:8%;">Status</th>
                                 <th class="text-center" style="width:8%;">Aksi</th>
                             </tr>
@@ -121,7 +121,7 @@
                                         <td>{{ $kirim->memo->nomor_memo }}</td>
                                         <td>{{ $kirim->memo->tgl_disahkan ? \Carbon\Carbon::parse($kirim->memo->tgl_disahkan)->format('d-m-Y') : '-' }}
                                         </td>
-                                        <td class="text-center">{{ $kirim->memo->kode ?? '-' }}</td>
+                                        {{-- <td class="text-center">{{ $kirim->memo->kode_bagian ?? '-' }}</td> --}}
                                         <td class="text-center">
                                             @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
                                                 @if ($kirim->memo->status == 'reject')

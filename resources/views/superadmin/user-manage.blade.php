@@ -365,74 +365,109 @@
                                                         </div>
                                                     </div>
 
-                                                    {{-- Organisasi & Posisi --}}
+                                                    {{-- ===================== ORGANISASI & POSISI (EDIT USER) ===================== --}}
                                                     <div class="card border-0 shadow-sm mb-3">
                                                         <div class="card-header bg-white">
                                                             <h6 class="mb-0 fw-semibold text-warning">
                                                                 <i class="fas fa-building me-2"></i>Organisasi & Posisi
                                                             </h6>
                                                         </div>
+
                                                         <div class="card-body">
                                                             <div class="row g-3">
+                                                                {{-- ORGANISASI --}}
                                                                 <div class="col-md-6">
                                                                     <label class="form-label fw-semibold">
                                                                         <i
                                                                             class="fas fa-sitemap text-muted me-1"></i>Organisasi
                                                                         <span class="text-danger">*</span>
                                                                     </label>
+
                                                                     @php
-                                                                        $orgName =
-                                                                            $user->unit->name_unit ??
-                                                                            ($user->section->name_section ??
-                                                                                ($user->department->name_department ??
-                                                                                    ($user->divisi->nm_divisi ??
-                                                                                        ($user->director
-                                                                                            ->name_director ??
-                                                                                            '-'))));
+                                                                        $selectedType = $user->unit_id_unit
+                                                                            ? 'unit'
+                                                                            : ($user->section_id_section
+                                                                                ? 'section'
+                                                                                : ($user->department_id_department
+                                                                                    ? 'department'
+                                                                                    : ($user->divisi_id_divisi
+                                                                                        ? 'divisi'
+                                                                                        : ($user->director_id_director
+                                                                                            ? 'director'
+                                                                                            : null))));
+
+                                                                        $selectedId =
+                                                                            $selectedType === 'unit'
+                                                                                ? $user->unit_id_unit
+                                                                                : ($selectedType === 'section'
+                                                                                    ? $user->section_id_section
+                                                                                    : ($selectedType === 'department'
+                                                                                        ? $user->department_id_department
+                                                                                        : ($selectedType === 'divisi'
+                                                                                            ? $user->divisi_id_divisi
+                                                                                            : ($selectedType ===
+                                                                                            'director'
+                                                                                                ? $user->director_id_director
+                                                                                                : null))));
                                                                     @endphp
+
                                                                     <select class="form-select parent_id_select"
                                                                         name="parent_id" required>
-                                                                        <option value="{{ $user->parent_id ?? '' }}"
-                                                                            selected>
-                                                                            {{ $orgName }}
+                                                                        <option value="">-- Pilih Organisasi --
                                                                         </option>
-                                                                        @php
-                                                                            if ($mainDirector) {
-                                                                                renderOrgOptions($mainDirector);
-                                                                            }
-                                                                        @endphp
+
+                                                                        @foreach ($orgOptions as $opt)
+                                                                            <option value="{{ $opt['value'] }}"
+                                                                                data-type="{{ $opt['type'] }}"
+                                                                                {{ (string) $opt['value'] === (string) $selectedId ? 'selected' : '' }}>
+                                                                                {!! $opt['label'] !!}
+                                                                            </option>
+                                                                        @endforeach
                                                                     </select>
+
+                                                                    <input type="hidden" name="parent_type"
+                                                                        class="parent_type_input"
+                                                                        value="{{ $selectedType ?? '' }}">
+
+
                                                                     <small class="text-muted">
                                                                         <i class="fas fa-info-circle me-1"></i>
                                                                         Biarkan pilihan awal jika tidak ingin mengubah
                                                                     </small>
+
+                                                                    {{-- IMPORTANT:
+                                                                        - value diisi dari server agar tidak kosong walau user tidak klik dropdown
+                                                                        - script akan tetap meng-sync saat change
+                                                                    --}}
                                                                     <input type="hidden" name="parent_type"
-                                                                        class="parent_type_input">
+                                                                        class="parent_type_input"
+                                                                        value="{{ $selectedType ?? '' }}">
                                                                 </div>
+
+                                                                {{-- POSISI --}}
                                                                 <div class="col-md-6">
                                                                     <label class="form-label fw-semibold">
                                                                         <i
                                                                             class="fas fa-briefcase text-muted me-1"></i>Posisi
                                                                         <span class="text-danger">*</span>
                                                                     </label>
+
                                                                     <select name="position_id_position"
                                                                         class="form-select" required>
-                                                                        <option
-                                                                            value="{{ $user->position->id_position }}">
-                                                                            {{ $user->position->nm_position }}
-                                                                        </option>
+                                                                        <option value="">-- Pilih Posisi --</option>
+
                                                                         @foreach ($positions as $p)
-                                                                            @if ($p->id_position != $user->position->id_position)
-                                                                                <option value="{{ $p->id_position }}">
-                                                                                    {{ $p->nm_position }}
-                                                                                </option>
-                                                                            @endif
+                                                                            <option value="{{ $p->id_position }}"
+                                                                                {{ (string) $p->id_position === (string) ($user->position_id_position ?? '') ? 'selected' : '' }}>
+                                                                                {{ $p->nm_position }}
+                                                                            </option>
                                                                         @endforeach
                                                                     </select>
                                                                 </div>
                                                             </div>
                                                         </div>
                                                     </div>
+
 
                                                     {{-- Hak Akses & Kode Bagian --}}
                                                     <div class="card border-0 shadow-sm">
@@ -545,7 +580,8 @@
                                                                         <small class="fw-semibold">
                                                                             <i class="fas fa-check-circle me-1"></i>
                                                                             Terpilih saat ini
-                                                                            ({{ count($selectedKodeBagian) }}):
+                                                                            ({{ count($selectedKodeBagian) }})
+                                                                            :
                                                                         </small>
                                                                         <div class="mt-2">
                                                                             @foreach ($selectedKodeBagian as $kode)
@@ -1470,17 +1506,33 @@
                 });
             });
         });
-        document.querySelectorAll('.parent_id_select').forEach(function(select) {
-            select.addEventListener('change', function() {
-                var selectedOption = this.options[this.selectedIndex];
-                var type = selectedOption.getAttribute('data-type');
 
-                // cari hidden input di parent div yang sama
-                var hiddenInput = this.closest('.col-md-6').querySelector('.parent_type_input');
-                hiddenInput.value = type;
-                console.log('Selected type:', type, 'for parent ID:', this.value);
+        // Function untuk mengupdate parent_type saat parent_id berubah
+        document.querySelectorAll('.parent_id_select').forEach(function(select) {
+
+            // set parent_type saat pilihan berubah
+            select.addEventListener('change', function() {
+                const selectedOption = this.options[this.selectedIndex];
+                const type = selectedOption ? selectedOption.getAttribute('data-type') : '';
+
+                const hiddenInput = this.closest('.col-md-6').querySelector('.parent_type_input');
+                if (hiddenInput) hiddenInput.value = type || '';
             });
+
+            // ✅ trigger sekali supaya nilai awal ikut terset
+            select.dispatchEvent(new Event('change'));
         });
+        // document.querySelectorAll('.parent_id_select').forEach(function(select) {
+        //     select.addEventListener('change', function() {
+        //         var selectedOption = this.options[this.selectedIndex];
+        //         var type = selectedOption.getAttribute('data-type');
+
+        //         // cari hidden input di parent div yang sama
+        //         var hiddenInput = this.closest('.col-md-6').querySelector('.parent_type_input');
+        //         hiddenInput.value = type;
+        //         console.log('Selected type:', type, 'for parent ID:', this.value);
+        //     });
+        // });
 
         //Create parent type
         document.getElementById('parent_id').addEventListener('change', function() {

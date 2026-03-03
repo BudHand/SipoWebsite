@@ -106,7 +106,7 @@
                                 <th class="text-center" style="width:12%;">Tanggal Masuk</th>
                                 <th class="text-center" style="width:20%;">Dokumen</th>
                                 <th class="text-center" style="width:12%;">Tanggal Disahkan</th>
-                                <th class="text-center" style="width:10%;">Divisi</th>
+                                <th class="text-center" style="width:10%;">Kode Bagian</th>
                                 <th class="text-center" style="width:8%;">Status</th>
                                 <th class="text-center" style="width:8%;">Aksi</th>
                             </tr>
@@ -129,7 +129,7 @@
                                         <td>{{ $memo->nomor_memo ?? '-' }}</td>
                                         <td>{{ $memo->tgl_disahkan ? \Carbon\Carbon::parse($memo->tgl_disahkan)->format('d-m-Y') : '-' }}
                                         </td>
-                                        <td class="text-center">{{ $memo->kode ?? '-' }}</td>
+                                        <td class="text-center">{{ $memo->kode_bagian ?? '-' }}</td>
                                         </td>
                                         <td class="text-center">
                                             @if ($memo->status == 'reject')

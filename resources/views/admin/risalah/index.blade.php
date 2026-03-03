@@ -109,7 +109,7 @@
                                 {{-- <th class="text-center" style="width:2%;">Seri</th> --}}
                                 <th class="text-center" style="width:20%;">Dokumen</th>
                                 <th class="text-center" style="width:12%;">Tanggal Disahkan</th>
-                                <th class="text-center" style="width:10%;">Divisi</th>
+                                <th class="text-center" style="width:10%;">Kode Bagian</th>
                                 <th class="text-center" style="width:10%;">Tipe</th>
                                 <th class="text-center" style="width:8%;">Status</th>
                                 <th class="text-center" style="width:8%;">Aksi</th>
@@ -134,9 +134,10 @@
                                         <td>{{ $risalah->nomor_risalah }}</td>
                                         <td>{{ $risalah->tgl_disahkan ? \Carbon\Carbon::parse($risalah->tgl_disahkan)->format('d-m-Y') : '-' }}
                                         </td>
-                                        <td class="text-center">
+                                        {{-- <td class="text-center">
                                             {{ $risalah->user->department->kode_department ?? ($risalah->user->divisi->kode_divisi ?? '-') }}
-                                        </td>
+                                        </td> --}}
+                                        <td class="text-center">{{ $risalah->kode_bagian ?? 'No Divisi Assigned' }}</td>
                                         <td>
                                             @if ($risalah->with_undangan)
                                                 <span class="badge px-3 py-2" style="background-color:#35A29F;">

@@ -47,10 +47,7 @@ class KirimController extends Controller
             if ($memo->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
                 $memo->final_status = $memo->status;
             } else {
-                $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)
-                    ->where('jenis_document', 'memo')
-                    ->where('id_penerima', $userId)
-                    ->first();
+                $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->where('id_penerima', $userId)->first();
                 $memo->final_status = $statusKirim ? $statusKirim->status : '-';
             }
             return view('admin.memo.kirim-memoAdmin', compact('user', 'divisi', 'memo', 'position'));
@@ -58,10 +55,7 @@ class KirimController extends Controller
             if ($undangan->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
                 $undangan->final_status = $undangan->status;
             } else {
-                $statusKirim = Kirim_Document::where('id_document', $undangan->id_undangan)
-                    ->where('jenis_document', 'undangan')
-                    ->where('id_penerima', $userId)
-                    ->first();
+                $statusKirim = Kirim_Document::where('id_document', $undangan->id_undangan)->where('jenis_document', 'undangan')->where('id_penerima', $userId)->first();
                 $undangan->final_status = $statusKirim ? $statusKirim->status : '-';
             }
             return view('admin.undangan.kirim-undanganAdmin', compact('user', 'divisi', 'undangan', 'position'));
@@ -72,8 +66,7 @@ class KirimController extends Controller
                 $statusKirim = Kirim_Document::where('id_document', $risalah->id_risalah)
                     ->where('jenis_document', 'risalah')
                     ->where(function ($query) use ($userId) {
-                        $query->where('id_penerima', $userId)
-                            ->orWhere('id_pengirim', $userId);
+                        $query->where('id_penerima', $userId)->orWhere('id_pengirim', $userId);
                     })
                     ->first();
 
@@ -103,10 +96,8 @@ class KirimController extends Controller
         return view('manager.undangan.persetujuan-undangan', compact('user', 'divisi', 'undangan', 'position'));
     }
 
-
     public function sendDocument(Request $request)
     {
-
         // dd($request->all());
         $request->validate([
             'id_document' => 'required',
@@ -114,15 +105,12 @@ class KirimController extends Controller
             'divisi_penerima' => 'required|exists:divisi,id_divisi', // Pastikan divisi ada
         ]);
 
-
         $documentid = $request->id_document;
         $posisiPenerima = $request->posisi_penerima;
         $divisiPenerima = $request->divisi_penerima;
 
         // Cari semua user dengan posisi dan divisi yang dipilih
-        $penerimaUsers = User::where('position_id_position', $posisiPenerima)
-            ->where('divisi_id_divisi', $divisiPenerima)
-            ->get();
+        $penerimaUsers = User::where('position_id_position', $posisiPenerima)->where('divisi_id_divisi', $divisiPenerima)->get();
 
         if ($penerimaUsers->isEmpty()) {
             return redirect()->back()->with('error', 'Tidak ada user yang sesuai dengan kriteria penerima.');
@@ -148,9 +136,6 @@ class KirimController extends Controller
             }
         }
 
-
-
-
         // Simpan pengiriman memo ke setiap penerima
         foreach ($penerimaUsers as $user) {
             Kirim_Document::create([
@@ -166,7 +151,6 @@ class KirimController extends Controller
         if (Auth::user()->role->nm_role == 'manager') {
             return redirect($previousUrl)->with('success', 'Dokumen berhasil dikirim.');
         } else {
-
             return redirect()->back()->with('success', 'Dokumen berhasil dikirim.');
         }
     }
@@ -179,23 +163,14 @@ class KirimController extends Controller
         $sortBy = $request->get('sort_by', 'kirim_document.id_kirim_document');
         $sortDirection = $request->get('sort_direction', 'desc');
 
-        $allowedSorts = [
-            'kirim_document.id_kirim_document',
-            'memo.tgl_dibuat',
-            'memo.tgl_disahkan',
-            'memo.judul',
-            'memo.nomor_memo'
-        ];
+        $allowedSorts = ['kirim_document.id_kirim_document', 'memo.tgl_dibuat', 'memo.tgl_disahkan', 'memo.judul', 'memo.nomor_memo'];
 
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'kirim_document.id_kirim_document';
         }
 
         // Get archived memo document IDs for this user
-        $memoDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Memo')
-            ->pluck('document_id')
-            ->toArray();
+        $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Memo')->pluck('document_id')->toArray();
 
         $memoTerkirim = Kirim_Document::query()
             ->where('jenis_document', 'memo')
@@ -203,19 +178,18 @@ class KirimController extends Controller
                 $q->where('id_pengirim', $userId)
                     //->orWhere('id_penerima', $userId)
                     ->orWhere(function ($q2) {
-                        $q2->where('jenis_document', 'memo')
+                        $q2->where(
+                            'jenis_document',
+                            'memo',
                             // ->where('status', '!=', 'approve')
-                        ;
+                        );
                     });
             })
             ->whereNotIn('id_document', $memoDiarsipkan)
             ->whereHas('memo', function ($query) use ($request, $userKode) {
-
                 $query->where(function ($q) use ($userKode) {
-                    $q->where('kode', $userKode)
-                        ->orWhere('nama_bertandatangan', Auth::user()->fullname);
+                    $q->where('kode', $userKode)->orWhere('nama_bertandatangan', Auth::user()->fullname);
                 });
-
 
                 if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
                     $tgl_awal = $request->date('tgl_dibuat_awal') ?? null;
@@ -229,8 +203,7 @@ class KirimController extends Controller
 
                 if ($request->filled('search')) {
                     $query->where(function ($q) use ($request) {
-                        $q->where('judul', 'like', '%' . $request->search . '%')
-                            ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                        $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
                     });
                 }
 
@@ -240,15 +213,14 @@ class KirimController extends Controller
                 //dd($query->toSql(), $query->getBindings());
             })
             ->whereIn('id_kirim_document', function ($subQuery) {
-                $subQuery->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->groupBy('id_document');
+                $subQuery->selectRaw('MIN(id_kirim_document)')->from('kirim_document')->groupBy('id_document');
             })
             ->with('memo');
 
         if (Str::startsWith($sortBy, 'memo.')) {
             $memoColumn = Str::after($sortBy, 'memo.');
-            $memoTerkirim->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
+            $memoTerkirim
+                ->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
                 ->orderBy("memo.$memoColumn", $sortDirection)
                 ->select('kirim_document.*'); // agar tetap menghasilkan Kirim_Document model
         } else {
@@ -270,27 +242,14 @@ class KirimController extends Controller
         session(['previous_url' => url()->previous()]);
         $sortBy = $request->get('sort_by', 'kirim_document.id_kirim_document');
         $sortDirection = $request->get('sort_direction', 'desc');
-        $kode = Memo::whereNotNull('kode')
-            ->pluck('kode')
-            ->filter()
-            ->unique()
-            ->values();
-        $allowedSorts = [
-            'kirim_document.id_kirim_document',
-            'memo.tgl_dibuat',
-            'memo.tgl_disahkan',
-            'memo.judul',
-            'memo.nomor_memo'
-        ];
+        $kode = Memo::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+        $allowedSorts = ['kirim_document.id_kirim_document', 'memo.tgl_dibuat', 'memo.tgl_disahkan', 'memo.judul', 'memo.nomor_memo'];
 
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'kirim_document.id_kirim_document';
         }
         // Get archived memo document IDs for this user
-        $memoDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Memo')
-            ->pluck('document_id')
-            ->toArray();
+        $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Memo')->pluck('document_id')->toArray();
 
         $memoDiterima = Kirim_Document::where('jenis_document', 'memo')
             ->where('id_penerima', $userId)
@@ -309,8 +268,7 @@ class KirimController extends Controller
 
                 if ($request->filled('search')) {
                     $query->where(function ($q2) use ($request) {
-                        $q2->where('judul', 'like', '%' . $request->search . '%')
-                            ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                        $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
                     });
                 }
 
@@ -319,17 +277,14 @@ class KirimController extends Controller
                 }
             })
             ->whereIn('id_kirim_document', function ($subQuery) use ($userId) {
-                $subQuery->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->where('jenis_document', 'memo')
-                    ->where('id_penerima', $userId)
-                    ->groupBy('id_document');
+                $subQuery->selectRaw('MIN(id_kirim_document)')->from('kirim_document')->where('jenis_document', 'memo')->where('id_penerima', $userId)->groupBy('id_document');
             })
             ->with('memo');
 
         if (Str::startsWith($sortBy, 'memo.')) {
             $memoColumn = Str::after($sortBy, 'memo.');
-            $memoDiterima->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
+            $memoDiterima
+                ->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
                 ->orderBy("memo.$memoColumn", $sortDirection)
                 ->select('kirim_document.*');
         } else {
@@ -344,41 +299,33 @@ class KirimController extends Controller
 
     public function undangan(Request $request)
     {
-        $userId =  auth()->id();
+        $userId = auth()->id();
         $filterType = $request->get('userid_filter', 'both');
         $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
         $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
-        $kode = Undangan::whereNotNull('kode')
-            ->pluck('kode')
-            ->filter()
-            ->unique()
-            ->values();
-        $allowedSorts = [
-            'kirim_document.id_kirim_document',
-            'undangan.tgl_dibuat',
-            'undangan.tgl_disahkan',
-            'undangan.judul',
-            'undangan.nomor_undangan',
-            'tgl_rapat_diff'
-        ];
+        $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+        $allowedSorts = ['kirim_document.id_kirim_document', 'undangan.tgl_dibuat', 'undangan.tgl_disahkan', 'undangan.judul', 'undangan.nomor_undangan', 'tgl_rapat_diff'];
 
-        if (!in_array($sortBy, $allowedSorts)) $sortBy = 'tgl_rapat_diff';
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'tgl_rapat_diff';
+        }
 
         // Ambil id_kirim_document terkecil tiap id_document
-        $subQuery = Kirim_Document::where('jenis_document', 'undangan')
-            ->where(function ($q) use ($userId, $filterType) {
-                if ($filterType === 'own') {
-                    $q->where('id_pengirim', $userId);
-                } elseif ($filterType === 'other') {
-                    $q->where('id_penerima', $userId);
-                } else {
-                    $q->where(function ($q2) use ($userId) {
-                        $q2->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-                    });
-                }
-            });
+        $subQuery = Kirim_Document::where('jenis_document', 'undangan')->where(function ($q) use ($userId, $filterType) {
+            if ($filterType === 'own') {
+                $q->where('id_pengirim', $userId);
+            } elseif ($filterType === 'other') {
+                $q->where('id_penerima', $userId);
+            } else {
+                $q->where(function ($q2) use ($userId) {
+                    $q2->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
+                });
+            }
+        });
 
-        if ($request->filled('status')) $subQuery->where('status', $request->status);
+        if ($request->filled('status')) {
+            $subQuery->where('status', $request->status);
+        }
 
         $subQuery->whereHas('undangan', function ($q) use ($request) {
             if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
@@ -391,8 +338,7 @@ class KirimController extends Controller
 
             if ($request->filled('search')) {
                 $q->where(function ($q2) use ($request) {
-                    $q2->where('judul', 'like', '%' . $request->search . '%')
-                        ->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
+                    $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
                 });
             }
             if ($request->filled('kode')) {
@@ -400,15 +346,10 @@ class KirimController extends Controller
             }
         });
 
-        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')
-            ->groupBy('id_document')
-            ->pluck('id_kirim_document');
+        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')->groupBy('id_document')->pluck('id_kirim_document');
 
         // 🔹 Ambil semua undangan yang sudah diarsipkan user ini
-        $undanganDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Undangan')
-            ->pluck('document_id')
-            ->toArray();
+        $undanganDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Undangan')->pluck('document_id')->toArray();
 
         // Query utama kirim_document + undangan
         $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
@@ -417,17 +358,23 @@ class KirimController extends Controller
 
         // Sorting
         if ($sortBy == 'tgl_rapat_diff') {
-            $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
-                ->orderByRaw("
+            $undangans
+                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+                ->orderByRaw(
+                    "
                 CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC
-            ")
-                ->orderByRaw("
+            ",
+                )
+                ->orderByRaw(
+                    "
                 ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}
-            ")
+            ",
+                )
                 ->select('kirim_document.*');
         } elseif (Str::startsWith($sortBy, 'undangan.')) {
             $field = Str::after($sortBy, 'undangan.');
-            $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+            $undangans
+                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
                 ->orderBy("undangan.$field", $sortDirection)
                 ->select('kirim_document.*');
         } else {
@@ -447,10 +394,7 @@ class KirimController extends Controller
                 $undangan->jenis = 'keluar';
             } else {
                 // Undangan masuk ke user
-                $statusKirim = Kirim_Document::where('id_document', $undangan->id_document)
-                    ->where('jenis_document', 'undangan')
-                    ->where('id_penerima', $userId)
-                    ->first();
+                $statusKirim = Kirim_Document::where('id_document', $undangan->id_document)->where('jenis_document', 'undangan')->where('id_penerima', $userId)->first();
 
                 $undangan->final_status = $statusKirim ? $statusKirim->status : '-';
                 $undangan->jenis = 'masuk';
@@ -458,7 +402,6 @@ class KirimController extends Controller
 
             return $undangan;
         });
-
 
         return view('manager.undangan.undangan', compact('undangans', 'sortBy', 'sortDirection', 'kode'));
     }
@@ -471,29 +414,21 @@ class KirimController extends Controller
         $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
         $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
 
-        $kode = Undangan::whereNotNull('kode')
-            ->pluck('kode')
-            ->filter()
-            ->unique()
-            ->values();
+        $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
 
-        $allowedSorts = [
-            'kirim_document.id_kirim_document',
-            'undangan.tgl_dibuat',
-            'undangan.tgl_disahkan',
-            'undangan.judul',
-            'undangan.nomor_undangan',
-            'tgl_rapat_diff'
-        ];
-        if (!in_array($sortBy, $allowedSorts)) $sortBy = 'tgl_rapat_diff';
+        $allowedSorts = ['kirim_document.id_kirim_document', 'undangan.tgl_dibuat', 'undangan.tgl_disahkan', 'undangan.judul', 'undangan.nomor_undangan', 'tgl_rapat_diff'];
+        if (!in_array($sortBy, $allowedSorts)) {
+            $sortBy = 'tgl_rapat_diff';
+        }
 
         // HANYA BERBEDA DI SINI: fix ke id_penerima = user login
-        $subQuery = Kirim_Document::where('jenis_document', 'undangan')
-            ->where(function ($q) use ($userId) {
-                $q->where('id_penerima', $userId);
-            });
+        $subQuery = Kirim_Document::where('jenis_document', 'undangan')->where(function ($q) use ($userId) {
+            $q->where('id_penerima', $userId);
+        });
 
-        if ($request->filled('status')) $subQuery->where('status', $request->status);
+        if ($request->filled('status')) {
+            $subQuery->where('status', $request->status);
+        }
 
         $subQuery->whereHas('undangan', function ($q) use ($request, $userKode) {
             // filter by user's div/dept code: only undangan not from same kode (received)
@@ -508,8 +443,7 @@ class KirimController extends Controller
 
             if ($request->filled('search')) {
                 $q->where(function ($q2) use ($request) {
-                    $q2->where('judul', 'like', '%' . $request->search . '%')
-                        ->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
+                    $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
                 });
             }
             if ($request->filled('kode')) {
@@ -517,27 +451,22 @@ class KirimController extends Controller
             }
         });
 
-        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')
-            ->groupBy('id_document')
-            ->pluck('id_kirim_document');
+        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')->groupBy('id_document')->pluck('id_kirim_document');
 
-        $undanganDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Undangan')
-            ->pluck('document_id')
-            ->toArray();
+        $undanganDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Undangan')->pluck('document_id')->toArray();
 
-        $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
-            ->whereNotIn('id_document', $undanganDiarsipkan)
-            ->with('undangan');
+        $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)->whereNotIn('id_document', $undanganDiarsipkan)->with('undangan');
 
         if ($sortBy == 'tgl_rapat_diff') {
-            $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
-                ->orderByRaw("CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC")
+            $undangans
+                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+                ->orderByRaw('CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC')
                 ->orderByRaw("ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}")
                 ->select('kirim_document.*');
         } elseif (Str::startsWith($sortBy, 'undangan.')) {
             $field = Str::after($sortBy, 'undangan.');
-            $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+            $undangans
+                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
                 ->orderBy("undangan.$field", $sortDirection)
                 ->select('kirim_document.*');
         } else {
@@ -563,23 +492,14 @@ class KirimController extends Controller
         // Ambil kode departemen dari semua memo
         $kode = Memo::whereNotNull('kode')->pluck('kode')->unique()->values();
 
-        $allowedSorts = [
-            'kirim_document.id_kirim_document',
-            'memo.tgl_dibuat',
-            'memo.tgl_disahkan',
-            'memo.judul',
-            'memo.nomor_memo'
-        ];
+        $allowedSorts = ['kirim_document.id_kirim_document', 'memo.tgl_dibuat', 'memo.tgl_disahkan', 'memo.judul', 'memo.nomor_memo'];
 
         if (!in_array($sortBy, $allowedSorts)) {
             $sortBy = 'memo.tgl_dibuat';
         }
 
         // Ambil semua memo yang sudah diarsipkan user ini
-        $memoDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Memo')
-            ->pluck('document_id')
-            ->toArray();
+        $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Memo')->pluck('document_id')->toArray();
 
         // 🔹 Subquery untuk ambil id_kirim terkecil tiap dokumen
         $subQuery = Kirim_Document::where('jenis_document', 'memo')->where(function ($q) use ($userId, $filterType) {
@@ -594,7 +514,9 @@ class KirimController extends Controller
             }
         });
 
-        if ($request->filled('status')) $subQuery->where('kirim_document.status', $request->status);
+        if ($request->filled('status')) {
+            $subQuery->where('kirim_document.status', $request->status);
+        }
 
         $subQuery->whereHas('memo', function ($q) use ($request) {
             if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
@@ -607,27 +529,25 @@ class KirimController extends Controller
 
             if ($request->filled('search')) {
                 $q->where(function ($q2) use ($request) {
-                    $q2->where('judul', 'like', '%' . $request->search . '%')
-                        ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                    $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
                 });
             }
 
-            if ($request->filled('kode')) $q->where('kode', $request->kode);
+            if ($request->filled('kode')) {
+                $q->where('kode', $request->kode);
+            }
         });
 
-        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')
-            ->groupBy('id_document')
-            ->pluck('id_kirim_document');
+        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')->groupBy('id_document')->pluck('id_kirim_document');
 
         // 🔹 Query utama
-        $memos = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
-            ->whereNotIn('id_document', $memoDiarsipkan)
-            ->with('memo');
+        $memos = Kirim_Document::whereIn('id_kirim_document', $idKirimList)->whereNotIn('id_document', $memoDiarsipkan)->with('memo');
 
         // 🔹 Sorting
         if (Str::startsWith($sortBy, 'memo.')) {
             $field = Str::after($sortBy, 'memo.');
-            $memos->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
+            $memos
+                ->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
                 ->orderBy("memo.$field", $sortDirection)
                 ->select('kirim_document.*');
         } else {
@@ -648,10 +568,7 @@ class KirimController extends Controller
                 $memo->jenis = 'keluar';
             } else {
                 // Memo masuk ke user
-                $statusKirim = Kirim_Document::where('id_document', $memo->id_document)
-                    ->where('jenis_document', 'memo')
-                    ->where('id_penerima', $userId)
-                    ->first();
+                $statusKirim = Kirim_Document::where('id_document', $memo->id_document)->where('jenis_document', 'memo')->where('id_penerima', $userId)->first();
 
                 $memo->final_status = $statusKirim ? $statusKirim->status : '-';
                 $memo->jenis = 'masuk';
@@ -662,106 +579,201 @@ class KirimController extends Controller
         return view('manager.memo.memo', compact('memos', 'sortBy', 'sortDirection', 'kode'));
     }
 
-
     public function undanganTerkirim(Request $request)
     {
-        $userId = Auth::user()->id;
+        $userId = Auth::id();
+
+        // Ambil kode div/dept user (sesuaikan method kamu)
         $undanganController = new UndanganController();
         $userKode = $undanganController->getDivDeptKode(Auth::user());
 
+        $userFullname = trim((string) Auth::user()->fullname);
+
+        // Sort
         $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
         $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
 
-        $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
-        $allowedSorts = [
-            'kirim_document.id_kirim_document',
-            'undangan.tgl_dibuat',
-            'undangan.tgl_disahkan',
-            'undangan.judul',
-            'undangan.nomor_undangan',
-            'tgl_rapat_diff',
-        ];
-        if (!in_array($sortBy, $allowedSorts)) $sortBy = 'tgl_rapat_diff';
-
-        // === MIRROR memoTerkirim(): ambil semua kirim_document tipe 'undangan' dari kode yang sama ===
-        $subQuery = Kirim_Document::where('jenis_document', 'undangan');
-
-        // (Biarkan filter status opsional saja; sama seperti memoTerkirim yang tidak memaksa)
-        if ($request->filled('status')) {
-            $subQuery->where('status', $request->status);
+        $allowedSorts = ['kirim_document.id_kirim_document', 'undangan.tgl_dibuat', 'undangan.tgl_disahkan', 'undangan.judul', 'undangan.nomor_undangan', 'tgl_rapat_diff'];
+        if (!in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'tgl_rapat_diff';
         }
 
-        $subQuery->whereHas('undangan', function ($q) use ($request, $userKode) {
-            $q->where('kode', $userKode); // terkirim = dari kode kita sendiri
+        // Dropdown kode (optional)
+        $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
 
-            if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
-                $q->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
-            } elseif ($request->filled('tgl_dibuat_awal')) {
-                $q->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
-            } elseif ($request->filled('tgl_dibuat_akhir')) {
-                $q->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
-            }
+        // Exclude arsip
+        $undanganDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Undangan')->pluck('document_id')->toArray();
 
-            if ($request->filled('search')) {
-                $q->where(function ($q2) use ($request) {
-                    $q2->where('judul', 'like', '%' . $request->search . '%')
-                        ->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
-                });
-            }
-            if ($request->filled('kode')) {
-                $q->where('kode', $request->kode);
-            }
+        /**
+         * Base query: kirim_document JOIN undangan
+         * - join lebih "kebal" dibanding whereHas jika relasi model bermasalah
+         */
+        $base = Kirim_Document::query()->from('kirim_document')->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')->where('kirim_document.jenis_document', 'undangan')->whereNotIn('kirim_document.id_document', $undanganDiarsipkan);
+
+        // Filter "terkirim" versi kamu (mirror memo): kode sama ATAU dia yang bertandatangan
+        $base->where(function ($q) use ($userKode, $userFullname) {
+            $q->where('undangan.kode', $userKode)->orWhereRaw('LOWER(TRIM(undangan.nama_bertandatangan)) = LOWER(?)', [$userFullname]);
         });
 
-        // Ambil kiriman pertama per dokumen UNTUK user ini (mirror memoTerkirim)
-        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')
-            ->groupBy('id_document')
-            ->pluck('id_kirim_document');
+        // Filter status (kirim_document.status)
+        if ($request->filled('status')) {
+            $base->where('kirim_document.status', $request->status);
+        }
 
-        // Exclude arsip (mirror memo)
-        $undanganDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Undangan')
-            ->pluck('document_id')
-            ->toArray();
+        // Filter kode dropdown (kalau user memilih kode tertentu)
+        if ($request->filled('kode')) {
+            $base->where('undangan.kode', $request->kode);
+        }
 
-        $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
-            ->whereNotIn('id_document', $undanganDiarsipkan)
-            ->with('undangan');
+        // Filter tanggal dibuat (undangan.tgl_dibuat)
+        if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+            $tglAwal = $request->date('tgl_dibuat_awal');
+            $tglAkhir = $request->date('tgl_dibuat_akhir');
+            $base->whereBetween('undangan.tgl_dibuat', [$tglAwal, $tglAkhir]);
+        } elseif ($request->filled('tgl_dibuat_awal')) {
+            $base->whereDate('undangan.tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+        } elseif ($request->filled('tgl_dibuat_akhir')) {
+            $base->whereDate('undangan.tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
+        }
 
-        // Sorting (tetap pakai fitur tgl_rapat_diff milik undangan)
-        if ($sortBy == 'tgl_rapat_diff') {
-            $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
-                ->orderByRaw("CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC")
-                ->orderByRaw("ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}")
+        // Search (judul / nomor_undangan)
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $base->where(function ($q) use ($search) {
+                $q->where('undangan.judul', 'like', "%{$search}%")->orWhere('undangan.nomor_undangan', 'like', "%{$search}%");
+            });
+        }
+
+        /**
+         * Dedup per dokumen: ambil kirim_document TERAKHIR per id_document
+         * - gunakan MAX supaya tampil record terbaru
+         */
+        $idKirimList = (clone $base)->selectRaw('MAX(kirim_document.id_kirim_document) AS id_kirim_document')->groupBy('kirim_document.id_document')->pluck('id_kirim_document');
+
+        /**
+         * Final query: ambil Kirim_Document model
+         * NOTE: tetap join untuk sorting undangan, lalu eager-load relasi untuk view.
+         */
+        $undangans = Kirim_Document::query()->from('kirim_document')->whereIn('kirim_document.id_kirim_document', $idKirimList)->with('undangan');
+
+        // Sorting
+        if ($sortBy === 'tgl_rapat_diff') {
+            $undangans
+                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+                ->orderByRaw('CASE WHEN DATEDIFF(undangan.tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC')
+                ->orderByRaw("ABS(DATEDIFF(undangan.tgl_rapat, CURDATE())) {$sortDirection}")
                 ->select('kirim_document.*');
         } elseif (Str::startsWith($sortBy, 'undangan.')) {
             $field = Str::after($sortBy, 'undangan.');
-            $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+            $undangans
+                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
                 ->orderBy("undangan.$field", $sortDirection)
                 ->select('kirim_document.*');
         } else {
             $undangans->orderBy($sortBy, $sortDirection);
         }
 
-        $perPage = $request->get('per_page', 10);
-        $undangans = $undangans->paginate($perPage);
+        // Pagination
+        $perPage = (int) $request->get('per_page', 10);
+        $undangans = $undangans->paginate($perPage)->appends($request->query());
 
         return view('manager.undangan.undangan-terkirim', compact('undangans', 'sortBy', 'sortDirection', 'kode'));
     }
+    // public function undanganTerkirim(Request $request)
+    // {
+    //     $userId = Auth::user()->id;
+    //     $undanganController = new UndanganController();
+    //     $userKode = $undanganController->getDivDeptKode(Auth::user());
 
+    //     $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
+    //     $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
+
+    //     $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+    //     $allowedSorts = [
+    //         'kirim_document.id_kirim_document',
+    //         'undangan.tgl_dibuat',
+    //         'undangan.tgl_disahkan',
+    //         'undangan.judul',
+    //         'undangan.nomor_undangan',
+    //         'tgl_rapat_diff',
+    //     ];
+    //     if (!in_array($sortBy, $allowedSorts)) $sortBy = 'tgl_rapat_diff';
+
+    //     // === MIRROR memoTerkirim(): ambil semua kirim_document tipe 'undangan' dari kode yang sama ===
+    //     $subQuery = Kirim_Document::where('jenis_document', 'undangan');
+
+    //     // (Biarkan filter status opsional saja; sama seperti memoTerkirim yang tidak memaksa)
+    //     if ($request->filled('status')) {
+    //         $subQuery->where('status', $request->status);
+    //     }
+
+    //     $subQuery->whereHas('undangan', function ($q) use ($request, $userKode) {
+    //         $q->where('kode', $userKode); // terkirim = dari kode kita sendiri
+
+    //         if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+    //             $q->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
+    //         } elseif ($request->filled('tgl_dibuat_awal')) {
+    //             $q->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+    //         } elseif ($request->filled('tgl_dibuat_akhir')) {
+    //             $q->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
+    //         }
+
+    //         if ($request->filled('search')) {
+    //             $q->where(function ($q2) use ($request) {
+    //                 $q2->where('judul', 'like', '%' . $request->search . '%')
+    //                     ->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
+    //             });
+    //         }
+    //         if ($request->filled('kode')) {
+    //             $q->where('kode', $request->kode);
+    //         }
+    //     });
+
+    //     // Ambil kiriman pertama per dokumen UNTUK user ini (mirror memoTerkirim)
+    //     $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')
+    //         ->groupBy('id_document')
+    //         ->pluck('id_kirim_document');
+
+    //     // Exclude arsip (mirror memo)
+    //     $undanganDiarsipkan = Arsip::where('user_id', $userId)
+    //         ->where('jenis_document', 'App\\Models\\Undangan')
+    //         ->pluck('document_id')
+    //         ->toArray();
+
+    //     $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
+    //         ->whereNotIn('id_document', $undanganDiarsipkan)
+    //         ->with('undangan');
+
+    //     // Sorting (tetap pakai fitur tgl_rapat_diff milik undangan)
+    //     if ($sortBy == 'tgl_rapat_diff') {
+    //         $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+    //             ->orderByRaw("CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC")
+    //             ->orderByRaw("ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}")
+    //             ->select('kirim_document.*');
+    //     } elseif (Str::startsWith($sortBy, 'undangan.')) {
+    //         $field = Str::after($sortBy, 'undangan.');
+    //         $undangans->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+    //             ->orderBy("undangan.$field", $sortDirection)
+    //             ->select('kirim_document.*');
+    //     } else {
+    //         $undangans->orderBy($sortBy, $sortDirection);
+    //     }
+
+    //     $perPage = $request->get('per_page', 10);
+    //     $undangans = $undangans->paginate($perPage);
+
+    //     return view('manager.undangan.undangan-terkirim', compact('undangans', 'sortBy', 'sortDirection', 'kode'));
+    // }
 
     public function risalah(Request $request)
     {
         $userId = Auth::id();
         $kode = DB::table('risalah')
-            ->whereNotNull('kode')        // pastikan hanya yang ada kodenya
+            ->whereNotNull('kode') // pastikan hanya yang ada kodenya
             ->distinct()
             ->pluck('kode');
         // --- Ambil risalah yang sudah diarsipkan user ini ---
-        $risalahDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\\Models\\Risalah')
-            ->pluck('document_id')
-            ->toArray();
+        $risalahDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Risalah')->pluck('document_id')->toArray();
 
         // --- Allowed sorting columns ---
         $allowedSortColumns = ['created_at', 'tgl_disahkan', 'tgl_dibuat', 'nomor_risalah', 'judul'];
@@ -773,11 +785,9 @@ class KirimController extends Controller
             ->whereNotIn('id_risalah', $risalahDiarsipkan)
             ->where(function ($q) use ($userId) {
                 $q->whereHas('kirimDocument', function ($sub) use ($userId) {
-                    $sub->where('jenis_document', 'risalah')
-                        ->where(function ($inner) use ($userId) {
-                            $inner->where('id_pengirim', $userId)
-                                ->orWhere('id_penerima', $userId);
-                        });
+                    $sub->where('jenis_document', 'risalah')->where(function ($inner) use ($userId) {
+                        $inner->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
+                    });
                 });
             });
 
@@ -804,24 +814,20 @@ class KirimController extends Controller
         if ($request->filled('search')) {
             $search = $request->search;
             $query->where(function ($q) use ($search) {
-                $q->where('judul', 'like', "%{$search}%")
-                    ->orWhere('nomor_risalah', 'like', "%{$search}%");
+                $q->where('judul', 'like', "%{$search}%")->orWhere('nomor_risalah', 'like', "%{$search}%");
             });
         }
 
         // --- Sorting & pagination ---
         $perPage = $request->get('per_page', 10);
-        $risalahs = $query->with('kirimDocument')
-            ->orderBy($sortBy, $sortDirection)
-            ->paginate($perPage);
+        $risalahs = $query->with('kirimDocument')->orderBy($sortBy, $sortDirection)->paginate($perPage);
 
         // --- Tambahin final_status (status kirim untuk user ini) ---
         $risalahs->getCollection()->transform(function ($risalah) use ($userId) {
             $statusKirim = Kirim_Document::where('id_document', $risalah->id_risalah)
                 ->where('jenis_document', 'risalah')
                 ->where(function ($q) use ($userId) {
-                    $q->where('id_pengirim', $userId)
-                        ->orWhere('id_penerima', $userId);
+                    $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
                 })
                 ->orderBy('id_kirim_document') // ambil yg paling awal
                 ->first();
@@ -832,7 +838,6 @@ class KirimController extends Controller
 
         return view('manager.risalah.risalah', compact('risalahs', 'kode'));
     }
-
 
     public function create()
     {
@@ -846,52 +851,47 @@ class KirimController extends Controller
             $kodeDirektur = '';
         }
         // dd($user);
-        if ($user->department_id_department != NULL) {
+        if ($user->department_id_department != null) {
             $divisiName = Department::where('id_department', $user->department_id_department)->first();
-            if ($divisiName->kode_department != NULL) {
+            if ($divisiName->kode_department != null) {
                 $divisiName = $divisiName->kode_department;
-            } else if ($divisiName->kode_department == NULL) {
-                if ($user->divisi_id_divisi == NULL) {
+            } elseif ($divisiName->kode_department == null) {
+                if ($user->divisi_id_divisi == null) {
                     $divisiName = $divisiName->name_department;
                 } else {
                     $divisiName = Divisi::where('id_divisi', $user->divisi_id_divisi)->first();
-                    if ($divisiName->kode_divisi != NULL) {
+                    if ($divisiName->kode_divisi != null) {
                         $divisiName = $divisiName->kode_divisi;
-                    } else if ($divisiName->kode_divisi == NULL) {
+                    } elseif ($divisiName->kode_divisi == null) {
                         $divisiName = $divisiName->nm_divisi;
                     }
                 }
             }
-        } else if ($user->divisi_id_divisi != NULL) {
+        } elseif ($user->divisi_id_divisi != null) {
             $divisiName = Divisi::where('id_divisi', $user->divisi_id_divisi)->first();
-            if ($divisiName->kode_divisi != NULL) {
+            if ($divisiName->kode_divisi != null) {
                 $divisiName = $divisiName->kode_divisi;
-            } else if ($divisiName->kode_divisi == NULL) {
+            } elseif ($divisiName->kode_divisi == null) {
                 $divisiName = $divisiName->nm_divisi;
             }
-        } else if ($user->director_id_director != NULL) {
+        } elseif ($user->director_id_director != null) {
             $divisiName = Director::where('id_director', $user->director_id_director)->first();
             $divisiName = $divisiName->kode_director;
         }
 
         $user = Auth::user();
 
-        $unitId       = $user->unit_id_unit;
-        $sectionId    = $user->section_id_section;
+        $unitId = $user->unit_id_unit;
+        $sectionId = $user->section_id_section;
         $departmentId = $user->department_id_department;
-        $divisiId     = $user->divisi_id_divisi;
-        $directorId   = $user->id_director;
+        $divisiId = $user->divisi_id_divisi;
+        $directorId = $user->id_director;
 
         if (is_null($unitId) && is_null($sectionId) && is_null($departmentId) && is_null($divisiId) && is_null($directorId)) {
             return [];
         }
 
-        $listUndangan = Kirim_Document::where('jenis_document', 'undangan')
-            ->where('status', 'approve')
-            ->where('id_pengirim', $user->id)
-            ->orWhere('id_penerima', $user->id)
-            ->pluck('id_document')
-            ->unique();
+        $listUndangan = Kirim_Document::where('jenis_document', 'undangan')->where('status', 'approve')->where('id_pengirim', $user->id)->orWhere('id_penerima', $user->id)->pluck('id_document')->unique();
 
         $undangan = Undangan::whereIn('id_undangan', $listUndangan)
             ->get()
@@ -910,29 +910,23 @@ class KirimController extends Controller
         $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
 
         // Format nomor dokumen sesuai contoh pada gambar
-        $nomorDokumen = sprintf(
-            "RIS-%02d/REKA%s/%s/%s/%d",
-            $nextSeri['seri_tahunan'],
-            strtoupper($kodeDirektur),
-            strtoupper($divisiName),
-            $bulanRomawi,
-            now()->year
+        $nomorDokumen = sprintf('RIS-%02d/REKA%s/%s/%s/%d', $nextSeri['seri_tahunan'], strtoupper($kodeDirektur), strtoupper($divisiName), $bulanRomawi, now()->year);
+        $users = User::select()->orderBy('firstname')->get();
+
+        return view(
+            Auth::user()->role->nm_role . '.risalah.add-risalah',
+            [
+                'risalah' => $risalah,
+                'nomorSeriTahunan' => $nextSeri['seri_tahunan'], // Tambahkan nomor seri tahunan
+                'nomorDokumen' => $nomorDokumen,
+                'kode_bagian' => $bagianKerja,
+                'users' => $users,
+                'self' => Auth::user(),
+                'undangan' => $undangan,
+            ],
+            compact('undangan', 'bagianKerja'),
         );
-        $users = User::select()
-            ->orderBy('firstname')
-            ->get();
-
-        return view(Auth::user()->role->nm_role . '.risalah.add-risalah', [
-            'risalah' => $risalah,
-            'nomorSeriTahunan' => $nextSeri['seri_tahunan'], // Tambahkan nomor seri tahunan
-            'nomorDokumen' => $nomorDokumen,
-            'kode_bagian' => $bagianKerja,
-            'users' => $users,
-            'self' => Auth::user(),
-            'undangan' => $undangan
-        ], compact('undangan', 'bagianKerja'));
     }
-
 
     public function createCustom()
     {
@@ -946,41 +940,41 @@ class KirimController extends Controller
             $kodeDirektur = '';
         }
         // dd($user);
-        if ($user->department_id_department != NULL) {
+        if ($user->department_id_department != null) {
             $divisiName = Department::where('id_department', $user->department_id_department)->first();
-            if ($divisiName->kode_department != NULL) {
+            if ($divisiName->kode_department != null) {
                 $divisiName = $divisiName->kode_department;
-            } else if ($divisiName->kode_department == NULL) {
-                if ($user->divisi_id_divisi == NULL) {
+            } elseif ($divisiName->kode_department == null) {
+                if ($user->divisi_id_divisi == null) {
                     $divisiName = $divisiName->name_department;
                 } else {
                     $divisiName = Divisi::where('id_divisi', $user->divisi_id_divisi)->first();
-                    if ($divisiName->kode_divisi != NULL) {
+                    if ($divisiName->kode_divisi != null) {
                         $divisiName = $divisiName->kode_divisi;
-                    } else if ($divisiName->kode_divisi == NULL) {
+                    } elseif ($divisiName->kode_divisi == null) {
                         $divisiName = $divisiName->nm_divisi;
                     }
                 }
             }
-        } else if ($user->divisi_id_divisi != NULL) {
+        } elseif ($user->divisi_id_divisi != null) {
             $divisiName = Divisi::where('id_divisi', $user->divisi_id_divisi)->first();
-            if ($divisiName->kode_divisi != NULL) {
+            if ($divisiName->kode_divisi != null) {
                 $divisiName = $divisiName->kode_divisi;
-            } else if ($divisiName->kode_divisi == NULL) {
+            } elseif ($divisiName->kode_divisi == null) {
                 $divisiName = $divisiName->nm_divisi;
             }
-        } else if ($user->director_id_director != NULL) {
+        } elseif ($user->director_id_director != null) {
             $divisiName = Director::where('id_director', $user->director_id_director)->first();
             $divisiName = $divisiName->kode_director;
         }
 
         $user = Auth::user();
 
-        $unitId       = $user->unit_id_unit;
-        $sectionId    = $user->section_id_section;
+        $unitId = $user->unit_id_unit;
+        $sectionId = $user->section_id_section;
         $departmentId = $user->department_id_department;
-        $divisiId     = $user->divisi_id_divisi;
-        $directorId   = $user->id_director;
+        $divisiId = $user->divisi_id_divisi;
+        $directorId = $user->id_director;
 
         if (is_null($unitId) && is_null($sectionId) && is_null($departmentId) && is_null($divisiId) && is_null($directorId)) {
             return [];
@@ -996,26 +990,27 @@ class KirimController extends Controller
         // Konversi bulan ke angka Romawi
         $bulanRomawi = $this->convertToRoman(now()->month);
 
-        $users = User::select()
-            ->orderBy('firstname')
-            ->get();
+        $users = User::select()->orderBy('firstname')->get();
 
         $risalahController = new RisalahController();
         $orgTree = $risalahController->getOrgTreeWithUsers();
         $jsTreeData = $risalahController->convertToJsTree($orgTree);
 
         $mainDirector = $orgTree[0] ?? null;
-        return view(Auth::user()->role->nm_role . '.risalah.add-custom', [
-            'risalah' => $risalah,
-            'nomorSeriTahunan' => $nextSeri['seri_tahunan'], // Tambahkan nomor seri tahunan
-            'kode_bagian' => $bagianKerja,
-            'users' => $users,
-            'orgTree' => $orgTree,
-            'jsTreeData' => $jsTreeData,
-            'mainDirector' => $mainDirector
-        ], compact('bagianKerja'));
+        return view(
+            Auth::user()->role->nm_role . '.risalah.add-custom',
+            [
+                'risalah' => $risalah,
+                'nomorSeriTahunan' => $nextSeri['seri_tahunan'], // Tambahkan nomor seri tahunan
+                'kode_bagian' => $bagianKerja,
+                'users' => $users,
+                'orgTree' => $orgTree,
+                'jsTreeData' => $jsTreeData,
+                'mainDirector' => $mainDirector,
+            ],
+            compact('bagianKerja'),
+        );
     }
-
 
     public function nextSeri()
     {
@@ -1036,14 +1031,7 @@ class KirimController extends Controller
         // Konversi bulan ke angka Romawi
         $bulanRomawi = $this->convertToRoman(now()->month);
         // Format nomor dokumen
-        $nomorDokumen = sprintf(
-            "RIS-%02d/REKA%s/%s/%s/%d",
-            $nextSeri['seri_tahunan'],
-            strtoupper($kodeDirektur),
-            strtoupper($divDeptKode),
-            $bulanRomawi,
-            now()->year
-        );
+        $nomorDokumen = sprintf('RIS-%02d/REKA%s/%s/%s/%d', $nextSeri['seri_tahunan'], strtoupper($kodeDirektur), strtoupper($divDeptKode), $bulanRomawi, now()->year);
         return $nomorDokumen;
     }
 
@@ -1051,36 +1039,38 @@ class KirimController extends Controller
     {
         $memoController = new MemoController();
 
-        $request->validate([
-            'tgl_dibuat' => 'required|date',
-            'nomor_risalah' => 'nullable|string',
-            'kode_bagian' => 'required|string',
-            'agenda' => 'required|string',
-            'tempat' => 'required|string',
-            'waktu_mulai' => 'required|string',
-            'waktu_selesai' => 'required|string',
-            'judul' => 'required|string',
-            'tujuan' => 'required_without:with_undangan',
-            'pembuat' => 'required|string',
-            'nomor' => 'nullable|array',
-            'topik' => 'nullable|array',
-            'pembahasan' => 'nullable|array',
-            'tindak_lanjut' => 'nullable|array',
-            'target' => 'nullable|array',
-            'pic' => 'nullable|array',
-            'lampiran'   => 'nullable',
-            'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
-        ], [
-            'lampiran.*' => 'Lampiran gagal diunggan, pastikan format dan ukuran file sesuai ketentuan.',
-            'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
-            'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
-            'lampiran.*.max'   => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
-        ]);
+        $request->validate(
+            [
+                'tgl_dibuat' => 'required|date',
+                'nomor_risalah' => 'nullable|string',
+                'kode_bagian' => 'required|string',
+                'agenda' => 'required|string',
+                'tempat' => 'required|string',
+                'waktu_mulai' => 'required|string',
+                'waktu_selesai' => 'required|string',
+                'judul' => 'required|string',
+                'tujuan' => 'required_without:with_undangan',
+                'pembuat' => 'required|string',
+                'nomor' => 'nullable|array',
+                'topik' => 'nullable|array',
+                'pembahasan' => 'nullable|array',
+                'tindak_lanjut' => 'nullable|array',
+                'target' => 'nullable|array',
+                'pic' => 'nullable|array',
+                'lampiran' => 'nullable',
+                'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
+            ],
+            [
+                'lampiran.*' => 'Lampiran gagal diunggan, pastikan format dan ukuran file sesuai ketentuan.',
+                'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
+                'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
+                'lampiran.*.max' => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
+            ],
+        );
         // Proses file lampiran (jika ada)
         $lampiranPath = null;
         // Handle multiple file uploads
         if ($request->hasFile('lampiran')) {
-
             $newFiles = [];
             foreach ($request->file('lampiran') as $file) {
                 if ($file->isValid()) {
@@ -1104,7 +1094,7 @@ class KirimController extends Controller
                         'name' => $file->getClientOriginalName(),
                         'path' => $filePath,
                         'size' => $file->getSize(),
-                        'uploaded_at' => now()->toDateTimeString()
+                        'uploaded_at' => now()->toDateTimeString(),
                     ];
                 }
             }
@@ -1112,7 +1102,7 @@ class KirimController extends Controller
             $lampiranPath = !empty($allFiles) ? json_encode($allFiles) : null;
         }
 
-// Ambil kode bagian dari form
+        // Ambil kode bagian dari form
         $kodeBagian = $request->input('kode_bagian');
 
         $divDeptKode = $memoController->getDivDeptKode(Auth::user());
@@ -1126,10 +1116,7 @@ class KirimController extends Controller
 
         $qrService = new QRCodeService();
 
-        $qrTextNotulis = "Notulis Acara: " . $namaNotulisAcara
-            . "\nNomor Risalah: " . ($request->nomor_risalah ?? '-')
-            . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s')
-            . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+        $qrTextNotulis = 'Notulis Acara: ' . $namaNotulisAcara . "\nNomor Risalah: " . ($request->nomor_risalah ?? '-') . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
         $qrNotulisAcara = $qrService->generateWithLogo($qrTextNotulis);
         $tujuan = [];
 
@@ -1161,15 +1148,16 @@ class KirimController extends Controller
                     'pembuat' => $request->pembuat,
                     'lampiran' => $lampiranPath,
                     'nama_pemimpin_acara' => $namaPemimpinAcara,
-                    'nama_notulis_acara'    => $namaNotulisAcara,
+                    'nama_notulis_acara' => $namaNotulisAcara,
                     'qr_notulis_acara' => $qrNotulisAcara,
                     'risalah_id_risalah' => $request->id_risalah,
                     'with_undangan' => $request->with_undangan,
-                    'tujuan' => implode(';', $tujuan)
+                    'tujuan' => implode(';', $tujuan),
                 ]);
                 break; // sukses → keluar loop
             } catch (\Illuminate\Database\QueryException $e) {
-                if ($e->getCode() == '23000') { // duplicate entry error
+                if ($e->getCode() == '23000') {
+                    // duplicate entry error
                     // Generate nomor baru pakai seri risalah
                     $newNomor = SeriRisalah::getNextSeri(true);
                     $request->merge(['nomor_risalah' => $newNomor]);
@@ -1178,7 +1166,6 @@ class KirimController extends Controller
                 throw $e; // error lain tetap dilempar
             }
         }
-
 
         if ($request->has('nomor') && is_array($request->nomor)) {
             foreach ($request->nomor as $index => $no) {
@@ -1194,46 +1181,43 @@ class KirimController extends Controller
             }
         }
 
-        $push = new Api\NotifApiController;
+        $push = new Api\NotifApiController();
 
         $penerima = $pemimpin;
         if (!$penerima) {
             return back()->withErrors(['nama_bertandatangan' => 'Nama penerima tidak ditemukan.']);
         }
 
-        $sudahDikirim = \App\Models\Kirim_Document::where('id_document', $risalah->id_risalah)
-            ->where('jenis_document', 'risalah')
-            ->where('id_pengirim', Auth::id())
-            ->where('id_penerima', $penerima->id)
-            ->exists();
+        $sudahDikirim = \App\Models\Kirim_Document::where('id_document', $risalah->id_risalah)->where('jenis_document', 'risalah')->where('id_pengirim', Auth::id())->where('id_penerima', $penerima->id)->exists();
         $push = new NotifApiController();
         if (!$sudahDikirim) {
-            \App\Models\Kirim_Document::firstOrCreate([
-                'id_document' => $risalah->id_risalah,
-                'jenis_document' => 'risalah',
-                'id_pengirim' => Auth::id(),
-                'id_penerima' => $penerima->id,
-                'updated_at' => now(),
-            ], [
-                'status' => 'pending'
-            ]);
+            \App\Models\Kirim_Document::firstOrCreate(
+                [
+                    'id_document' => $risalah->id_risalah,
+                    'jenis_document' => 'risalah',
+                    'id_pengirim' => Auth::id(),
+                    'id_penerima' => $penerima->id,
+                    'updated_at' => now(),
+                ],
+                [
+                    'status' => 'pending',
+                ],
+            );
 
             // Kirim notifikasi
             Notifikasi::create([
-                'judul' => "Risalah Menunggu Persetujuan",
+                'judul' => 'Risalah Menunggu Persetujuan',
                 'judul_document' => $risalah->judul,
                 'id_user' => $penerima->id,
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
-            $push->sendToUser(
-                $penerima->id,
-                "Risalah Menunggu Persetujuan",
-                $risalah->judul
-            );
+            $push->sendToUser($penerima->id, 'Risalah Menunggu Persetujuan', $risalah->judul);
         }
         $risalah->save();
 
-        return redirect()->route('risalah.' . Auth::user()->role->nm_role)->with('success', 'Risalah berhasil ditambahkan');
+        return redirect()
+            ->route('risalah.' . Auth::user()->role->nm_role)
+            ->with('success', 'Risalah berhasil ditambahkan');
     }
 
     private function convertToRoman($number)
@@ -1250,7 +1234,7 @@ class KirimController extends Controller
             9 => 'IX',
             10 => 'X',
             11 => 'XI',
-            12 => 'XII'
+            12 => 'XII',
         ];
         return $map[$number] ?? '';
     }
@@ -1263,7 +1247,6 @@ class KirimController extends Controller
     }
 
     // Daftar dokumen yang diterima
-
 
     public function viewRisalah($id)
     {
@@ -1300,12 +1283,11 @@ class KirimController extends Controller
                 })
                 ->values();
 
-            $tujuanUsernames = $listNama->map(function ($user, $index) {
-                return ($index + 1) . '. '
-                    . $user->position->nm_position . ' '
-                    . $user->bagian_text . ' '
-                    . '(' . $user->firstname . ' ' . $user->lastname . ')';
-            })->implode("\n");
+            $tujuanUsernames = $listNama
+                ->map(function ($user, $index) {
+                    return $index + 1 . '. ' . $user->position->nm_position . ' ' . $user->bagian_text . ' ' . '(' . $user->firstname . ' ' . $user->lastname . ')';
+                })
+                ->implode("\n");
         } else {
             $tujuanUsernames = null;
         }

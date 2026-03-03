@@ -307,9 +307,20 @@
                 <div class="header2">
                     <table>
                         <tr>
-                            <th style="text-align: left; vertical-align: top;">
+                            {{-- <th style="text-align: left; vertical-align: top;">
                                 Dari :
                                 {{ $memo->user->unit->name_unit ?? ($memo->user->section->name_section ?? ($memo->user->department->name_department ?? ($memo->user->divisi->nm_divisi ?? ($memo->user->director->name_director ?? ' ')))) }}
+                            </th> --}}
+                            <th style="text-align: left; vertical-align: top;">
+                                Dari :
+                                @if ($manager)
+                                    {{ $manager->unit->name_unit ??
+                                        ($manager->section->name_section ??
+                                            ($manager->department->name_department ??
+                                                ($manager->divisi->nm_divisi ?? ($manager->director->name_director ?? $memo->nama_bertandatangan)))) }}
+                                @else
+                                    {{ $memo->nama_bertandatangan ?? '-' }}
+                                @endif
                             </th>
                             <th style="text-align: left; vertical-align: top;">
                                 Kepada :
@@ -335,7 +346,7 @@
                         if (isset($isPdf) && $isPdf) {
                             $isiMemo = preg_replace_callback(
                                 '/<table([^>]*)>(.*?)<\/table>/is',
-                                function($tableMatch) {
+                                function ($tableMatch) {
                                     $tableAttrs = $tableMatch[1];
                                     $tableContent = $tableMatch[2];
                                     $widths = [];
@@ -343,20 +354,28 @@
                                     // Extract width dari colgroup
                                     if (preg_match('/<colgroup>(.*?)<\/colgroup>/is', $tableContent, $colgroupMatch)) {
                                         // Ambil semua width dari <col style="width: ...">
-                                        preg_match_all('/<col[^>]*style="[^"]*width:\s*([^;"]+)[^"]*"[^>]*>/i', $colgroupMatch[1], $widthMatches);
+                                        preg_match_all(
+                                            '/<col[^>]*style="[^"]*width:\s*([^;"]+)[^"]*"[^>]*>/i',
+                                            $colgroupMatch[1],
+                                            $widthMatches,
+                                        );
                                         if (!empty($widthMatches[1])) {
                                             $widths = array_map('trim', $widthMatches[1]);
                                         }
 
                                         // Hapus colgroup dari table content
-                                        $tableContent = preg_replace('/<colgroup>.*?<\/colgroup>/is', '', $tableContent);
+                                        $tableContent = preg_replace(
+                                            '/<colgroup>.*?<\/colgroup>/is',
+                                            '',
+                                            $tableContent,
+                                        );
                                     }
 
                                     // Jika ada width yang di-extract, apply ke setiap row
                                     if (!empty($widths)) {
                                         $tableContent = preg_replace_callback(
                                             '/<tr([^>]*)>(.*?)<\/tr>/is',
-                                            function($rowMatch) use ($widths) {
+                                            function ($rowMatch) use ($widths) {
                                                 $rowAttrs = $rowMatch[1];
                                                 $rowContent = $rowMatch[2];
                                                 $cellIndex = 0;
@@ -364,14 +383,20 @@
                                                 // Apply width ke setiap td/th
                                                 $rowContent = preg_replace_callback(
                                                     '/<(td|th)([^>]*)>/i',
-                                                    function($cellMatch) use ($widths, &$cellIndex) {
+                                                    function ($cellMatch) use ($widths, &$cellIndex) {
                                                         $tag = $cellMatch[1];
                                                         $attrs = $cellMatch[2];
 
                                                         // Hitung colspan untuk skip cells
                                                         $colspan = 1;
-                                                        if (preg_match('/colspan\s*=\s*["\']?(\d+)["\']?/i', $attrs, $colspanMatch)) {
-                                                            $colspan = (int)$colspanMatch[1];
+                                                        if (
+                                                            preg_match(
+                                                                '/colspan\s*=\s*["\']?(\d+)["\']?/i',
+                                                                $attrs,
+                                                                $colspanMatch,
+                                                            )
+                                                        ) {
+                                                            $colspan = (int) $colspanMatch[1];
                                                         }
 
                                                         // Apply width jika ada
@@ -379,13 +404,27 @@
                                                             $width = $widths[$cellIndex];
 
                                                             // Cek apakah sudah ada style attribute
-                                                            if (preg_match('/style\s*=\s*"([^"]*)"/i', $attrs, $styleMatch)) {
+                                                            if (
+                                                                preg_match(
+                                                                    '/style\s*=\s*"([^"]*)"/i',
+                                                                    $attrs,
+                                                                    $styleMatch,
+                                                                )
+                                                            ) {
                                                                 $existingStyle = $styleMatch[1];
 
                                                                 // Cek apakah sudah ada width di style
                                                                 if (!preg_match('/width\s*:/i', $existingStyle)) {
-                                                                    $newStyle = rtrim($existingStyle, '; ') . '; width: ' . $width . ';';
-                                                                    $attrs = preg_replace('/style\s*=\s*"[^"]*"/i', 'style="' . $newStyle . '"', $attrs);
+                                                                    $newStyle =
+                                                                        rtrim($existingStyle, '; ') .
+                                                                        '; width: ' .
+                                                                        $width .
+                                                                        ';';
+                                                                    $attrs = preg_replace(
+                                                                        '/style\s*=\s*"[^"]*"/i',
+                                                                        'style="' . $newStyle . '"',
+                                                                        $attrs,
+                                                                    );
                                                                 }
                                                             } else {
                                                                 // Tambah style baru
@@ -398,25 +437,25 @@
 
                                                         return '<' . $tag . $attrs . '>';
                                                     },
-                                                    $rowContent
+                                                    $rowContent,
                                                 );
 
                                                 return '<tr' . $rowAttrs . '>' . $rowContent . '</tr>';
                                             },
-                                            $tableContent
+                                            $tableContent,
                                         );
                                     }
 
                                     return '<table' . $tableAttrs . '>' . $tableContent . '</table>';
                                 },
-                                $isiMemo
+                                $isiMemo,
                             );
                         }
                     @endphp
 
                     <div class="fill">
                         <div class="editor-content"
-                             style="text-align: justify; width: 100%; max-width: 100%; overflow-x: auto; line-height: 1.5;">
+                            style="text-align: justify; width: 100%; max-width: 100%; overflow-x: auto; line-height: 1.5;">
                             {!! $isiMemo !!}
                         </div>
                     </div>
@@ -439,7 +478,8 @@
                     <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
                         <tr>
                             <td style="width: 60%;"></td>
-                            <td style="width: 40%; text-align: center; vertical-align: top; padding: 10px; border: none;">
+                            <td
+                                style="width: 40%; text-align: center; vertical-align: top; padding: 10px; border: none;">
                                 <p style="text-align: center; margin-bottom: 5px;"><b>Hormat kami,</b></p>
 
                                 @if ($isDirektur)

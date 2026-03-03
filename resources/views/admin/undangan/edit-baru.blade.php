@@ -224,17 +224,21 @@
                                         <i class="fas fa-signature text-primary me-1"></i>
                                         Nama yang Bertanda Tangan <span class="text-danger">*</span>
                                     </label>
-                                    <input type="hidden" name="nama_bertandatangan"
-                                        value="{{ $undangan->nama_bertandatangan }}">
-                                    <select name="nama_bertandatangan" id="nama_bertandatangan" class="form-control"
-                                        disabled>
+
+                                    <select name="nama_bertandatangan" id="nama_bertandatangan"
+                                        class="form-control @error('nama_bertandatangan') is-invalid @enderror">
                                         @foreach ($managers as $manager)
-                                            <option value="{{ $manager->firstname . ' ' . $manager->lastname }}"
-                                                {{ old('nama_bertandatangan', $undangan->nama_bertandatangan) == $manager->firstname . ' ' . $manager->lastname ? 'selected' : '' }}>
-                                                {{ $manager->firstname . ' ' . $manager->lastname }}
+                                            @php
+                                                $fullName = trim($manager->firstname . ' ' . $manager->lastname);
+                                            @endphp
+
+                                            <option value="{{ $fullName }}"
+                                                {{ old('nama_bertandatangan', $undangan->nama_bertandatangan) == $fullName ? 'selected' : '' }}>
+                                                {{ $fullName }}
                                             </option>
                                         @endforeach
                                     </select>
+
                                     @error('nama_bertandatangan')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror

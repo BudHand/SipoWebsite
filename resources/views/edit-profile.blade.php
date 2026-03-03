@@ -685,7 +685,7 @@
                 },
                 phone_number: {
                     required: true,
-                    maxLength: 15,
+                    maxLength: 20,
                     pattern: /^[0-9\+]+$/,
                     patternMessage: 'Format nomor telepon tidak valid.'
                 }

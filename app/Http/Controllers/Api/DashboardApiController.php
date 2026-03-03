@@ -8,21 +8,18 @@ use App\Models\{Arsip, Kirim_Document, Undangan, Memo, Risalah, Notifikasi};
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Carbon;
 use PhpParser\Node\Expr\AssignOp\Concat;
+use Illuminate\Support\Facades\DB;
 
 class DashboardApiController extends Controller
 {
-
     public function index()
     {
         $user = Auth::user();
-        $archivedMemo = Arsip::where('user_id', $user->id)
-            ->where('jenis_document', 'App\Models\Memo')
-            ->pluck('document_id')->toArray();
+        $archivedMemo = Arsip::where('user_id', $user->id)->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
 
         $memoCount = Kirim_Document::where('jenis_document', 'memo')
             ->where(function ($query) use ($user) {
-                $query->where('id_pengirim', $user->id)
-                    ->orWhere('id_penerima', $user->id);
+                $query->where('id_pengirim', $user->id)->orWhere('id_penerima', $user->id);
             })
             ->whereNotIn('id_document', $archivedMemo)
             ->select('id_document')
@@ -30,14 +27,11 @@ class DashboardApiController extends Controller
             ->get()
             ->count();
 
-        $archivedUndangan = Arsip::where('user_id', $user->id)
-            ->where('jenis_document', 'App\Models\Undangan')
-            ->pluck('document_id')->toArray();
+        $archivedUndangan = Arsip::where('user_id', $user->id)->where('jenis_document', 'App\Models\Undangan')->pluck('document_id')->toArray();
 
         $undanganCount = Kirim_Document::where('jenis_document', 'undangan')
             ->where(function ($query) use ($user) {
-                $query->where('id_pengirim', $user->id)
-                    ->orWhere('id_penerima', $user->id);
+                $query->where('id_pengirim', $user->id)->orWhere('id_penerima', $user->id);
             })
             ->whereNotIn('id_document', $archivedUndangan)
             ->select('id_document')
@@ -45,14 +39,11 @@ class DashboardApiController extends Controller
             ->get()
             ->count();
 
-        $archivedRisalah = Arsip::where('user_id', $user->id)
-            ->where('jenis_document', 'App\Models\Risalah')
-            ->pluck('document_id')->toArray();
+        $archivedRisalah = Arsip::where('user_id', $user->id)->where('jenis_document', 'App\Models\Risalah')->pluck('document_id')->toArray();
 
         $risalahCount = Kirim_Document::where('jenis_document', 'risalah')
             ->where(function ($query) use ($user) {
-                $query->where('id_pengirim', $user->id)
-                    ->orWhere('id_penerima', $user->id);
+                $query->where('id_pengirim', $user->id)->orWhere('id_penerima', $user->id);
             })
             ->whereNotIn('id_document', $archivedRisalah)
             ->select('id_document')
@@ -62,10 +53,7 @@ class DashboardApiController extends Controller
 
         $now = Carbon::now();
 
-        $ownedUndangan = Kirim_Document::where('id_penerima', $user->id)
-            ->orWhere('id_pengirim', $user->id)
-            ->where('jenis_document', 'undangan')
-            ->pluck('id_document');
+        $ownedUndangan = Kirim_Document::where('id_penerima', $user->id)->orWhere('id_pengirim', $user->id)->where('jenis_document', 'undangan')->pluck('id_document');
 
         $undangan = Undangan::whereIn('id_undangan', $ownedUndangan)
             ->where('status', 'approve')
@@ -79,12 +67,7 @@ class DashboardApiController extends Controller
             $u->waktu = $u->waktu_mulai . ' - ' . $u->waktu_selesai;
         }
 
-
-        $recentDocs = Kirim_Document::where('id_penerima', $user->id)
-            ->limit(10)
-            ->orderBy('id_kirim_document', 'desc')
-            ->where('status', 'pending')
-            ->get();
+        $recentDocs = Kirim_Document::where('id_penerima', $user->id)->limit(10)->orderBy('id_kirim_document', 'desc')->where('status', 'pending')->get();
 
         foreach ($recentDocs as $d) {
             switch ($d->jenis_document) {
@@ -92,21 +75,21 @@ class DashboardApiController extends Controller
                     $doc = Memo::find($d->id_document);
                     $d->id = $doc ? $doc->id_memo : null;
                     $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = $doc ? ($doc->updated_at ?? $doc->tgl_dibuat) : null;
+                    $d->tgl_dokumen = $doc ? $doc->updated_at ?? $doc->tgl_dibuat : null;
                     $d->tipe = 'memo';
                     break;
                 case 'undangan':
                     $doc = Undangan::find($d->id_document);
                     $d->id = $doc ? $doc->id_undangan : null;
                     $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = $doc ? ($doc->tgl_rapat ?? $doc->tgl_dibuat) : null;
+                    $d->tgl_dokumen = $doc ? $doc->tgl_rapat ?? $doc->tgl_dibuat : null;
                     $d->tipe = 'undangan';
                     break;
                 case 'risalah':
                     $doc = Risalah::find($d->id_document);
                     $d->id = $doc ? $doc->id_risalah : null;
                     $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = $doc ? ($doc->updated_at ?? $doc->tgl_dibuat) : null;
+                    $d->tgl_dokumen = $doc ? $doc->updated_at ?? $doc->tgl_dibuat : null;
                     $d->tipe = 'risalah';
                     break;
                 default:
@@ -115,6 +98,11 @@ class DashboardApiController extends Controller
                     break;
             }
         }
+        // dd([
+        //     'db_host' => config('database.connections.mysql.host'),
+        //     'db_name' => DB::connection()->getDatabaseName(),
+        //     'env' => app()->environment(),
+        // ]);
 
         return response()->json([
             'status' => 'success',

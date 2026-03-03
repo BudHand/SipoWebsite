@@ -494,7 +494,7 @@ class UndanganController extends Controller
         if ($user->position_id_position !== 1) {
             $managers = User::with('position:id_position,nm_position')
                 ->where('role_id_role', 3)
-                ->where('position_id_position', '!=', 9)
+                // ->where('position_id_position', '!=', 9)
                 ->where(function ($q) use ($user) {
                     $q->where(function ($q2) use ($user) {
                         $q2->whereNotNull('divisi_id_divisi')
@@ -940,7 +940,8 @@ class UndanganController extends Controller
             'tempat' => $request->input('tempat'),
             'waktu_mulai' => $request->input('waktu_mulai'),
             'waktu_selesai' => $request->input('waktu_selesai'),
-            'nama_bertandatangan' => $manager->firstname . ' ' . $manager->lastname,
+            // 'nama_bertandatangan' => $manager->firstname . ' ' . $manager->lastname,
+            'nama_bertandatangan' => trim($manager->firstname . ' ' . $manager->lastname),
             'lampiran' => $lampiranPath,
         ]);
 
@@ -1488,7 +1489,7 @@ class UndanganController extends Controller
         $divDeptKode = $this->getDivDeptKode(Auth::user());
 
         // EDIT: Tambahkan eager loading untuk relationship pembuat
-        $undangan = Undangan::with('user')->findOrFail($id);
+        // $undangan = Undangan::with('user')->findOrFail($id);
 
         // Konversi tujuan ID menjadi array
         $idArray = is_array($undangan->tujuan)
@@ -1553,6 +1554,7 @@ class UndanganController extends Controller
 
         return view(Auth::user()->role->nm_role . '.undangan.view-undangan', compact('undangan', 'lampiranData'));
     }
+
     public function updateStatus(Request $request, $id)
     {
         $undangan = Undangan::findOrFail($id);

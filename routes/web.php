@@ -23,13 +23,6 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\CounterNomorSuratController;
 use App\Http\Controllers\KodeBagianController;
 use Illuminate\Support\Facades\Route;
-use Illuminate\Support\Facades\Mail;
-use Illuminate\Support\Facades\Auth;
-use App\Models\Director;
-use App\Models\Divisi;
-use App\Models\Department;
-use App\Models\Seri;
-use App\Models\User;
 
 // GUEST
 Route::get('/', function () {
@@ -70,6 +63,19 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
     //     return view('superadmin.dashboard');
     // })->middleware(['auth', 'verified'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
+    // ALIAS dashboard per role (buat tombol "kembali ke dashboard" sesuai role)
+    Route::get('/dashboard/superadmin', [DashboardController::class, 'index'])
+        ->middleware('role:1')
+        ->name('superadmin.dashboard');
+
+    Route::get('/dashboard/admin', [DashboardController::class, 'index'])
+        ->middleware('role:2')
+        ->name('admin.dashboard');
+
+    Route::get('/dashboard/manager', [DashboardController::class, 'index'])
+        ->middleware('role:3')
+        ->name('manager.dashboard');
 
     // counter nomor surat
     Route::get('/counter-nomor-surat', [CounterNomorSuratController::class, 'index'])->name('counter-nomor-surat.index');
@@ -129,7 +135,7 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
 // SUPERADMIN
 Route::middleware(['auth', 'role:1'])->group(function () {
     // dashboard
-    Route::get('/dashboard.superadmin', [DashboardController::class, 'index'])->name('superadmin.dashboard');
+    // Route::get('/dashboard.superadmin', [DashboardController::class, 'index'])->name('superadmin.dashboard');
 
     // memo
     Route::get('/superadmin/memo', [MemoController::class, 'superadmin'])->name('superadmin.memo.index');
@@ -233,7 +239,7 @@ Route::middleware(['auth', 'role:1,2'])->group(function () {
 // ADMIN
 Route::middleware(['auth', 'role:2'])->group(function () {
     // dashboard
-    Route::get('/dashboard.admin', [DashboardController::class, 'index'])->name('admin.dashboard');
+    // Route::get('/dashboard.admin', [DashboardController::class, 'index'])->name('admin.dashboard');
 
     // memo
     Route::get('/memo-admin', [MemoController::class, 'index'])->name('admin.memo.index');
@@ -269,7 +275,7 @@ Route::middleware(['auth', 'role:2'])->group(function () {
 // MANAGER
 Route::middleware(['auth', 'role:3'])->group(function () {
     // dashboard
-    Route::get('dashboard.manager', [DashboardController::class, 'index'])->name('manager.dashboard');
+    // Route::get('dashboard.manager', [DashboardController::class, 'index'])->name('manager.dashboard');
 
     // memo
     Route::get('/manager/memo', [KirimController::class, 'memo'])->name('memo.manager');

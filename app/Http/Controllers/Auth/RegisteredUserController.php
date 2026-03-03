@@ -45,7 +45,7 @@ class RegisteredUserController extends Controller
                     'nip' => 'required|string|max:25',
                     'email' => 'required|string|email|max:70|unique:users',
                     'password' => 'required|min:8|confirmed',
-                    'phone_number' => 'required|numeric|digits_between:10,15',
+                    'phone_number' => 'required|string|digits_between:10,15',
                     'role_id_role' => 'required|exists:role,id_role',
                     'position_id_position' => 'required|exists:position,id_position',
                     'parent_id' => 'required',

@@ -50,7 +50,7 @@ class ProfileController extends Controller
                 'firstname'              => 'required|string|max:50|not_regex:/[\x{1F600}-\x{1F64F}]/u|not_regex:/[\x{1F300}-\x{1F5FF}]/u|not_regex:/[\x{1F680}-\x{1F6FF}]/u|not_regex:/[\x{2600}-\x{26FF}]/u|not_regex:/[\x{2700}-\x{27BF}]/u',
                 'lastname'               => 'nullable|string|max:50|not_regex:/[\x{1F600}-\x{1F64F}]/u|not_regex:/[\x{1F300}-\x{1F5FF}]/u|not_regex:/[\x{1F680}-\x{1F6FF}]/u|not_regex:/[\x{2600}-\x{26FF}]/u|not_regex:/[\x{2700}-\x{27BF}]/u',
                 //'nip'               => 'required|string|max:255|unique:users,nip,' . $user->id,
-                'phone_number'           => 'nullable|string|max:15|regex:/^[0-9\+]+$/',
+                'phone_number'           => 'nullable|string|max:20',
                 'password'               => 'nullable|string|min:6|confirmed',
                 'password_confirmation'  => 'required_with:password|same:password',
                 'profile_image'          => 'nullable|image|max:2048',

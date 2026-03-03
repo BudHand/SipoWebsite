@@ -63,12 +63,26 @@ class UserManageController extends Controller
             $users = User::withTrashed(['role', 'divisi', 'position']);
         }
 
+        // Filter berdasarkan pencarian nama atau NIP
+        // if ($request->filled('search')) {
+        //     $users->where(function ($query) use ($request) {
+        //         $query
+        //             ->where('firstname', 'like', '%' . $request->search . '%')
+        //             ->orWhere('lastname', 'like', '%' . $request->search . '%')
+        //             ->orWhere('nip', 'like', '%' . $request->search . '%');
+        //     });
+        // }
         if ($request->filled('search')) {
-            $users->where(function ($query) use ($request) {
-                $query
-                    ->where('firstname', 'like', '%' . $request->search . '%')
-                    ->orWhere('lastname', 'like', '%' . $request->search . '%')
-                    ->orWhere('nip', 'like', '%' . $request->search . '%');
+            $keywords = preg_split('/\s+/', trim($request->search));
+
+            $users->where(function ($query) use ($keywords) {
+                foreach ($keywords as $word) {
+                    $query->where(function ($q) use ($word) {
+                        $q->where('firstname', 'like', "%{$word}%")
+                            ->orWhere('lastname', 'like', "%{$word}%")
+                            ->orWhere('nip', 'like', "%{$word}%");
+                    });
+                }
             });
         }
 
@@ -139,8 +153,14 @@ class UserManageController extends Controller
             ];
         }
 
+        $orgOptions = [];
+
+        if ($mainDirector) {
+            $orgOptions = $this->buildOrgOptions($mainDirector);
+        }
+
         // Kirim data ke view user-manage
-        return view('superadmin.user-manage', compact('divisi', 'view', 'roles', 'positions', 'users', 'kodeItems', 'sortOrder', 'mainDirector', 'organisasi', 'bagianKerja'));
+        return view('superadmin.user-manage', compact('divisi', 'view', 'roles', 'positions', 'users', 'kodeItems', 'sortOrder', 'mainDirector', 'organisasi', 'bagianKerja', 'orgOptions'));
     }
 
     public function store(Request $request)
@@ -197,5 +217,82 @@ class UserManageController extends Controller
 
         // Mengirim data user ke view
         return view('superadmin.user-manage', compact('users', 'sortOrder'));
+    }
+
+    private function buildOrgOptions($node, &$result = [], $level = 0, &$seen = [])
+    {
+        $level = (int) $level;
+
+        $value = null;
+        $type = null;
+        $label = null;
+
+        if (isset($node->name_director)) {
+            $value = $node->id_director;
+            $type = 'director';
+            $label = "Direktur: {$node->name_director}";
+        } elseif (isset($node->nm_divisi)) {
+            $value = $node->id_divisi;
+            $type = 'divisi';
+            $label = "Divisi: {$node->nm_divisi}";
+        } elseif (isset($node->name_department)) {
+            $value = $node->id_department;
+            $type = 'department';
+            $label = "Departemen: {$node->name_department}";
+        } elseif (isset($node->name_section)) {
+            $value = $node->id_section;
+            $type = 'section';
+            $label = "Bagian: {$node->name_section}";
+        } elseif (isset($node->name_unit)) {
+            $value = $node->id_unit;
+            $type = 'unit';
+            $label = "Unit: {$node->name_unit}";
+        }
+
+        // ✅ dedup key (type+id)
+        if ($value !== null && $type !== null) {
+            $key = $type . ':' . $value;
+
+            if (!isset($seen[$key])) {
+                $seen[$key] = true;
+
+                $indent = str_repeat('— ', $level);
+
+                $result[] = [
+                    'value' => $value,
+                    'type' => $type,
+                    'label' => $indent . $label,
+                ];
+            }
+        }
+
+        // Traverse children
+        if (isset($node->subDirectors)) {
+            foreach ($node->subDirectors as $child) {
+                $this->buildOrgOptions($child, $result, $level + 1, $seen);
+            }
+        }
+        if (isset($node->divisi)) {
+            foreach ($node->divisi as $child) {
+                $this->buildOrgOptions($child, $result, $level + 1, $seen);
+            }
+        }
+        if (isset($node->department)) {
+            foreach ($node->department as $child) {
+                $this->buildOrgOptions($child, $result, $level + 1, $seen);
+            }
+        }
+        if (isset($node->section)) {
+            foreach ($node->section as $child) {
+                $this->buildOrgOptions($child, $result, $level + 1, $seen);
+            }
+        }
+        if (isset($node->unit)) {
+            foreach ($node->unit as $child) {
+                $this->buildOrgOptions($child, $result, $level + 1, $seen);
+            }
+        }
+
+        return $result;
     }
 }

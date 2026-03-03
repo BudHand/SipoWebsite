@@ -100,7 +100,7 @@
                                 {{-- <th class="text-center" style="width:2%;">Seri</th> --}}
                                 <th class="text-center" style="width:20%;">Dokumen</th>
                                 <th class="text-center" style="width:12%;">Tanggal Disahkan</th>
-                                <th class="text-center" style="width:10%;">Divisi</th>
+                                {{-- <th class="text-center" style="width:10%;">Kode Bagian</th> --}}
                                 <th class="text-center" style="width:8%;">Status</th>
                                 <th class="text-center" style="width:8%;">Aksi</th>
                             </tr>
@@ -125,7 +125,7 @@
                                         <td>{{ $undangan->undangan->nomor_undangan }}</td>
                                         <td>{{ $undangan->undangan->tgl_disahkan ? \Carbon\Carbon::parse($undangan->undangan->tgl_disahkan)->format('d-m-Y') : '-' }}
                                         </td>
-                                        <td class="text-center">{{ $undangan->undangan->kode ?? 'No Divisi Assigned' }}
+                                        {{-- <td class="text-center">{{ $undangan->undangan->kode_bagian ?? 'No Divisi Assigned' }} --}}
                                         </td>
                                         <td class="text-center">
                                             @if ($undangan->status == 'reject')

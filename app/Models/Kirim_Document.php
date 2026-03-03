@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
 
 class Kirim_Document extends Model
 {
@@ -33,19 +35,24 @@ class Kirim_Document extends Model
 
     public function memo()
     {
-        return $this->belongsTo(Memo::class, 'id_document'); // Sesuaikan dengan foreign key yang benar
+        return $this->belongsTo(Memo::class, 'id_document', 'id_memo'); // Sesuaikan dengan foreign key yang benar
     }
 
+    // public function undangan()
+    // {
+    //     return $this->belongsTo(Undangan::class, 'id_document'); // Sesuaikan dengan foreign key yang benar
+    // }
     public function undangan()
     {
-        return $this->belongsTo(Undangan::class, 'id_document'); // Sesuaikan dengan foreign key yang benar
+        return $this->belongsTo(\App\Models\Undangan::class, 'id_document', 'id_undangan');
     }
+
 
     public function risalah()
     {
-        return $this->belongsTo(Risalah::class, 'id_document'); // Sesuaikan dengan foreign key yang benar
+        return $this->belongsTo(Risalah::class, 'id_document', 'id_risalah'); // Sesuaikan dengan foreign key yang benar
     }
-    
+
     // Relasi ke User (Penerima)
     public function penerima()
     {
