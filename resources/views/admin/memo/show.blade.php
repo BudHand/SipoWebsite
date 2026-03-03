@@ -79,8 +79,24 @@
                                 </div>
 
                                 @php
-                                    $tembusanList = explode(';', $memo->tembusan ?? '');
-                                    $tembusanList = array_filter($tembusanList, fn($t) => trim($t) !== '');
+                                    $rawTembusan = explode(';', $memo->tembusan ?? '');
+                                    $rawTembusan = array_filter($rawTembusan, fn($t) => trim($t) !== '');
+
+                                    $tembusanUserIds = array_values(array_filter($rawTembusan, fn($t) => is_numeric($t)));
+                                    $tembusanUsers = !empty($tembusanUserIds)
+                                        ? \App\Models\User::whereIn('id', $tembusanUserIds)
+                                            ->get(['id', 'firstname', 'lastname'])
+                                            ->keyBy('id')
+                                        : collect();
+
+                                    $tembusanList = array_map(function ($tembusan) use ($tembusanUsers) {
+                                        if (is_numeric($tembusan) && $tembusanUsers->has((int) $tembusan)) {
+                                            $user = $tembusanUsers[(int) $tembusan];
+                                            return trim($user->firstname . ' ' . $user->lastname);
+                                        }
+
+                                        return $tembusan;
+                                    }, $rawTembusan);
                                 @endphp
                                 @if (!empty($tembusanList))
                                     <div class="info-row d-flex flex-column flex-sm-row">
