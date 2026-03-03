@@ -592,9 +592,42 @@
 
                             foreach ($remainingUsers as $user) {
                                 $fullName = trim($user->firstname . ' ' . $user->lastname);
-                                $position = $user->position->nm_position ?? '-';
-                                $department = $user->department->name_department ?? '-';
-                                $tembusanRingkas[] = $fullName . ' - ' . $position . ' (' . $department . ')';
+                                $positionName = $user->position->nm_position ?? '-';
+                                $positionLower = strtolower($positionName);
+                                $isStaff = str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+
+                                // Tentukan label bagian kerja dari hierarchy user
+                                $bagianKerja = '-';
+                                if ($isStaff) {
+                                    // Staff: pakai hierarchy paling spesifik
+                                    if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                        $bagianKerja = 'Unit ' . $unitMap[$user->unit_id_unit];
+                                    } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                        $bagianKerja = 'Bagian ' . $sectionMap[$user->section_id_section];
+                                    } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                        $bagianKerja = 'Departemen ' . $departmentMap[$user->department_id_department];
+                                    } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                        $bagianKerja = 'Divisi ' . $divisionMap[$user->divisi_id_divisi];
+                                    } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                        $bagianKerja = 'Direktur ' . $directorMap[$user->director_id_director];
+                                    }
+                                } else {
+                                    // Di atas staff: pakai hierarchy jabatan yang lebih representatif
+                                    if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                        $bagianKerja = 'Departemen ' . $departmentMap[$user->department_id_department];
+                                    } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                        $bagianKerja = 'Divisi ' . $divisionMap[$user->divisi_id_divisi];
+                                    } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                        $bagianKerja = 'Bagian ' . $sectionMap[$user->section_id_section];
+                                    } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                        $bagianKerja = 'Unit ' . $unitMap[$user->unit_id_unit];
+                                    } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                        $bagianKerja = 'Direktur ' . $directorMap[$user->director_id_director];
+                                    }
+                                }
+
+                                $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
+                                $tembusanRingkas[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
                             }
                         }
 
