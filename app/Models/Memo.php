@@ -33,7 +33,7 @@ class Memo extends Model
     protected $fillable = ['judul', 'tujuan', 'isi_memo', 'tgl_dibuat', 'tgl_disahkan',
     'qr_approved_by', 'status', 'pembuat', 'catatan', 'nomor_memo',
     'nama_bertandatangan', 'lampiran', 'divisi_id_divisi', 'seri_surat',
-    'kode', 'tujuan_string', 'feedback', 'tembusan', 'kode_bagian'];
+    'kode', 'tujuan_string', 'feedback', 'tembusan', 'kode_bagian', 'bcc',];
 
     /**
      * Indicates if the model should be timestamped.
@@ -77,6 +77,15 @@ class Memo extends Model
     {
         return $this->hasMany(Lampiran::class, 'memo_id');
     }
+
+    // public function getBccUserIds()
+    // {
+    //     if (!$this->bcc) {
+    //         return [];
+    //     }
+
+    //     return array_filter(explode(';', $this->bcc));
+    // }
 
     // public function pembuatUser()
     // {
