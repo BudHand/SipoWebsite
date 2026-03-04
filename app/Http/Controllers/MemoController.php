@@ -435,6 +435,21 @@ class MemoController extends Controller
         return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'pembuat'));
     }
 
+    private function parseRecipientUserIds(?string $raw): array
+    {
+        if (!$raw) {
+            return [];
+        }
+
+        return collect(explode(';', $raw))
+            ->map(fn($v) => trim($v))
+            ->filter(fn($v) => $v !== '' && is_numeric($v))
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     //== Fungsi Nomor Seri dan Dokumen Otomatis ==//
     // public function nextSeri()
     // {
@@ -1935,7 +1950,24 @@ class MemoController extends Controller
             })
             ->values();
 
-        return view(Auth::user()->role->nm_role . '.memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos'));
+        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $bccDisplayList = [];
+        if ($canViewBcc) {
+            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            if (!empty($bccUserIds)) {
+                $bccDisplayList = User::with('position:id_position,nm_position')
+                    ->whereIn('id', $bccUserIds)
+                    ->get(['id', 'firstname', 'lastname', 'position_id_position'])
+                    ->map(function ($user) {
+                        $fullname = trim($user->firstname . ' ' . ($user->lastname ?? ''));
+                        return $fullname . ($user->position ? ' (' . $user->position->nm_position . ')' : '');
+                    })
+                    ->values()
+                    ->all();
+            }
+        }
+
+        return view(Auth::user()->role->nm_role . '.memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
         // $memo = Kirim_Document::where('jenis_document', 'memo')
         //     ->where('id_document', $id)
         //     ->with(['memo', 'penerima', 'pengirim'])
@@ -2039,9 +2071,26 @@ class MemoController extends Controller
             })
             ->values();
 
+        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $bccDisplayList = [];
+        if ($canViewBcc) {
+            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            if (!empty($bccUserIds)) {
+                $bccDisplayList = User::with('position:id_position,nm_position')
+                    ->whereIn('id', $bccUserIds)
+                    ->get(['id', 'firstname', 'lastname', 'position_id_position'])
+                    ->map(function ($user) {
+                        $fullname = trim($user->firstname . ' ' . ($user->lastname ?? ''));
+                        return $fullname . ($user->position ? ' (' . $user->position->nm_position . ')' : '');
+                    })
+                    ->values()
+                    ->all();
+            }
+        }
+
         return view(
             'manager.memo.view-memoDiterima',
-            compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan')
+            compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList')
         );
     }
 
@@ -2107,7 +2156,24 @@ class MemoController extends Controller
             })
             ->values();
 
-        return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos'));
+        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $bccDisplayList = [];
+        if ($canViewBcc) {
+            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            if (!empty($bccUserIds)) {
+                $bccDisplayList = User::with('position:id_position,nm_position')
+                    ->whereIn('id', $bccUserIds)
+                    ->get(['id', 'firstname', 'lastname', 'position_id_position'])
+                    ->map(function ($user) {
+                        $fullname = trim($user->firstname . ' ' . ($user->lastname ?? ''));
+                        return $fullname . ($user->position ? ' (' . $user->position->nm_position . ')' : '');
+                    })
+                    ->values()
+                    ->all();
+            }
+        }
+
+        return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
     }
 
     public function updateStatusNotif(Request $request, $id)
@@ -2671,11 +2737,17 @@ class MemoController extends Controller
             }
         }
 
-        // CC Memo: samakan dengan tujuan (simpan sebagai id user)
+        // CC/BCC Memo: samakan dengan tujuan (simpan sebagai id user)
         $tembusanUserIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
             $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
             $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
+        }
+
+        $bccUserIds = [];
+        if ($request->has('bcc') && is_array($request->bcc)) {
+            $bccUserIds = $this->convertTujuanToUserId($request->bcc);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
         }
 
         // ===================================================================
@@ -2699,7 +2771,8 @@ class MemoController extends Controller
             'nama_bertandatangan' => $request->input('nama_bertandatangan'),
             'lampiran' => $lampiranPath,
             'feedback' => $idMemoLama,
-            'tembusan' => !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null
+            'tembusan' => !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null,
+            'bcc' => !empty($bccUserIds) ? implode(';', $bccUserIds) : null,
         ]);
 
         // Handle kategori barang
@@ -2853,6 +2926,16 @@ class MemoController extends Controller
                 ->all();
         }
 
+        $selectedBcc = [];
+        if ($memo->bcc) {
+            $bcc = array_values(array_filter(explode(';', $memo->bcc), fn($v) => trim($v) !== ''));
+            $selectedBcc = collect($bcc)
+                ->filter(fn($v) => is_numeric($v))
+                ->map(fn($v) => 'user-' . (int) $v)
+                ->values()
+                ->all();
+        }
+
         return view(
             Auth::user()->role->nm_role . '.memo.edit-baru',
             compact(
@@ -2868,6 +2951,7 @@ class MemoController extends Controller
                 'parentMemo',
                 'tembusan',
                 'selectedTembusan',
+                'selectedBcc',
                 'bagianKerja'
             )
         );
@@ -2919,7 +3003,7 @@ class MemoController extends Controller
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
             ],
         );
-        // CC Memo: samakan dengan tujuan (simpan id user)
+        // CC/BCC Memo: samakan dengan tujuan (simpan id user)
         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
         $tembusanUserIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
@@ -2928,6 +3012,15 @@ class MemoController extends Controller
             $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
         } else {
             $memo->tembusan = null;
+        }
+
+        $bccUserIds = [];
+        if ($request->has('bcc') && is_array($request->bcc)) {
+            $bccUserIds = $this->convertTujuanToUserId($request->bcc);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
+            $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
+        } else {
+            $memo->bcc = null;
         }
 
         if ($request->filled('kode_bagian')) {
