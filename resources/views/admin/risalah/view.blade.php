@@ -368,9 +368,11 @@
             const catatanInput = document.getElementById('catatan');
             const tujuanDivisiRow = document.getElementById('tujuanDivisiRow');
             const submitBtn = document.getElementById('submitBtn');
+            const approvalForm = document.getElementById('approvalForm');
             const pengesahanCol = document.getElementById('pengesahanCol');
             const risalahId = @json($risalah->id_risalah); // penting utk key localStorage
             let statusValue = null;
+            let isSubmitting = false;
 
             // === Toggle area catatan/tujuan ===
             radios.forEach(r => {
@@ -399,6 +401,8 @@
             // === Validasi & submit ===
             if (submitBtn) {
                 submitBtn.addEventListener('click', function() {
+                    if (isSubmitting) return;
+
                     if (!statusValue) {
                         Swal.fire({
                             icon: 'warning',
@@ -416,7 +420,22 @@
 
                     localStorage.setItem(`risalah-status-${risalahId}`, statusValue);
 
-                    document.getElementById('approvalForm').submit();
+                    isSubmitting = true;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memproses...';
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Mohon tunggu',
+                            text: 'Proses persetujuan risalah sedang berjalan...',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+                    }
+
+                    approvalForm.submit();
                 });
             }
 
