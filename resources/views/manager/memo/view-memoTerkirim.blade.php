@@ -471,7 +471,9 @@
                 const catatanInput = document.getElementById('catatan');
                 const tujuanDivisiRow = document.getElementById('tujuanDivisiRow');
                 const submitBtn = document.getElementById('submitBtn');
+                const approvalForm = document.getElementById('approvalForm');
                 let statusValue = null;
+                let isSubmitting = false;
 
                 // Radio button logic
                 checkboxes.forEach(checkbox => {
@@ -501,33 +503,37 @@
                 // Submit button logic
                 if (submitBtn) {
                     submitBtn.addEventListener('click', function() {
+                        if (isSubmitting) return;
+
                         if (!statusValue) {
 
                             alert('Pilih status pengesahan terlebih dahulu!');
                             return;
                         }
-                        // Untuk approve, tetap submit dan tampilkan modal sukses (biarkan reload)
-                        if (statusValue === 'approve') {
-                            document.getElementById('approvalForm').submit();
-                            showNotification('Pengesahan memo berhasil', 'success');
-                            setTimeout(function() {
-                                window.location.href = "{{ route('memo.terkirim') }}";
-                            }, 1000);
-                        } else {
-                            // Validasi catatan untuk reject/correction
-                            if ((statusValue === 'reject' || statusValue === 'correction') && catatanInput.value
-                                .trim() === '') {
-                                document.getElementById('catatanError').style.display = 'block';
-                                catatanInput.focus();
-                                return; // stop proses submit & redirect
-                            }
-                            showNotification('Penolakan memo berhasil', 'success');
-                            // Kalau lolos validasi, submit lalu redirect
-                            document.getElementById('approvalForm').submit();
-                            setTimeout(function() {
-                                window.location.href = "{{ route('memo.terkirim') }}";
-                            }, 1000);
+
+                        if ((statusValue === 'reject' || statusValue === 'correction') && catatanInput.value
+                            .trim() === '') {
+                            document.getElementById('catatanError').style.display = 'block';
+                            catatanInput.focus();
+                            return;
                         }
+
+                        isSubmitting = true;
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memproses...';
+
+                        if (typeof Swal !== 'undefined') {
+                            Swal.fire({
+                                title: 'Mohon tunggu',
+                                text: 'Proses persetujuan memo sedang berjalan...',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                showConfirmButton: false,
+                                didOpen: () => Swal.showLoading()
+                            });
+                        }
+
+                        approvalForm.submit();
                     });
                 }
 
