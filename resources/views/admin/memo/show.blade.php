@@ -203,6 +203,17 @@
                                         </div>
                                     </div>
                                 @endif
+
+                                @if (($canViewBcc ?? false) && !empty($bccDisplayList ?? []))
+                                    <div class="info-row d-flex flex-column flex-sm-row">
+                                        <div class="info-label">BCC</div>
+                                        <div class="info-value">
+                                            @foreach ($bccDisplayList as $index => $bccItem)
+                                                <p class="m-0">{{ $index + 1 }}. {{ $bccItem }}</p>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>

@@ -53,6 +53,7 @@
                                     @csrf
                                     <div id="tujuan-container"></div>
                                     <div id="tembusan-container"></div>
+                                    <div id="bcc-container"></div>
                                     <div class="row">
                                         @if ($parentMemo)
                                             <div class="col-md-6">
@@ -362,6 +363,23 @@
                                     </div>
                                 </div>
                             </div>
+                            <div class="form-group mt-3">
+                                <div class="col-md-12">
+                                    <label for="bcc-tree" class="form-label">
+                                        <i class="fas fa-user-secret text-primary me-1"></i>
+                                        BCC <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
+                                    </label>
+                                    <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                        <div style="font-size: small;" id="bcc-tree"></div>
+                                    </div>
+                                    <div style="display: none;" id="selected-bcc-section" class="mt-2">
+                                        <label style="font-size: small;" class="form-label">BCC Terpilih:</label>
+                                        <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
+                                            <ul id="selected-bcc" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             {{-- <div class="row">
                                         <div class="col-md-6">
                                             <div class="form-group">
@@ -550,6 +568,36 @@
                     let selectedNodes = data.instance.get_selected(true);
                     let list = $('#selected-tembusan');
                     let section = $('#selected-tembusan-section');
+                    list.empty();
+
+                    if (selectedNodes.length) {
+                        selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
+                        section.show();
+                    } else {
+                        section.hide();
+                    }
+                });
+
+                $('#bcc-tree').jstree({
+                    'core': {
+                        'data': @json(json_decode($jsTreeData))
+                    },
+                    'plugins': ["checkbox", "search"],
+                    'checkbox': {
+                        'three_state': false,
+                        'cascade': 'none'
+                    }
+                }).on('ready.jstree', function(e, data) {
+                    $('#bcc-tree li').each(function() {
+                        var node = data.instance.get_node(this.id);
+                        if (node && node.parent === "#") {
+                            $(this).find('.jstree-checkbox').css('display', 'none');
+                        }
+                    });
+                }).on('changed.jstree', function(e, data) {
+                    let selectedNodes = data.instance.get_selected(true);
+                    let list = $('#selected-bcc');
+                    let section = $('#selected-bcc-section');
                     list.empty();
 
                     if (selectedNodes.length) {
@@ -1136,6 +1184,13 @@
                         selectedTembusanNodes.forEach(node => {
                             $('#tembusan-container').append(
                                 `<input type="hidden" name="tembusan[]" value="${node.id}">`
+                            );
+                        });
+                        $('#bcc-container').empty();
+                        const selectedBccNodes = $('#bcc-tree').jstree('get_selected', true);
+                        selectedBccNodes.forEach(node => {
+                            $('#bcc-container').append(
+                                `<input type="hidden" name="bcc[]" value="${node.id}">`
                             );
                         });
                         // Show loading state

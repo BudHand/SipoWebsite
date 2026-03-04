@@ -435,6 +435,110 @@ class MemoController extends Controller
         return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'pembuat'));
     }
 
+    private function parseRecipientUserIds(?string $raw): array
+    {
+        if (!$raw) {
+            return [];
+        }
+
+        return collect(explode(';', $raw))
+            ->map(fn($v) => trim($v))
+            ->filter(fn($v) => $v !== '' && is_numeric($v))
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function buildGroupedRecipientDisplayList(array $selectedUserIds): array
+    {
+        if (empty($selectedUserIds)) {
+            return [];
+        }
+
+        $selectedUsers = User::with(['position:id_position,nm_position'])
+            ->whereIn('id', $selectedUserIds)
+            ->get([
+                'id',
+                'firstname',
+                'lastname',
+                'position_id_position',
+                'director_id_director',
+                'divisi_id_divisi',
+                'department_id_department',
+                'section_id_section',
+                'unit_id_unit',
+            ]);
+
+        if ($selectedUsers->isEmpty()) {
+            return [];
+        }
+
+        $selectedIdSet = $selectedUsers->pluck('id')->flip();
+        $remainingIds = $selectedUsers->pluck('id')->all();
+
+        $directorMap = Director::pluck('name_director', 'id_director');
+        $divisionMap = Divisi::pluck('nm_divisi', 'id_divisi');
+        $departmentMap = Department::pluck('name_department', 'id_department');
+        $sectionMap = Section::pluck('name_section', 'id_section');
+        $unitMap = Unit::pluck('name_unit', 'id_unit');
+
+        $result = [];
+        $scopes = [
+            ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
+            ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
+            ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
+            ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
+            ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
+        ];
+
+        foreach ($scopes as $scope) {
+            $groupIds = $selectedUsers
+                ->whereIn('id', $remainingIds)
+                ->pluck($scope['col'])
+                ->filter()
+                ->unique()
+                ->values();
+
+            foreach ($groupIds as $groupId) {
+                $allMemberIds = User::where($scope['col'], $groupId)->pluck('id');
+                if ($allMemberIds->isEmpty()) {
+                    continue;
+                }
+
+                $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                if ($allSelected) {
+                    $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                    $result[] = $scope['label'] . ': ' . $scopeName;
+                    $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                }
+            }
+        }
+
+        foreach ($selectedUsers->whereIn('id', $remainingIds) as $user) {
+            $fullName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+            $positionName = $user->position->nm_position ?? '-';
+
+            $bagianKerja = '-';
+            if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                $bagianKerja = $unitMap[$user->unit_id_unit];
+            } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                $bagianKerja = $sectionMap[$user->section_id_section];
+            } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                $bagianKerja = $departmentMap[$user->department_id_department];
+            } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                $bagianKerja = $divisionMap[$user->divisi_id_divisi];
+            } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                $bagianKerja = $directorMap[$user->director_id_director];
+            }
+
+            $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
+            $result[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
+        }
+
+        return array_values(array_filter($result));
+    }
+
     //== Fungsi Nomor Seri dan Dokumen Otomatis ==//
     // public function nextSeri()
     // {
@@ -1935,7 +2039,14 @@ class MemoController extends Controller
             })
             ->values();
 
-        return view(Auth::user()->role->nm_role . '.memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos'));
+        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $bccDisplayList = [];
+        if ($canViewBcc) {
+            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
+        }
+
+        return view(Auth::user()->role->nm_role . '.memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
         // $memo = Kirim_Document::where('jenis_document', 'memo')
         //     ->where('id_document', $id)
         //     ->with(['memo', 'penerima', 'pengirim'])
@@ -2039,9 +2150,16 @@ class MemoController extends Controller
             })
             ->values();
 
+        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $bccDisplayList = [];
+        if ($canViewBcc) {
+            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
+        }
+
         return view(
             'manager.memo.view-memoDiterima',
-            compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan')
+            compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList')
         );
     }
 
@@ -2107,7 +2225,14 @@ class MemoController extends Controller
             })
             ->values();
 
-        return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos'));
+        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $bccDisplayList = [];
+        if ($canViewBcc) {
+            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
+        }
+
+        return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
     }
 
     public function updateStatusNotif(Request $request, $id)
@@ -2671,11 +2796,17 @@ class MemoController extends Controller
             }
         }
 
-        // CC Memo: samakan dengan tujuan (simpan sebagai id user)
+        // CC/BCC Memo: samakan dengan tujuan (simpan sebagai id user)
         $tembusanUserIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
             $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
             $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
+        }
+
+        $bccUserIds = [];
+        if ($request->has('bcc') && is_array($request->bcc)) {
+            $bccUserIds = $this->convertTujuanToUserId($request->bcc);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
         }
 
         // ===================================================================
@@ -2699,7 +2830,8 @@ class MemoController extends Controller
             'nama_bertandatangan' => $request->input('nama_bertandatangan'),
             'lampiran' => $lampiranPath,
             'feedback' => $idMemoLama,
-            'tembusan' => !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null
+            'tembusan' => !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null,
+            'bcc' => !empty($bccUserIds) ? implode(';', $bccUserIds) : null,
         ]);
 
         // Handle kategori barang
@@ -2853,6 +2985,16 @@ class MemoController extends Controller
                 ->all();
         }
 
+        $selectedBcc = [];
+        if ($memo->bcc) {
+            $bcc = array_values(array_filter(explode(';', $memo->bcc), fn($v) => trim($v) !== ''));
+            $selectedBcc = collect($bcc)
+                ->filter(fn($v) => is_numeric($v))
+                ->map(fn($v) => 'user-' . (int) $v)
+                ->values()
+                ->all();
+        }
+
         return view(
             Auth::user()->role->nm_role . '.memo.edit-baru',
             compact(
@@ -2868,6 +3010,7 @@ class MemoController extends Controller
                 'parentMemo',
                 'tembusan',
                 'selectedTembusan',
+                'selectedBcc',
                 'bagianKerja'
             )
         );
@@ -2919,7 +3062,7 @@ class MemoController extends Controller
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
             ],
         );
-        // CC Memo: samakan dengan tujuan (simpan id user)
+        // CC/BCC Memo: samakan dengan tujuan (simpan id user)
         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
         $tembusanUserIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
@@ -2928,6 +3071,15 @@ class MemoController extends Controller
             $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
         } else {
             $memo->tembusan = null;
+        }
+
+        $bccUserIds = [];
+        if ($request->has('bcc') && is_array($request->bcc)) {
+            $bccUserIds = $this->convertTujuanToUserId($request->bcc);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
+            $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
+        } else {
+            $memo->bcc = null;
         }
 
         if ($request->filled('kode_bagian')) {
