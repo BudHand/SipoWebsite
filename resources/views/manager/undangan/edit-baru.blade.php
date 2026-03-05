@@ -115,9 +115,34 @@
                                             satu tujuan!</small>
                                     </div>
                                     <div id="tujuan-container"></div>
+                                    <div id="tembusan-container"></div>
+                                    <div id="bcc-container"></div>
                                     @error('tujuan')
                                         <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-user text-primary me-1"></i>Tembusan</label>
+                                    <div class="border rounded p-2" style="max-height:250px;overflow-y:auto;">
+                                        <div id="tembusan-tree" style="font-size:small;"></div>
+                                    </div>
+                                    <div id="selected-tembusan-section" class="mt-2" style="display:none;">
+                                        <small class="fw-semibold">Tembusan Terpilih:</small>
+                                        <ul id="selected-tembusan" style="font-size:small;padding-left:15px;margin:0;"></ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label"><i class="fas fa-user-secret text-primary me-1"></i>BCC</label>
+                                    <div class="border rounded p-2" style="max-height:250px;overflow-y:auto;">
+                                        <div id="bcc-tree" style="font-size:small;"></div>
+                                    </div>
+                                    <div id="selected-bcc-section" class="mt-2" style="display:none;">
+                                        <small class="fw-semibold">BCC Terpilih:</small>
+                                        <ul id="selected-bcc" style="font-size:small;padding-left:15px;margin:0;"></ul>
+                                    </div>
                                 </div>
                             </div>
 
@@ -348,6 +373,8 @@
     <script>
         $(function() {
             const selectedTujuan = @json($tujuanArray);
+            const selectedTembusan = @json($selectedTembusan ?? []);
+            const selectedBcc = @json($selectedBcc ?? []);
 
             $('#org-tree').jstree({
                 'core': {
@@ -371,6 +398,43 @@
             }).on('changed.jstree', function(e, data) {
                 updateSelectedRecipients(data);
             });
+
+            function initRecipientTree(treeSelector, selectedNodes, selectedListSelector, sectionSelector) {
+                $(treeSelector).jstree({
+                    'core': { 'data': @json($jsTreeData) },
+                    'plugins': ['checkbox', 'search'],
+                    'checkbox': { 'three_state': false, 'cascade': 'none' }
+                }).on('ready.jstree', function(e, data) {
+                    $(treeSelector + ' li').each(function() {
+                        var node = data.instance.get_node(this.id);
+                        if (node && node.parent === '#') {
+                            $(this).find('.jstree-checkbox').css('display', 'none');
+                        }
+                    });
+
+                    selectedNodes.forEach(nodeId => {
+                        if (data.instance.get_node(nodeId)) {
+                            data.instance.check_node(nodeId);
+                        }
+                    });
+                }).on('changed.jstree', function(e, data) {
+                    const names = data.instance.get_selected(true)
+                        .filter(node => node.icon && node.icon === 'fa fa-user')
+                        .map(node => node.text);
+
+                    const list = $(selectedListSelector);
+                    list.empty();
+                    if (names.length) {
+                        names.forEach(name => list.append(`<li>${name}</li>`));
+                        $(sectionSelector).show();
+                    } else {
+                        $(sectionSelector).hide();
+                    }
+                });
+            }
+
+            initRecipientTree('#tembusan-tree', selectedTembusan, '#selected-tembusan', '#selected-tembusan-section');
+            initRecipientTree('#bcc-tree', selectedBcc, '#selected-bcc', '#selected-bcc-section');
 
             function updateSelectedRecipients(data) {
                 let allSelectedNodes = data.instance.get_selected(true);
@@ -469,6 +533,16 @@
 
             tujuanNodes.forEach(nodeId => {
                 tujuanContainer.append(`<input type="hidden" name="tujuan[]" value="${nodeId}">`);
+            });
+
+            const selectedTembusanNodes = $('#tembusan-tree').jstree('get_selected', true);
+            selectedTembusanNodes.forEach(node => {
+                $('#tembusan-container').append(`<input type="hidden" name="tembusan[]" value="${node.id}">`);
+            });
+
+            const selectedBccNodes = $('#bcc-tree').jstree('get_selected', true);
+            selectedBccNodes.forEach(node => {
+                $('#bcc-container').append(`<input type="hidden" name="bcc[]" value="${node.id}">`);
             });
 
             this.submit();

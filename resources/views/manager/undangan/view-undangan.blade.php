@@ -216,6 +216,28 @@
                                         <pre style="font-family: Public Sans, sans-serif">{{ $undangan->tujuan }}</pre>
                                     </div>
                                 </div>
+
+                                @if (!empty($tembusanList ?? []))
+                                    <div class="info-row d-flex flex-column flex-sm-row">
+                                        <div class="info-label">Tembusan</div>
+                                        <div class="info-value">
+                                            @foreach ($tembusanList as $index => $item)
+                                                <p class="m-0">{{ $index + 1 }}. {{ $item }}</p>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if (($canViewBcc ?? false) && !empty($bccDisplayList ?? []))
+                                    <div class="info-row d-flex flex-column flex-sm-row">
+                                        <div class="info-label">BCC</div>
+                                        <div class="info-value">
+                                            @foreach ($bccDisplayList as $index => $item)
+                                                <p class="m-0">{{ $index + 1 }}. {{ $item }}</p>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
@@ -340,7 +362,9 @@
             const catatanInput = document.getElementById('catatan');
             const tujuanDivisiRow = document.getElementById('tujuanDivisiRow');
             const submitBtn = document.getElementById('submitBtn');
+            const approvalForm = document.getElementById('approvalForm');
             let statusValue = null;
+            let isSubmitting = false;
 
             // Radio button logic
             checkboxes.forEach(checkbox => {
@@ -375,33 +399,37 @@
             // Submit button logic
             if (submitBtn) {
                 submitBtn.addEventListener('click', function() {
+                    if (isSubmitting) return;
+
                     if (!statusValue) {
 
                         alert('Pilih status pengesahan terlebih dahulu!');
                         return;
                     }
-                    // Untuk approve, tetap submit dan tampilkan modal sukses (biarkan reload)
-                    if (statusValue === 'approve') {
-                        document.getElementById('approvalForm').submit();
-                        showNotification('Pengesahan undangan rapat berhasil', 'success');
-                        setTimeout(function() {
-                            window.location.href = "{{ route('undangan.terkirim') }}";
-                        }, 1000);
-                    } else {
-                        // Validasi catatan untuk reject/correction
-                        if ((statusValue === 'reject' || statusValue === 'correction') && catatanInput.value
-                            .trim() === '') {
-                            document.getElementById('catatanError').style.display = 'block';
-                            catatanInput.focus();
-                            return; // stop proses submit & redirect
-                        }
-                        showNotification('Penolakan undangan rapat berhasil', 'success');
-                        // Kalau lolos validasi, submit lalu redirect
-                        document.getElementById('approvalForm').submit();
-                        setTimeout(function() {
-                            window.location.href = "{{ route('undangan.terkirim') }}";
-                        }, 1000);
+
+                    if ((statusValue === 'reject' || statusValue === 'correction') && catatanInput.value
+                        .trim() === '') {
+                        document.getElementById('catatanError').style.display = 'block';
+                        catatanInput.focus();
+                        return;
                     }
+
+                    isSubmitting = true;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memproses...';
+
+                    if (typeof Swal !== 'undefined') {
+                        Swal.fire({
+                            title: 'Mohon tunggu',
+                            text: 'Proses persetujuan undangan sedang berjalan...',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => Swal.showLoading()
+                        });
+                    }
+
+                    approvalForm.submit();
                 });
             }
 

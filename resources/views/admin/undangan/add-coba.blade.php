@@ -189,6 +189,8 @@
                                                     </div>
                                                     <!-- ADD TUJUAN JSTREE CONTAINER -->
                                                     <div id="tujuan-container"></div>
+                                                    <div id="tembusan-container"></div>
+                                                    <div id="bcc-container"></div>
                                                     @error('kepada')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
@@ -219,6 +221,29 @@
                                                             }
                                                         </style>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label"><i class="fas fa-user text-primary me-1"></i>Tembusan</label>
+                                                <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
+                                                    <div style="font-size: small" id="tembusan-tree"></div>
+                                                </div>
+                                                <div style="display:none;" id="selected-tembusan-section" class="mt-2">
+                                                    <small class="fw-semibold">Tembusan Terpilih:</small>
+                                                    <ul id="selected-tembusan" style="font-size: small; padding-left: 16px; margin: 0;"></ul>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label"><i class="fas fa-user-secret text-primary me-1"></i>BCC</label>
+                                                <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
+                                                    <div style="font-size: small" id="bcc-tree"></div>
+                                                </div>
+                                                <div style="display:none;" id="selected-bcc-section" class="mt-2">
+                                                    <small class="fw-semibold">BCC Terpilih:</small>
+                                                    <ul id="selected-bcc" style="font-size: small; padding-left: 16px; margin: 0;"></ul>
                                                 </div>
                                             </div>
                                         </div>
@@ -522,6 +547,44 @@
                             '</p>');
                     }
 
+                    function initRecipientTree(treeSelector, selectedSelector, sectionSelector) {
+                        $(treeSelector).jstree({
+                            'core': {
+                                'data': treeData
+                            },
+                            'plugins': ['checkbox', 'search'],
+                            'checkbox': {
+                                'three_state': false,
+                                'cascade': 'none'
+                            }
+                        }).on('ready.jstree', function(e, data) {
+                            $(treeSelector + ' li').each(function() {
+                                var node = data.instance.get_node(this.id);
+                                if (node && node.parent === '#') {
+                                    $(this).find('.jstree-checkbox').css('display', 'none');
+                                }
+                            });
+                        }).on('changed.jstree', function(e, data) {
+                            const selectedNodes = data.instance.get_selected(true);
+                            const names = selectedNodes
+                                .filter(node => node.icon && node.icon === 'fa fa-user')
+                                .map(node => node.text);
+
+                            let list = $(selectedSelector);
+                            list.empty();
+
+                            if (names.length) {
+                                names.forEach(name => list.append('<li>' + name + '</li>'));
+                                $(sectionSelector).show();
+                            } else {
+                                $(sectionSelector).hide();
+                            }
+                        });
+                    }
+
+                    initRecipientTree('#tembusan-tree', '#selected-tembusan', '#selected-tembusan-section');
+                    initRecipientTree('#bcc-tree', '#selected-bcc', '#selected-bcc-section');
+
                     // Form submission validation dengan prevent double click
                     $('#addUndanganForm').on('submit', function(e) {
                         console.log('Form submitting...');
@@ -553,6 +616,18 @@
                             e.preventDefault();
                             return false;
                         }
+
+                        $('#tembusan-container').empty();
+                        const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
+                        selectedTembusan.forEach(node => {
+                            $('#tembusan-container').append('<input type="hidden" name="tembusan[]" value="' + node.id + '">');
+                        });
+
+                        $('#bcc-container').empty();
+                        const selectedBcc = $('#bcc-tree').jstree('get_selected', true);
+                        selectedBcc.forEach(node => {
+                            $('#bcc-container').append('<input type="hidden" name="bcc[]" value="' + node.id + '">');
+                        });
 
                         // Jika validasi berhasil, disable tombol dan ubah text dengan loading
                         $('#submitBtn').prop('disabled', true)
