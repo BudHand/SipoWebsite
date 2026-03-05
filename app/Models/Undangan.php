@@ -38,7 +38,9 @@ class Undangan extends Model
         'tempat',
         'waktu_mulai',
         'waktu_selesai',
-        'kode_bagian'
+        'kode_bagian',
+        'tembusan',
+        'bcc',
     ];
 
     protected $casts = [
