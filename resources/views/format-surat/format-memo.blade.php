@@ -284,22 +284,23 @@
             <h3 class="memo-title">Memo</h3>
 
             <div class="letter">
-                <table class="header1">
+                {{-- Header --}}
+                <table class="header">
                     @if ($memo->tgl_dibuat != null)
-                        <tr>
-                            <td>Tanggal</td>
-                            <td>:</td>
+                        <tr style="vertical-align: top">
+                            <td style="padding-right: 16px">Tanggal</td>
+                            <td style="padding-right: 8px">:</td>
                             <td>{{ $memo->tgl_dibuat->translatedFormat('d F Y') }}</td>
                         </tr>
                     @endif
-                    <tr>
-                        <td>Nomor</td>
-                        <td>:</td>
+                    <tr style="vertical-align: top">
+                        <td style="padding-right: 16px">Nomor</td>
+                        <td style="padding-right: 8px">:</td>
                         <td>{{ $memo->nomor_memo }}</td>
                     </tr>
-                    <tr>
-                        <td>Perihal</td>
-                        <td>:</td>
+                    <tr style="vertical-align: top">
+                        <td style="padding-right: 16px">Perihal</td>
+                        <td style="padding-right: 8px">:</td>
                         <td><b>{{ $memo->judul }}</b></td>
                     </tr>
                 </table>
@@ -509,7 +510,9 @@
                     </table>
 
                     @php
-                        $rawTembusan = array_values(array_filter(explode(';', $memo->tembusan ?? ''), fn($t) => trim($t) !== ''));
+                        $rawTembusan = array_values(
+                            array_filter(explode(';', $memo->tembusan ?? ''), fn($t) => trim($t) !== ''),
+                        );
 
                         // Pisahkan data baru (id user) vs data lama (nama teks)
                         $tembusanUserIds = collect($rawTembusan)
@@ -518,15 +521,15 @@
                             ->unique()
                             ->values();
 
-                        $legacyTembusan = collect($rawTembusan)
-                            ->filter(fn($t) => !is_numeric($t))
-                            ->values()
-                            ->all();
+                        $legacyTembusan = collect($rawTembusan)->filter(fn($t) => !is_numeric($t))->values()->all();
 
                         $tembusanRingkas = [];
 
                         if ($tembusanUserIds->isNotEmpty()) {
-                            $selectedUsers = \App\Models\User::with(['position:id_position,nm_position', 'department:id_department,name_department'])
+                            $selectedUsers = \App\Models\User::with([
+                                'position:id_position,nm_position',
+                                'department:id_department,name_department',
+                            ])
                                 ->whereIn('id', $tembusanUserIds)
                                 ->get([
                                     'id',
@@ -573,10 +576,12 @@
                                         continue;
                                     }
 
-                                    $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                                    $allSelected = $allMemberIds->every(
+                                        fn($memberId) => $selectedIdSet->has($memberId),
+                                    );
 
                                     if ($allSelected) {
-                                        $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                        $scopeName = $scope['map'][$groupId] ?? 'ID ' . $groupId;
                                         $tembusanRingkas[] = $scope['label'] . ': ' . $scopeName;
 
                                         // Hapus anggota scope ini dari sisa perorangan agar tidak duplikat
@@ -594,7 +599,8 @@
                                 $fullName = trim($user->firstname . ' ' . $user->lastname);
                                 $positionName = $user->position->nm_position ?? '-';
                                 $positionLower = strtolower($positionName);
-                                $isStaff = str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+                                $isStaff =
+                                    str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
 
                                 // Tentukan label bagian kerja dari hierarchy user
                                 $bagianKerja = '-';
@@ -602,26 +608,50 @@
                                     // Staff: pakai hierarchy paling spesifik
                                     if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
                                         $bagianKerja = $unitMap[$user->unit_id_unit];
-                                    } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                    } elseif (
+                                        !empty($user->section_id_section) &&
+                                        isset($sectionMap[$user->section_id_section])
+                                    ) {
                                         $bagianKerja = $sectionMap[$user->section_id_section];
-                                    } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                    } elseif (
+                                        !empty($user->department_id_department) &&
+                                        isset($departmentMap[$user->department_id_department])
+                                    ) {
                                         $bagianKerja = $departmentMap[$user->department_id_department];
-                                    } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                    } elseif (
+                                        !empty($user->divisi_id_divisi) &&
+                                        isset($divisionMap[$user->divisi_id_divisi])
+                                    ) {
                                         $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                    } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                    } elseif (
+                                        !empty($user->director_id_director) &&
+                                        isset($directorMap[$user->director_id_director])
+                                    ) {
                                         $bagianKerja = $directorMap[$user->director_id_director];
                                     }
                                 } else {
                                     // Di atas staff: pakai hierarchy jabatan yang lebih representatif
-                                    if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                    if (
+                                        !empty($user->department_id_department) &&
+                                        isset($departmentMap[$user->department_id_department])
+                                    ) {
                                         $bagianKerja = $departmentMap[$user->department_id_department];
-                                    } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                    } elseif (
+                                        !empty($user->divisi_id_divisi) &&
+                                        isset($divisionMap[$user->divisi_id_divisi])
+                                    ) {
                                         $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                    } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                    } elseif (
+                                        !empty($user->section_id_section) &&
+                                        isset($sectionMap[$user->section_id_section])
+                                    ) {
                                         $bagianKerja = $sectionMap[$user->section_id_section];
                                     } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
                                         $bagianKerja = $unitMap[$user->unit_id_unit];
-                                    } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                    } elseif (
+                                        !empty($user->director_id_director) &&
+                                        isset($directorMap[$user->director_id_director])
+                                    ) {
                                         $bagianKerja = $directorMap[$user->director_id_director];
                                     }
                                 }

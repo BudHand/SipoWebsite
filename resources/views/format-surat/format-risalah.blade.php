@@ -314,7 +314,6 @@
         .header2 table td {
             line-height: 1.5;
         }
-
     </style>
 </head>
 
@@ -377,19 +376,6 @@
             <img src="{{ $footerImage }}" width="100%">
         @endif
     </footer>
-
-    {{-- <htmlpageheader name="pageHeader">
-        <img src="{{ $headerImage }}" width="100%">
-    </htmlpageheader>
-
-    <htmlpagefooter name="pageFooter">
-        <img src="{{ $footerImage }}" width="100%">
-    </htmlpagefooter>
-
-    <sethtmlpageheader name="pageHeader" value="on" />
-    <sethtmlpagefooter name="pageFooter" value="on" /> --}}
-
-
 
     <main>
         <div class="first-page-adjust"></div>
@@ -548,8 +534,13 @@
                                 @endphp
 
                                 <p style="margin: 0; text-align:center">Notulis</p>
-                                <p style="margin: 4px 0; text-align:center">
-                                    {{ $jabatanNotulis }} {{ $departemenNotulis }}
+                                <p
+                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $jabatanNotulis }}
+                                </p>
+                                <p
+                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $departemenNotulis }}
                                 </p>
 
                                 @if (!empty($risalah->qr_notulis_acara))
@@ -570,8 +561,13 @@
                                 @endphp
 
                                 <p style="margin: 0; text-align:center">Pemimpin Acara</p>
-                                <p style="margin: 4px 0;  text-align:center">
-                                    {{ $jabatanPemimpin }} {{ $departemenPemimpin }}
+                                <p
+                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $jabatanPemimpin }}
+                                </p>
+                                <p
+                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $departemenPemimpin }}
                                 </p>
 
                                 @if (!empty($risalah->qr_pemimpin_acara))
