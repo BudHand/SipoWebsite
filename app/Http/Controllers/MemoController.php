@@ -1551,215 +1551,264 @@ class MemoController extends Controller
 
     public function updateStatus(Request $request, $id)
     {
-        $memo = Memo::findOrFail($id);
-        $userDivDeptKode = $this->getDivDeptKode(Auth::user());
-        $userId = Auth::id();
+        $requestStatus = $request->status;
 
-        $push = new NotifApiController();
+        $authUser = Auth::user();
+        $authId   = (int) $authUser->id;
 
         // Validasi input
-        if ($request->status == 'approve') {
+        if ($requestStatus == 'approve') {
             $request->validate([
-                'status' => 'required|in:approve,reject,pending,correction',
+                'status'  => 'required|in:approve,reject,pending,correction',
                 'catatan' => 'nullable|string',
             ]);
         } else {
             $request->validate([
-                'status' => 'required|in:approve,reject,pending,correction',
+                'status'  => 'required|in:approve,reject,pending,correction',
                 'catatan' => 'required|string',
             ]);
         }
 
-        // Update status
-        $memo->status = $request->status;
-        $currentKirim = Kirim_document::where('id_document', $id)
-            ->where('jenis_document', 'memo')
-            ->where('id_penerima', $userId)
-            ->first();
+        $push = new NotifApiController();
 
-        if ($currentKirim) {
-            $currentKirim->status = $request->status;
-            $currentKirim->updated_at = now();
-            $currentKirim->save();
-        }
+        return DB::transaction(function () use ($id, $request, $requestStatus, $authUser, $authId, $push) {
 
-        // Jika status 'approve'
-        if ($request->status == 'approve') {
-            $tglDisahkan = now();
-            $memo->tgl_disahkan = $tglDisahkan;
+            // LOCK memo row untuk cegah double-approve paralel
+            $memo = Memo::where('id_memo', $id)->lockForUpdate()->firstOrFail();
 
-            // ===================================================================
-            // 🎯 GENERATE NOMOR SURAT OTOMATIS MENGGUNAKAN CounterNomorSurat
-            // ===================================================================
+            // Kalau sudah approve dan user pencet approve lagi -> stop (idempotent)
+            if ($requestStatus === 'approve' && $memo->status === 'approve') {
+                // tetap arahkan sukses biar UX aman
+                return redirect()->route('memo.terkirim')->with('success', 'Memo sudah disetujui sebelumnya.');
+            }
 
-            // Jika nomor_memo masih kosong atau draft, generate nomor baru
-            if (empty($memo->nomor_memo) || strpos($memo->nomor_memo, 'DRAFT') !== false) {
+            $userDivDeptKode = $this->getDivDeptKode($authUser);
 
-                $bulanRomawi = CounterNomorSurat::getBulanRomawi(now()->month);
+            // Lock current kirim row (kalau ada) biar aman dari race
+            $currentKirim = Kirim_document::where('id_document', $id)
+                ->where('jenis_document', 'memo')
+                ->where('id_penerima', $authId)
+                ->lockForUpdate()
+                ->first();
+
+            // Update memo + current kirim
+            $memo->status = $requestStatus;
+
+            if ($currentKirim) {
+                $currentKirim->status     = $requestStatus;
+                $currentKirim->updated_at = now();
+                $currentKirim->save();
+            }
+
+            // ============================
+            // APPROVE
+            // ============================
+            if ($requestStatus == 'approve') {
+                $tglDisahkan        = now();
+                $memo->tgl_disahkan = $tglDisahkan;
+
+                // Generate nomor memo bila perlu
+                if (empty($memo->nomor_memo) || strpos((string) $memo->nomor_memo, 'DRAFT') !== false) {
+                    $bulanRomawi = CounterNomorSurat::getBulanRomawi(now()->month);
+
+                    try {
+                        $counter = CounterNomorSurat::createNomorSurat([
+                            'tanggal_permintaan' => $tglDisahkan,
+                            'perusahaan'         => 'REKA',
+                            'kode_tipe_surat'     => 'GEN',
+                            'divisi'             => $memo->kode_bagian ?? $userDivDeptKode,
+                            'bulan'              => $bulanRomawi,
+                            'tahun'              => $tglDisahkan->year,
+                            'pic_peminta'        => $authUser->fullname,
+                            'jenis'              => 'Memo',
+                            'perihal'            => $memo->judul,
+                        ]);
+
+                        $memo->nomor_memo = $counter->nomor_surat_generated;
+                    } catch (\Exception $e) {
+                        Log::error('Generate nomor surat gagal: ' . $e->getMessage());
+
+                        $divDeptKode = $this->getDivDeptKode($authUser);
+                        $nextSeri    = \App\Models\Seri::getNextSeri(false);
+
+                        $memo->nomor_memo = sprintf(
+                            '%02d.%02d/REKA/GEN/%s/%s/%d',
+                            $nextSeri['seri_tahunan'],
+                            $nextSeri['seri_bulanan'],
+                            strtoupper($divDeptKode),
+                            CounterNomorSurat::getBulanRomawi(now()->month),
+                            now()->year
+                        );
+                    }
+                }
+
+                // Generate QR (kalau mau lebih hemat, bisa generate hanya jika qr_approved_by masih null)
+                $qrText = 'Disetujui oleh: ' . $authUser->firstname . ' ' . $authUser->lastname
+                    . "\nNomor Memo: " . ($memo->nomor_memo ?? '-')
+                    . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s')
+                    . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
 
                 try {
-                    // Generate nomor surat otomatis
-                    $counter = CounterNomorSurat::createNomorSurat([
-                        'tanggal_permintaan' => $tglDisahkan,
-                        'perusahaan' => 'REKA',           // default
-                        'kode_tipe_surat' => 'GEN',       // default atau ambil dari memo
-                        'divisi' => $memo->kode_bagian ?? $userDivDeptKode,
-                        'bulan' => $bulanRomawi,
-                        'tahun' => $tglDisahkan->year,
-                        'pic_peminta' => Auth::user()->fullname,
-                        'jenis' => 'Memo',
-                        'perihal' => $memo->judul,
-                    ]);
-
-                    // Set nomor surat yang sudah di-generate
-                    $memo->nomor_memo = $counter->nomor_surat_generated;
-
+                    $memo->qr_approved_by = (new QrCodeService())->generateWithLogo($qrText);
                 } catch (\Exception $e) {
-                    // Log error dan gunakan fallback jika generate gagal
-                    Log::error('Generate nomor surat gagal: ' . $e->getMessage());
-
-                    // Fallback ke format lama jika ada error
-                    $divDeptKode = $this->getDivDeptKode(Auth::user());
-                    $nextSeri = \App\Models\Seri::getNextSeri(false);
-                    $memo->nomor_memo = sprintf(
-                        '%02d.%02d/REKA/GEN/%s/%s/%d',
-                        $nextSeri['seri_tahunan'],
-                        $nextSeri['seri_bulanan'],
-                        strtoupper($divDeptKode),
-                        $bulanRomawi,
-                        now()->year
-                    );
-                }
-            }
-
-            // Generate QR Code dengan nomor surat yang baru
-            $qrText = 'Disetujui oleh: ' . Auth::user()->firstname . ' ' . Auth::user()->lastname
-                . "\nNomor Memo: " . ($memo->nomor_memo ?? '-')
-                . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s')
-                . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
-
-            $qrService = new QrCodeService();
-
-            try {
-                $qrImage = $qrService->generateWithLogo($qrText);
-                $memo->qr_approved_by = $qrImage;
-            } catch (\Exception $e) {
-                Log::error('Generate QR Code gagal: ' . $e->getMessage());
-            }
-
-            // Kirim otomatis ke tujuan jika status approve
-            $tujuanUserIds = is_array($memo->tujuan) ? $memo->tujuan : explode(';', $memo->tujuan);
-
-            foreach ($tujuanUserIds as $userId) {
-                $userId = trim($userId);
-
-                // Lewati jika sama dengan divisi pengirim
-                if ($userId == Auth::user()->id) {
-                    continue;
+                    Log::error('Generate QR Code gagal: ' . $e->getMessage());
                 }
 
-                // Ambil semua user di divisi terkait
-                $penerima = \App\Models\User::where('id', $userId)->get();
+                // ----------------------------
+                // Kirim ke penerima (Memo Masuk) - idempotent
+                // ----------------------------
+                $tujuanUserIds = is_array($memo->tujuan) ? $memo->tujuan : explode(';', (string) $memo->tujuan);
+                $tujuanUserIds = collect($tujuanUserIds)
+                    ->map(fn($v) => (int) trim($v))
+                    ->filter(fn($v) => $v > 0)
+                    ->unique()
+                    ->values();
 
-                foreach ($penerima as $penerima) {
-                    if (Auth::user()->position_id_position) {
-                        \App\Models\Kirim_Document::create([
-                            'id_document' => $memo->id_memo,
-                            'jenis_document' => 'memo',
-                            'id_pengirim' => $currentKirim->id_pengirim,
-                            'id_penerima' => $penerima->id,
-                            'status' => 'approve',
-                            'updated_at' => now(),
-                        ]);
+                foreach ($tujuanUserIds as $tujuanId) {
+                    if ($tujuanId === $authId) {
+                        continue;
                     }
 
-                    Notifikasi::create([
-                        'judul' => 'Memo Masuk',
-                        'judul_document' => $memo->judul,
-                        'id_user' => $penerima->id,
-                        'updated_at' => now(),
-                    ]);
+                    $penerima = \App\Models\User::find($tujuanId);
+                    if (!$penerima) {
+                        continue;
+                    }
 
-                    $push->sendToUser(
-                        $penerima->id,
-                        'Memo Masuk',
-                        $memo->judul
+                    // kirim_document approve ke penerima: tidak dobel
+                    \App\Models\Kirim_Document::firstOrCreate(
+                        [
+                            'id_document'    => $memo->id_memo,
+                            'jenis_document' => 'memo',
+                            'id_penerima'    => $penerima->id,
+                            'status'         => 'approve',
+                        ],
+                        [
+                            'id_pengirim' => $currentKirim ? $currentKirim->id_pengirim : $authId,
+                            'updated_at'  => now(),
+                        ]
+                    );
+
+                    // Notif Memo Masuk: tidak dobel
+                    $notifMasuk = Notifikasi::firstOrCreate(
+                        [
+                            'judul'          => 'Memo Masuk',
+                            'judul_document' => $memo->judul,
+                            'id_user'        => $penerima->id,
+                        ],
+                        [
+                            'updated_at' => now(),
+                        ]
+                    );
+
+                    // Push hanya kalau notif baru dibuat (biar gak spam kalau double approve)
+                    if ($notifMasuk->wasRecentlyCreated) {
+                        $push->sendToUser($penerima->id, 'Memo Masuk', $memo->judul);
+                    }
+                }
+
+                // ----------------------------
+                // Notif untuk pembuat: Memo Disetujui (idempotent)
+                // ----------------------------
+                $notifDisetujui = Notifikasi::firstOrCreate(
+                    [
+                        'judul'          => 'Memo Disetujui',
+                        'judul_document' => $memo->judul,
+                        'id_user'        => (int) $memo->pembuat,
+                    ],
+                    [
+                        'updated_at' => now(),
+                    ]
+                );
+
+                if ($notifDisetujui->wasRecentlyCreated) {
+                    $push->sendToUser((int) $memo->pembuat, 'Memo Disetujui', $memo->judul);
+                }
+
+                // ----------------------------
+                // Memo Terkirim hanya untuk: pembuat + approver (idempotent)
+                // ----------------------------
+                $targetsTerkirim = collect([(int) $memo->pembuat, $authId])
+                    ->unique()
+                    ->filter();
+
+                foreach ($targetsTerkirim as $targetId) {
+                    Notifikasi::firstOrCreate(
+                        [
+                            'judul'          => 'Memo Terkirim',
+                            'judul_document' => $memo->judul,
+                            'id_user'        => (int) $targetId,
+                        ],
+                        [
+                            'updated_at' => now(),
+                        ]
                     );
                 }
+
+                // Self kirim_document approve untuk approver (optional) - idempotent
+                if ($authId !== (int) $memo->pembuat) {
+                    \App\Models\Kirim_Document::firstOrCreate(
+                        [
+                            'id_document'    => $memo->id_memo,
+                            'jenis_document' => 'memo',
+                            'id_pengirim'    => $authId,
+                            'id_penerima'    => $authId,
+                            'status'         => 'approve',
+                        ],
+                        [
+                            'updated_at' => now(),
+                        ]
+                    );
+                }
+
+            // ============================
+            // REJECT
+            // ============================
+            } elseif ($requestStatus == 'reject') {
+                $memo->tgl_disahkan = now();
+
+                $notif = Notifikasi::firstOrCreate(
+                    [
+                        'judul'          => 'Memo Ditolak',
+                        'judul_document' => $memo->judul,
+                        'id_user'        => (int) $memo->pembuat,
+                    ],
+                    ['updated_at' => now()]
+                );
+
+                if ($notif->wasRecentlyCreated) {
+                    $push->sendToUser((int) $memo->pembuat, 'Memo Ditolak', $memo->judul);
+                }
+
+            // ============================
+            // CORRECTION
+            // ============================
+            } elseif ($requestStatus == 'correction') {
+                $notif = Notifikasi::firstOrCreate(
+                    [
+                        'judul'          => 'Memo Perlu Revisi',
+                        'judul_document' => $memo->judul,
+                        'id_user'        => (int) $memo->pembuat,
+                    ],
+                    ['updated_at' => now()]
+                );
+
+                if ($notif->wasRecentlyCreated) {
+                    $push->sendToUser((int) $memo->pembuat, 'Memo Perlu Revisi', $memo->judul);
+                }
+
+            // ============================
+            // PENDING
+            // ============================
+            } else {
+                $memo->tgl_disahkan = null;
             }
 
-            if (Auth::user()->id != $memo->pembuat) {
-                \App\Models\Kirim_Document::create([
-                    'id_document' => $memo->id_memo,
-                    'jenis_document' => 'memo',
-                    'id_pengirim' => Auth::user()->id,
-                    'id_penerima' => Auth::user()->id,
-                    'status' => 'approve',
-                    'updated_at' => now(),
-                ]);
-            }
+            // Catatan
+            $memo->catatan = $request->catatan;
+            $memo->save();
 
-            Notifikasi::create([
-                'judul' => 'Memo Disetujui',
-                'judul_document' => $memo->judul,
-                'id_user' => $memo->pembuat,
-                'updated_at' => now(),
-            ]);
-
-            $push->sendToUser(
-                $memo->pembuat,
-                'Memo Disetujui',
-                $memo->judul
-            );
-
-            Notifikasi::create([
-                'judul' => 'Memo Terkirim',
-                'judul_document' => $memo->judul,
-                'id_user' => $userId,
-                'updated_at' => now(),
-            ]);
-
-        } elseif ($request->status == 'reject') {
-            $memo->tgl_disahkan = now();
-
-            Notifikasi::create([
-                'judul' => 'Memo Ditolak',
-                'judul_document' => $memo->judul,
-                'id_user' => $memo->pembuat,
-                'updated_at' => now(),
-            ]);
-
-            $push->sendToUser(
-                $memo->pembuat,
-                'Memo Ditolak',
-                $memo->judul
-            );
-
-        } elseif ($request->status == 'correction') {
-            Notifikasi::create([
-                'judul' => 'Memo Perlu Revisi',
-                'judul_document' => $memo->judul,
-                'id_user' => $memo->pembuat,
-                'updated_at' => now(),
-            ]);
-
-            $push->sendToUser(
-                $memo->pembuat,
-                'Memo Perlu Revisi',
-                $memo->judul
-            );
-
-        } else {
-            $memo->tgl_disahkan = null;
-        }
-
-        // Simpan catatan jika ada
-        $memo->catatan = $request->catatan;
-
-        // Simpan perubahan
-        $memo->save();
-
-        return redirect()->route('memo.terkirim')->with('success', 'Memo berhasil di-' . $request->status);
+            return redirect()->route('memo.terkirim')->with('success', 'Memo berhasil di-' . $requestStatus);
+        });
     }
 
     public function edit($id)
@@ -1778,6 +1827,7 @@ class MemoController extends Controller
         $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
         return view(Auth::user()->role->nm_role . '.memo.edit', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray'));
     }
+
     public function update(Request $request, $id)
     {
         $memo = Memo::findOrFail($id);
