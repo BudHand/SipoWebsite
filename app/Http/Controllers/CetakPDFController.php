@@ -13,109 +13,172 @@ use App\Models\Risalah;
 use App\Models\Divisi;
 use App\Models\Department;
 use App\Models\Director;
-use App\Models\Section;
-use App\Models\Unit;
 use App\Models\User;
-use FontLib\TrueType\Collection;
 use Illuminate\Support\Str;
 use Exception;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Filesystem\Filesystem;
 use Illuminate\Support\Facades\File;
-use Mpdf\Output\Destination;
-
+use setasign\Fpdi\Fpdi;
 
 class CetakPDFController extends Controller
 {
     /**
+     * Merge main PDF with multiple attachments using best available method
+     */
+    private function qpdfMergeAll(array $files, string $outputPath): bool
+    {
+        $files = array_values(array_filter($files, fn($p) => $p && file_exists($p)));
+        if (count($files) === 0) {
+            return false;
+        }
+
+        $escapedFiles = array_map('escapeshellarg', $files);
+        $escapedOut = escapeshellarg($outputPath);
+
+        // --empty --pages file1 file2 ... -- out.pdf
+        $cmd = 'qpdf --empty --pages ' . implode(' ', $escapedFiles) . ' -- ' . $escapedOut . ' 2>&1';
+
+        $out = shell_exec($cmd);
+        if (!file_exists($outputPath)) {
+            Log::error('qpdf merge failed: ' . ($out ?? 'no output'));
+            return false;
+        }
+        return true;
+    }
+
+    /**
      * Merge PDF files with error handling - Using available libraries only
      */
+    // private function mergePDFs($mainPdfPath, $attachmentPath, $outputPath)
+    // {
+    //     // Method 1: Try setasign/fpdi if available (most reliable for PDF merge)
+    //     if (class_exists('\setasign\Fpdi\Fpdi')) {
+    //         try {
+    //             return $this->fpdiMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
+    //         } catch (Exception $e) {
+    //             Log::error('FPDI PDF Merger Error: ' . $e->getMessage());
+    //         }
+    //     }
+
+    //     // Method 2: Try Webklex PDFMerger with proper constructor
+    //     if (class_exists('Webklex\PDFMerger\PDFMerger')) {
+    //         try {
+    //             // Try with Filesystem instance
+    //             $filesystem = new Filesystem();
+    //             $pdfMerger = new PDFMerger($filesystem);
+    //             $pdfMerger->addPDF($mainPdfPath, 'all');
+    //             $pdfMerger->addPDF($attachmentPath, 'all');
+    //             $pdfMerger->merge('file', $outputPath);
+    //             Log::info('PDF merged successfully using Webklex PDFMerger');
+    //             return true;
+    //         } catch (Exception $e) {
+    //             Log::error('Webklex PDF Merger Error: ' . $e->getMessage());
+    //         }
+    //     }
+
+    //     // Method 3: Try mPDF merger if available
+    //     if (class_exists('\Mpdf\Mpdf')) {
+    //         try {
+    //             return $this->mpdfMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
+    //         } catch (Exception $e) {
+    //             Log::error('mPDF Merger Error: ' . $e->getMessage());
+    //         }
+    //     }
+
+    //     // Method 4: Create ZIP file with both PDFs
+    //     // try {
+    //     //     $zipPath = $this->createZipWithPDFs($mainPdfPath, $attachmentPath, $outputPath);
+    //     //     if ($zipPath) {
+    //     //         // If ZIP was created, rename it to the expected output path
+    //     //         if (rename($zipPath, $outputPath)) {
+    //     //             Log::info('Created ZIP file as PDF merge alternative');
+    //     //             return true;
+    //     //         }
+    //     //     }
+    //     // } catch (Exception $e) {
+    //     //     Log::error('ZIP creation failed: ' . $e->getMessage());
+    //     // }
+
+    //     // Method 5: Fallback - just copy main file
+    //     Log::warning('All PDF merger methods failed. Using fallback (main file only)');
+    //     return $this->fallbackMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
+    // }
     private function mergePDFs($mainPdfPath, $attachmentPath, $outputPath)
     {
-        // Method 1: Try setasign/fpdi if available (most reliable for PDF merge)
+        // Pakai FPDI saja (paling stabil untuk beda ukuran halaman)
         if (class_exists('\setasign\Fpdi\Fpdi')) {
-            try {
-                return $this->fpdiMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
-            } catch (Exception $e) {
-                Log::error('FPDI PDF Merger Error: ' . $e->getMessage());
-            }
+            return $this->fpdiMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
         }
 
-        // Method 2: Try Webklex PDFMerger with proper constructor
-        if (class_exists('Webklex\PDFMerger\PDFMerger')) {
-            try {
-                // Try with Filesystem instance
-                $filesystem = new Filesystem();
-                $pdfMerger = new PDFMerger($filesystem);
-                $pdfMerger->addPDF($mainPdfPath, 'all');
-                $pdfMerger->addPDF($attachmentPath, 'all');
-                $pdfMerger->merge('file', $outputPath);
-                Log::info('PDF merged successfully using Webklex PDFMerger');
-                return true;
-            } catch (Exception $e) {
-                Log::error('Webklex PDF Merger Error: ' . $e->getMessage());
-            }
-        }
-
-        // Method 3: Try mPDF merger if available
-        if (class_exists('\Mpdf\Mpdf')) {
-            try {
-                return $this->mpdfMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
-            } catch (Exception $e) {
-                Log::error('mPDF Merger Error: ' . $e->getMessage());
-            }
-        }
-
-        // Method 4: Create ZIP file with both PDFs
-        // try {
-        //     $zipPath = $this->createZipWithPDFs($mainPdfPath, $attachmentPath, $outputPath);
-        //     if ($zipPath) {
-        //         // If ZIP was created, rename it to the expected output path
-        //         if (rename($zipPath, $outputPath)) {
-        //             Log::info('Created ZIP file as PDF merge alternative');
-        //             return true;
-        //         }
-        //     }
-        // } catch (Exception $e) {
-        //     Log::error('ZIP creation failed: ' . $e->getMessage());
-        // }
-
-        // Method 5: Fallback - just copy main file
-        Log::warning('All PDF merger methods failed. Using fallback (main file only)');
+        // Kalau FPDI tidak ada, fallback: copy main saja
+        Log::warning('FPDI not available. Using fallback (main file only).');
         return $this->fallbackMergePDFs($mainPdfPath, $attachmentPath, $outputPath);
     }
 
     /**
      * FPDI-based PDF merger (most reliable if available)
      */
+    // private function fpdiMergePDFs($mainPdfPath, $attachmentPath, $outputPath)
+    // {
+    //     try {
+    //         $pdf = new \setasign\Fpdi\Fpdi();
+
+    //         // Import main PDF
+    //         $pageCount = $pdf->setSourceFile($mainPdfPath);
+    //         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+    //             $templateId = $pdf->importPage($pageNo);
+    //             $tplSize = $pdf->getTemplateSize($templateId);
+    //             $orientation = ($tplSize['width'] > $tplSize['height']) ? 'L' : 'P';
+    //             $pdf->AddPage($orientation, [$tplSize['width'], $tplSize['height']]);
+    //             $pdf->useTemplate($templateId, 0, 0, $tplSize['width'], $tplSize['height']);
+    //         }
+
+    //         // Import attachment PDF
+    //         $pageCount = $pdf->setSourceFile($attachmentPath);
+    //         for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+    //             $templateId = $pdf->importPage($pageNo);
+    //             $tplSize = $pdf->getTemplateSize($templateId);
+    //             $orientation = ($tplSize['width'] > $tplSize['height']) ? 'L' : 'P';
+    //             $pdf->AddPage($orientation, [$tplSize['width'], $tplSize['height']]);
+    //             $pdf->useTemplate($templateId, 0, 0, $tplSize['width'], $tplSize['height']);
+    //         }
+
+    //         $pdf->Output('F', $outputPath);
+    //         return true;
+    //     } catch (Exception $e) {
+    //         Log::error('FPDI merge error: ' . $e->getMessage());
+    //         return false;
+    //     }
+    // }
     private function fpdiMergePDFs($mainPdfPath, $attachmentPath, $outputPath)
     {
         try {
-            $pdf = new \setasign\Fpdi\Fpdi();
+            $pdf = new Fpdi();
 
-            // Import main PDF
-            $pageCount = $pdf->setSourceFile($mainPdfPath);
-            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-                $templateId = $pdf->importPage($pageNo);
-                $tplSize = $pdf->getTemplateSize($templateId);
-                $orientation = ($tplSize['width'] > $tplSize['height']) ? 'L' : 'P';
-                $pdf->AddPage($orientation, [$tplSize['width'], $tplSize['height']]);
-                $pdf->useTemplate($templateId, 0, 0, $tplSize['width'], $tplSize['height']);
+            foreach ([$mainPdfPath, $attachmentPath] as $file) {
+                if (!$file || !file_exists($file)) {
+                    Log::warning("fpdiMergePDFs: file not found: {$file}");
+                    continue;
+                }
+
+                $pageCount = $pdf->setSourceFile($file);
+
+                for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                    $tplId = $pdf->importPage($pageNo);
+                    $size = $pdf->getTemplateSize($tplId);
+
+                    // PENTING: AddPage ikut ukuran ASLI halaman sumber
+                    $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+
+                    // PENTING: tempel full ke kanvas biar tidak geser/kepotong
+                    $pdf->useTemplate($tplId, 0, 0, $size['width'], $size['height'], true);
+                }
             }
 
-            // Import attachment PDF
-            $pageCount = $pdf->setSourceFile($attachmentPath);
-            for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
-                $templateId = $pdf->importPage($pageNo);
-                $tplSize = $pdf->getTemplateSize($templateId);
-                $orientation = ($tplSize['width'] > $tplSize['height']) ? 'L' : 'P';
-                $pdf->AddPage($orientation, [$tplSize['width'], $tplSize['height']]);
-                $pdf->useTemplate($templateId, 0, 0, $tplSize['width'], $tplSize['height']);
-            }
-
-            $pdf->Output('F', $outputPath);
-            return true;
-        } catch (Exception $e) {
+            $pdf->Output($outputPath, 'F');
+            return file_exists($outputPath);
+        } catch (\Throwable $e) {
             Log::error('FPDI merge error: ' . $e->getMessage());
             return false;
         }
@@ -258,7 +321,7 @@ class CetakPDFController extends Controller
     {
         try {
             $memo = Memo::findOrFail($id);
-            $tujuanNames = explode(';', (string)$memo->tujuan_string);
+            $tujuanNames = explode(';', (string) $memo->tujuan_string);
 
             $manager = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
                 ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$memo->nama_bertandatangan])
@@ -275,7 +338,7 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $formatMemoPdf = \PDF::loadView('format-surat.format-memo', [
+            $formatMemoPdf = PDF::loadView('format-surat.format-memo', [
                 'memo' => $memo,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
@@ -283,14 +346,14 @@ class CetakPDFController extends Controller
                 'manager' => $manager,
                 'qrCode' => $memo->qr_approved_by,
                 'isPdf' => true,
-                'docStatus'   => $memo->status,
+                'docStatus' => $memo->status,
             ])->setPaper('A4', 'portrait');
 
             $mainPath = storage_path('app/temp_format_memo_' . $memo->id . '.pdf');
             $formatMemoPdf->save($mainPath);
 
             $attPdfs = $this->createTempPdfsFromAnyMany($memo->lampiran ?? null, $memo->id, 'memo');
-            $output  = storage_path('app/merged_memo_' . $memo->id . '.pdf');
+            $output = storage_path('app/merged_memo_' . $memo->id . '.pdf');
 
             $fileName = Str::slug($memo->judul) . '-' . $memo->id . '.pdf';
             if ($this->mergeAllPdfs($mainPath, $attPdfs, $output)) {
@@ -306,12 +369,11 @@ class CetakPDFController extends Controller
         }
     }
 
-
     public function viewmemoPDF($id_memo)
     {
         try {
             $memo = Memo::findOrFail($id_memo);
-            $tujuanNames = explode(';', (string)$memo->tujuan_string);
+            $tujuanNames = explode(';', (string) $memo->tujuan_string);
 
             $manager = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
                 ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$memo->nama_bertandatangan])
@@ -335,22 +397,26 @@ class CetakPDFController extends Controller
                 'tujuanNames' => $tujuanNames,
                 'manager' => $manager,
                 'isPdf' => true,
-                'docStatus'   => $memo->status,
+                'docStatus' => $memo->status,
             ])->setPaper('A4', 'portrait');
 
             $mainPath = storage_path('app/temp_format_memo_' . $memo->id . '.pdf');
             $formatMemoPdf->save($mainPath);
 
             $attPdfs = $this->createTempPdfsFromAnyMany($memo->lampiran ?? null, $memo->id, 'memo');
-            $output  = storage_path('app/view_memo_' . $memo->id . '.pdf');
+            $output = storage_path('app/view_memo_' . $memo->id . '.pdf');
 
             if ($this->mergeAllPdfs($mainPath, $attPdfs, $output)) {
                 $this->cleanupTempFiles([$mainPath]);
-                return response()->file($output, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+                return response()
+                    ->file($output, ['Content-Type' => 'application/pdf'])
+                    ->deleteFileAfterSend(true);
             }
 
             $this->cleanupTempFiles($attPdfs);
-            return response()->file($mainPath, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+            return response()
+                ->file($mainPath, ['Content-Type' => 'application/pdf'])
+                ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Error in viewmemoPDF: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal menampilkan PDF: ' . $e->getMessage()], 500);
@@ -361,7 +427,7 @@ class CetakPDFController extends Controller
     {
         try {
             $memo = Memo::findOrFail($id_memo);
-            $tujuanNames = explode(';', (string)$memo->tujuan_string);
+            $tujuanNames = explode(';', (string) $memo->tujuan_string);
 
             $manager = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
                 ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$memo->nama_bertandatangan])
@@ -378,14 +444,14 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $formatMemoPdf = \PDF::loadView('format-surat.format-memo', [
+            $formatMemoPdf = PDF::loadView('format-surat.format-memo', [
                 'memo' => $memo,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
                 'tujuanNames' => $tujuanNames,
                 'manager' => $manager,
                 'isPdf' => true,
-                'docStatus'   => $memo->status,
+                'docStatus' => $memo->status,
             ])->setPaper('A4', 'portrait');
             $tempPath = storage_path('app/temp_format_undangan_' . $memo->id_memo . '.pdf');
             $formatMemoPdf->save($tempPath);
@@ -452,9 +518,10 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $tujuanIds = explode(';', (string)$undangan->tujuan);
+            $tujuanIds = explode(';', (string) $undangan->tujuan);
             $tujuanUsers = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-                ->whereIn('id', $tujuanIds)->get()
+                ->whereIn('id', $tujuanIds)
+                ->get()
                 ->map(function ($user) {
                     $level = $this->detectLevel($user);
                     $user->level_kerja = $level;
@@ -473,24 +540,24 @@ class CetakPDFController extends Controller
                 $manager->bagian_text = $this->getBagianText($manager, $level);
             }
 
-            $cleanTag = html_entity_decode(strip_tags((string)$undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $cleanTag = html_entity_decode(strip_tags((string) $undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatUndanganPdf = \PDF::loadView('format-surat.format-undangan', [
-                'undangan'    => $undangan,
+            $formatUndanganPdf = PDF::loadView('format-surat.format-undangan', [
+                'undangan' => $undangan,
                 'tujuanUsers' => $tujuanUsers,
-                'cleanTag'    => $cleanTag,
-                'manager'     => $manager,
+                'cleanTag' => $cleanTag,
+                'manager' => $manager,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
-                'isPdf'       => true,
-                'docStatus'   => $undangan->status,
+                'isPdf' => true,
+                'docStatus' => $undangan->status,
             ])->setPaper('A4', 'portrait');
 
             $mainPath = storage_path('app/temp_format_undangan_' . $undangan->id . '.pdf');
             $formatUndanganPdf->save($mainPath);
 
             $attPdfs = $this->createTempPdfsFromAnyMany($undangan->lampiran ?? null, $undangan->id, 'undangan');
-            $output  = storage_path('app/cetak_undangan_' . $undangan->id . '.pdf');
+            $output = storage_path('app/cetak_undangan_' . $undangan->id . '.pdf');
 
             $fileName = $this->sanitizeFileName($undangan->judul) . ' - ' . $undangan->id . '.pdf';
 
@@ -506,7 +573,6 @@ class CetakPDFController extends Controller
             return response()->json(['error' => 'Gagal membuat PDF undangan'], 500);
         }
     }
-
 
     public function detectLevel($user)
     {
@@ -556,9 +622,10 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $tujuanIds = explode(';', (string)$undangan->tujuan);
+            $tujuanIds = explode(';', (string) $undangan->tujuan);
             $tujuanUsers = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-                ->whereIn('id', $tujuanIds)->get()
+                ->whereIn('id', $tujuanIds)
+                ->get()
                 ->map(function ($user) {
                     $level = $this->detectLevel($user);
                     $user->level_kerja = $level;
@@ -571,12 +638,12 @@ class CetakPDFController extends Controller
                         if (!in_array($fmt, ['Staff', 'Direktur'])) {
                             $abbr = [
                                 'Penanggung Jawab Senior Manager' => 'PJ SM',
-                                'Penanggung Jawab Manager'       => 'PJ M',
-                                'Penanggung Jawab Supervisor'    => 'PJ SPV',
-                                'Senior Manager'                 => 'SM',
-                                'General Manager'                => 'GM',
-                                'Manager'                        => 'M',
-                                'Supervisor'                     => 'SPV',
+                                'Penanggung Jawab Manager' => 'PJ M',
+                                'Penanggung Jawab Supervisor' => 'PJ SPV',
+                                'Senior Manager' => 'SM',
+                                'General Manager' => 'GM',
+                                'Manager' => 'M',
+                                'Supervisor' => 'SPV',
                             ];
                             foreach ($abbr as $full => $a) {
                                 if (strpos($fmt, $full) !== false) {
@@ -601,32 +668,36 @@ class CetakPDFController extends Controller
                 $manager->bagian_text = $this->getBagianText($manager, $level);
             }
 
-            $cleanTag = html_entity_decode(strip_tags((string)$undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $cleanTag = html_entity_decode(strip_tags((string) $undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatUndanganPdf = \PDF::loadView('format-surat.format-undangan', [
-                'undangan'    => $undangan,
+            $formatUndanganPdf = PDF::loadView('format-surat.format-undangan', [
+                'undangan' => $undangan,
                 'tujuanUsers' => $tujuanUsers,
-                'cleanTag'    => $cleanTag,
-                'manager'     => $manager,
+                'cleanTag' => $cleanTag,
+                'manager' => $manager,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
-                'isPdf'       => true,
-                'docStatus'   => $undangan->status,
+                'isPdf' => true,
+                'docStatus' => $undangan->status,
             ])->setPaper('A4', 'portrait');
 
             $mainPath = storage_path('app/temp_format_undangan_' . $undangan->id . '.pdf');
             $formatUndanganPdf->save($mainPath);
 
             $attPdfs = $this->createTempPdfsFromAnyMany($undangan->lampiran ?? null, $undangan->id, 'undangan');
-            $output  = storage_path('app/view_undangan_' . $undangan->id . '.pdf');
+            $output = storage_path('app/view_undangan_' . $undangan->id . '.pdf');
 
             if ($this->mergeAllPdfs($mainPath, $attPdfs, $output)) {
                 $this->cleanupTempFiles([$mainPath]);
-                return response()->file($output, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+                return response()
+                    ->file($output, ['Content-Type' => 'application/pdf'])
+                    ->deleteFileAfterSend(true);
             }
 
             $this->cleanupTempFiles($attPdfs);
-            return response()->file($mainPath, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+            return response()
+                ->file($mainPath, ['Content-Type' => 'application/pdf'])
+                ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Error in viewundanganPDF: ' . $e->getMessage(), ['trace' => $e->getTraceAsString()]);
             return response()->json(['error' => 'Gagal menampilkan PDF undangan'], 500);
@@ -640,10 +711,11 @@ class CetakPDFController extends Controller
         $footerPath = public_path('assets/img/bfooter.png');
         $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
         $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
-        $cleanTag = html_entity_decode(strip_tags((string)$undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $tujuanIds = explode(';', (string)$undangan->tujuan);
+        $cleanTag = html_entity_decode(strip_tags((string) $undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $tujuanIds = explode(';', (string) $undangan->tujuan);
         $tujuanUsers = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-            ->whereIn('id', $tujuanIds)->get()
+            ->whereIn('id', $tujuanIds)
+            ->get()
             ->map(function ($user) {
                 $level = $this->detectLevel($user);
                 $user->level_kerja = $level;
@@ -656,12 +728,12 @@ class CetakPDFController extends Controller
                     if (!in_array($fmt, ['Staff', 'Direktur'])) {
                         $abbr = [
                             'Penanggung Jawab Senior Manager' => 'PJ SM',
-                            'Penanggung Jawab Manager'       => 'PJ M',
-                            'Penanggung Jawab Supervisor'    => 'PJ SPV',
-                            'Senior Manager'                 => 'SM',
-                            'General Manager'                => 'GM',
-                            'Manager'                        => 'M',
-                            'Supervisor'                     => 'SPV',
+                            'Penanggung Jawab Manager' => 'PJ M',
+                            'Penanggung Jawab Supervisor' => 'PJ SPV',
+                            'Senior Manager' => 'SM',
+                            'General Manager' => 'GM',
+                            'Manager' => 'M',
+                            'Supervisor' => 'SPV',
                         ];
                         foreach ($abbr as $full => $a) {
                             if (strpos($fmt, $full) !== false) {
@@ -685,15 +757,15 @@ class CetakPDFController extends Controller
             $manager->level_kerja = $level;
             $manager->bagian_text = $this->getBagianText($manager, $level);
         }
-        $formatUndanganPdf = \PDF::loadView('format-surat.format-undangan', [
-            'undangan'    => $undangan,
+        $formatUndanganPdf = PDF::loadView('format-surat.format-undangan', [
+            'undangan' => $undangan,
             'tujuanUsers' => $tujuanUsers,
-            'cleanTag'    => $cleanTag,
-            'manager'     => $manager,
+            'cleanTag' => $cleanTag,
+            'manager' => $manager,
             'headerImage' => $headerBase64,
             'footerImage' => $footerBase64,
-            'isPdf'       => true,
-            'docStatus'   => $undangan->status,
+            'isPdf' => true,
+            'docStatus' => $undangan->status,
         ])->setPaper('A4', 'portrait');
 
         $tempPath = storage_path('app/temp_format_undangan_' . $undangan->id_undangan . '.pdf');
@@ -722,8 +794,6 @@ class CetakPDFController extends Controller
             'url' => $fileUrl,
         ]);
     }
-
-
 
     public function laporanmemoPDF(Request $request)
     {
@@ -861,19 +931,19 @@ class CetakPDFController extends Controller
                 $notulis->bagian_text = $this->getBagianText($notulis, $level);
             }
 
-            $cleanIsi = html_entity_decode(strip_tags((string)$risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatRisalahPdf = \PDF::loadView('format-surat.format-risalah', [
+            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
                 'risalah' => $risalah,
                 'undangan' => $undangan,
                 'cleanIsi' => $cleanIsi,
                 'pemimpin' => $pemimpin,
-                'notulis'   => $notulis,
+                'notulis' => $notulis,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
                 'qrCode' => $risalah->qr_approved_by,
                 'isPdf' => true,
-                'docStatus'   => $risalah->status,
+                'docStatus' => $risalah->status,
             ])->setPaper('A4', 'portrait');
 
             $mainPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
@@ -881,12 +951,12 @@ class CetakPDFController extends Controller
 
             // Ambil lampiran dan konversi ke array jika JSON string
             $lampiranField = $risalah->lampiran ?? null;
-            Log::info('Risalah Cetak - Lampiran raw data: ' . ($lampiranField ? substr((string)$lampiranField, 0, 100) : 'kosong'));
+            Log::info('Risalah Cetak - Lampiran raw data: ' . ($lampiranField ? substr((string) $lampiranField, 0, 100) : 'kosong'));
 
             $attPdfs = $this->createTempPdfsFromAnyMany($lampiranField, $risalah->id_risalah, 'risalah');
             Log::info('Risalah Cetak - Total lampiran PDF yang dibuat: ' . count($attPdfs));
 
-            $output  = storage_path('app/merged_risalah_' . $risalah->id_risalah . '.pdf');
+            $output = storage_path('app/merged_risalah_' . $risalah->id_risalah . '.pdf');
 
             $fileName = Str::slug($risalah->judul) . '-' . $risalah->id . '.pdf';
 
@@ -946,20 +1016,19 @@ class CetakPDFController extends Controller
                 $notulis->bagian_text = $this->getBagianText($notulis, $level);
             }
 
-            $cleanIsi = html_entity_decode(strip_tags((string)$risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatRisalahPdf = \PDF::loadView('format-surat.format-risalah', [
+            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
                 'risalah' => $risalah,
                 'undangan' => $undangan,
                 'cleanIsi' => $cleanIsi,
                 'pemimpin' => $pemimpin,
-                'notulis'   => $notulis,
+                'notulis' => $notulis,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
                 'isPdf' => true,
-                'docStatus'   => $risalah->status,
+                'docStatus' => $risalah->status,
             ])->setPaper('A4', 'portrait');
-
 
             $tempPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
             $formatRisalahPdf->save($tempPath);
@@ -1025,9 +1094,9 @@ class CetakPDFController extends Controller
                 $notulis->level_kerja = $level;
                 $notulis->bagian_text = $this->getBagianText($notulis, $level);
             }
-            $cleanIsi = html_entity_decode(strip_tags((string)$risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+            $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatRisalahPdf = \PDF::loadView('format-surat.format-risalah', [
+            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
                 'risalah' => $risalah,
                 'undangan' => $undangan,
                 'cleanIsi' => $cleanIsi,
@@ -1036,7 +1105,7 @@ class CetakPDFController extends Controller
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
                 'isPdf' => true,
-                'docStatus'   => $risalah->status,
+                'docStatus' => $risalah->status,
             ])->setPaper('A4', 'portrait');
 
             $mainPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
@@ -1044,19 +1113,21 @@ class CetakPDFController extends Controller
 
             // Ambil lampiran dan konversi ke array jika JSON string
             $lampiranField = $risalah->lampiran ?? null;
-            Log::info('Risalah View - Lampiran raw data: ' . ($lampiranField ? substr((string)$lampiranField, 0, 100) : 'kosong'));
+            Log::info('Risalah View - Lampiran raw data: ' . ($lampiranField ? substr((string) $lampiranField, 0, 100) : 'kosong'));
 
             $attPdfs = $this->createTempPdfsFromAnyMany($lampiranField, $risalah->id_risalah, 'risalah');
             Log::info('Risalah View - Total lampiran PDF yang dibuat: ' . count($attPdfs));
 
-            $output  = storage_path('app/view_risalah_' . $risalah->id_risalah . '.pdf');
+            $output = storage_path('app/view_risalah_' . $risalah->id_risalah . '.pdf');
 
             // Coba merge jika ada lampiran
             if (!empty($attPdfs)) {
                 if ($this->mergeAllPdfs($mainPath, $attPdfs, $output)) {
                     Log::info('Risalah View - Merge PDF berhasil');
                     $this->cleanupTempFiles([$mainPath]);
-                    return response()->file($output, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+                    return response()
+                        ->file($output, ['Content-Type' => 'application/pdf'])
+                        ->deleteFileAfterSend(true);
                 } else {
                     Log::warning('Risalah View - Merge PDF gagal, menampilkan surat utama saja');
                     $this->cleanupTempFiles($attPdfs);
@@ -1066,14 +1137,15 @@ class CetakPDFController extends Controller
             }
 
             // Fallback: tampilkan surat utama saja jika tidak ada lampiran atau merge gagal
-            return response()->file($mainPath, ['Content-Type' => 'application/pdf'])->deleteFileAfterSend(true);
+            return response()
+                ->file($mainPath, ['Content-Type' => 'application/pdf'])
+                ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Error in viewrisalahPDF: ' . $e->getMessage());
             Log::error('Stack trace: ' . $e->getTraceAsString());
             return response()->json(['error' => $e->getMessage()], 500);
         }
     }
-
 
     public function laporanrisalahPDF(Request $request)
     {
@@ -1174,16 +1246,24 @@ class CetakPDFController extends Controller
             $items = $lampiranField;
         } elseif ($lampiranField instanceof \Illuminate\Support\Collection) {
             // Ambil property yang paling masuk akal
-            $items = $lampiranField->map(function ($row) {
-                foreach (['path', 'file', 'url', 'lampiran', 'content', 'blob', 'base64'] as $key) {
-                    if (isset($row[$key])) return $row[$key];
-                    if (isset($row->$key)) return $row->$key;
-                }
-                return null;
-            })->filter()->values()->all();
+            $items = $lampiranField
+                ->map(function ($row) {
+                    foreach (['path', 'file', 'url', 'lampiran', 'content', 'blob', 'base64'] as $key) {
+                        if (isset($row[$key])) {
+                            return $row[$key];
+                        }
+                        if (isset($row->$key)) {
+                            return $row->$key;
+                        }
+                    }
+                    return null;
+                })
+                ->filter()
+                ->values()
+                ->all();
         } else {
             // Fallback: jadikan string
-            $items = [(string)$lampiranField];
+            $items = [(string) $lampiranField];
         }
 
         // Konversi tiap item → temp PDF
@@ -1206,10 +1286,10 @@ class CetakPDFController extends Controller
                     }
                 }
 
-                $pdfs[] = $this->createTempPdfFromAny((string)$itemPath, "{$idRef}_{$idx}", $prefix);
+                $pdfs[] = $this->createTempPdfFromAny((string) $itemPath, "{$idRef}_{$idx}", $prefix);
                 $idx++;
             } catch (\Throwable $e) {
-                Log::warning("Skip lampiran gagal dikonversi: " . $e->getMessage());
+                Log::warning('Skip lampiran gagal dikonversi: ' . $e->getMessage());
             }
         }
         return $pdfs;
@@ -1219,43 +1299,100 @@ class CetakPDFController extends Controller
      * Merge banyak PDF (base + array lampiran) menjadi 1 file output.
      * Menggunakan mergePDFs(pair) yang sudah kamu punya dengan chaining.
      */
+    // private function mergeAllPdfs(string $basePdf, array $attachmentPdfs, string $outputPath): bool
+    // {
+    //     if (empty($attachmentPdfs)) {
+    //         // Tidak ada lampiran → copy base ke output agar konsisten
+    //         try {
+    //             \Illuminate\Support\Facades\File::copy($basePdf, $outputPath);
+    //             return true;
+    //         } catch (\Throwable $e) {
+    //             return false;
+    //         }
+    //     }
+
+    //     $current = $basePdf;
+    //     $tempFiles = [];
+
+    //     foreach ($attachmentPdfs as $i => $att) {
+    //         $intermediate = storage_path('app/tmp_merge_step_' . uniqid() . '.pdf');
+    //         if (!$this->mergePDFs($current, $att, $intermediate)) {
+    //             // Bersihkan temp yang sudah dibuat
+    //             $this->cleanupTempFiles(array_merge($tempFiles, [$att, $intermediate]));
+    //             return false;
+    //         }
+    //         if ($current !== $basePdf) {
+    //             // Hapus intermediate sebelumnya
+    //             $tempFiles[] = $current;
+    //         }
+    //         $current = $intermediate;
+    //     }
+
+    //     // Pindah hasil akhir ke outputPath
+    //     try {
+    //         \Illuminate\Support\Facades\File::move($current, $outputPath);
+    //         // Bersihkan sisanya
+    //         $this->cleanupTempFiles(array_merge($tempFiles, $attachmentPdfs));
+    //         return true;
+    //     } catch (\Throwable $e) {
+    //         $this->cleanupTempFiles(array_merge($tempFiles, $attachmentPdfs, [$current]));
+    //         return false;
+    //     }
+    // }
     private function mergeAllPdfs(string $basePdf, array $attachmentPdfs, string $outputPath): bool
     {
+        // Kalau tidak ada lampiran -> copy base
         if (empty($attachmentPdfs)) {
-            // Tidak ada lampiran → copy base ke output agar konsisten
             try {
-                \Illuminate\Support\Facades\File::copy($basePdf, $outputPath);
+                File::copy($basePdf, $outputPath);
                 return true;
             } catch (\Throwable $e) {
                 return false;
             }
         }
 
-        $current = $basePdf;
-        $tempFiles = [];
+        $files = array_merge([$basePdf], $attachmentPdfs);
 
-        foreach ($attachmentPdfs as $i => $att) {
-            $intermediate = storage_path('app/tmp_merge_step_' . uniqid() . '.pdf');
-            if (!$this->mergePDFs($current, $att, $intermediate)) {
-                // Bersihkan temp yang sudah dibuat
-                $this->cleanupTempFiles(array_merge($tempFiles, [$att, $intermediate]));
-                return false;
+        // 1) Coba FPDI dulu (bagus untuk sizing beda-beda)
+        if (class_exists('\setasign\Fpdi\Fpdi')) {
+            try {
+                $pdf = new \setasign\Fpdi\Fpdi();
+
+                foreach ($files as $file) {
+                    if (!$file || !file_exists($file)) {
+                        continue;
+                    }
+
+                    $pageCount = $pdf->setSourceFile($file);
+                    for ($pageNo = 1; $pageNo <= $pageCount; $pageNo++) {
+                        $tplId = $pdf->importPage($pageNo);
+                        $size = $pdf->getTemplateSize($tplId);
+
+                        $pdf->AddPage($size['orientation'], [$size['width'], $size['height']]);
+                        $pdf->useTemplate($tplId, 0, 0, $size['width'], $size['height'], true);
+                    }
+                }
+
+                $pdf->Output($outputPath, 'F');
+                if (file_exists($outputPath)) {
+                    return true;
+                }
+            } catch (\Throwable $e) {
+                Log::error('mergeAllPdfs FPDI error: ' . $e->getMessage());
             }
-            if ($current !== $basePdf) {
-                // Hapus intermediate sebelumnya
-                $tempFiles[] = $current;
-            }
-            $current = $intermediate;
         }
 
-        // Pindah hasil akhir ke outputPath
+        // 2) FALLBACK: qpdf (paling kompatibel)
+        if ($this->qpdfMergeAll($files, $outputPath)) {
+            return true;
+        }
+
+        // 3) Last fallback: copy base saja
+        Log::warning('All merge methods failed. Using base PDF only.');
         try {
-            \Illuminate\Support\Facades\File::move($current, $outputPath);
-            // Bersihkan sisanya
-            $this->cleanupTempFiles(array_merge($tempFiles, $attachmentPdfs));
+            File::copy($basePdf, $outputPath);
             return true;
         } catch (\Throwable $e) {
-            $this->cleanupTempFiles(array_merge($tempFiles, $attachmentPdfs, [$current]));
             return false;
         }
     }
@@ -1285,9 +1422,13 @@ class CetakPDFController extends Controller
     private function looksLikeBase64(string $s): bool
     {
         // Hindari decode string pendek/random
-        if (strlen($s) < 64) return false;
+        if (strlen($s) < 64) {
+            return false;
+        }
         $decoded = base64_decode($s, true);
-        if ($decoded === false) return false;
+        if ($decoded === false) {
+            return false;
+        }
 
         // Heuristik: re-encode harus sama (abaikan padding)
         return rtrim(base64_encode($decoded), '=') === rtrim(preg_replace('/\s+/', '', $s), '=');
@@ -1330,7 +1471,9 @@ class CetakPDFController extends Controller
         }
 
         $dir = storage_path('app/tmp_pdf');
-        if (!File::exists($dir)) File::makeDirectory($dir, 0775, true);
+        if (!File::exists($dir)) {
+            File::makeDirectory($dir, 0775, true);
+        }
 
         $tempPdf = "{$dir}/temp_{$prefix}_{$idRef}.pdf";
 
@@ -1352,7 +1495,7 @@ class CetakPDFController extends Controller
             Log::info("createTempPdfFromBlob - Image dimensions: {$widthPx}x{$heightPx}px");
 
             $dpi = 96;
-            $widthMm  = ($widthPx / $dpi) * 25.4;
+            $widthMm = ($widthPx / $dpi) * 25.4;
             $heightMm = ($heightPx / $dpi) * 25.4;
 
             Log::info("createTempPdfFromBlob - Page size: {$widthMm}mm x {$heightMm}mm");
@@ -1364,8 +1507,10 @@ class CetakPDFController extends Controller
             // Normalisasi ke PNG RGB (hilangkan CMYK/alpha/ICC issue)
             $normalizedPng = "{$dir}/img_{$prefix}_{$idRef}_norm.png";
             if (!$this->normalizeImageToPNG($tmpImg, $normalizedPng, $widthPx, $heightPx)) {
-                if (File::exists($tmpImg)) File::delete($tmpImg);
-                throw new \RuntimeException("Gagal normalisasi gambar (blob)");
+                if (File::exists($tmpImg)) {
+                    File::delete($tmpImg);
+                }
+                throw new \RuntimeException('Gagal normalisasi gambar (blob)');
             }
 
             clearstatcache(false, $normalizedPng);
@@ -1396,23 +1541,28 @@ class CetakPDFController extends Controller
             $mpdf->Output($tempPdf, \Mpdf\Output\Destination::FILE);
 
             // Cleanup
-            if (File::exists($tmpImg)) File::delete($tmpImg);
-            if (File::exists($normalizedPng)) File::delete($normalizedPng);
+            if (File::exists($tmpImg)) {
+                File::delete($tmpImg);
+            }
+            if (File::exists($normalizedPng)) {
+                File::delete($normalizedPng);
+            }
 
             clearstatcache(false, $tempPdf);
             $pdfSize = File::exists($tempPdf) ? filesize($tempPdf) : 0;
             Log::info("createTempPdfFromBlob - PDF created: {$tempPdf} size={$pdfSize}");
 
             if ($pdfSize < 1000) {
-                throw new \RuntimeException("PDF generation failed (file too small)");
+                throw new \RuntimeException('PDF generation failed (file too small)');
             }
 
             return $tempPdf;
         }
 
         // Tipe tidak dikenal
-        \PDF::loadHTML('<h3>Lampiran tidak didukung</h3><p>MIME: ' . e($mimeType) . '</p>')
-            ->setPaper('A4', 'portrait')->save($tempPdf);
+        PDF::loadHTML('<h3>Lampiran tidak didukung</h3><p>MIME: ' . e($mimeType) . '</p>')
+            ->setPaper('A4', 'portrait')
+            ->save($tempPdf);
 
         return $tempPdf;
     }
@@ -1428,11 +1578,13 @@ class CetakPDFController extends Controller
         Log::info("createTempPdfFromPath - Resolved: {$full}");
 
         $mime = @mime_content_type($full) ?: null;
-        $ext  = strtolower(pathinfo($full, PATHINFO_EXTENSION));
+        $ext = strtolower(pathinfo($full, PATHINFO_EXTENSION));
         Log::info("createTempPdfFromPath - MIME={$mime}, EXT={$ext}");
 
         $dir = storage_path('app/tmp_pdf');
-        if (!File::exists($dir)) File::makeDirectory($dir, 0775, true);
+        if (!File::exists($dir)) {
+            File::makeDirectory($dir, 0775, true);
+        }
 
         $tempPdf = "{$dir}/temp_{$prefix}_{$idRef}.pdf";
 
@@ -1446,16 +1598,18 @@ class CetakPDFController extends Controller
         // Image: normalize -> embed -> output
         if (($mime && $this->isImageMime($mime)) || $this->isImageExt($ext)) {
             $info = @getimagesize($full);
-            if ($info === false) throw new \RuntimeException("Gagal membaca dimensi gambar: {$full}");
+            if ($info === false) {
+                throw new \RuntimeException("Gagal membaca dimensi gambar: {$full}");
+            }
             [$widthPx, $heightPx] = $info;
 
             $dpi = 96;
-            $widthMm  = ($widthPx / $dpi) * 25.4;
+            $widthMm = ($widthPx / $dpi) * 25.4;
             $heightMm = ($heightPx / $dpi) * 25.4;
 
             $normalizedPng = "{$dir}/img_{$prefix}_{$idRef}_norm.png";
             if (!$this->normalizeImageToPNG($full, $normalizedPng, $widthPx, $heightPx)) {
-                throw new \RuntimeException("Gagal normalisasi gambar (path)");
+                throw new \RuntimeException('Gagal normalisasi gambar (path)');
             }
 
             $mpdf = new \Mpdf\Mpdf([
@@ -1478,22 +1632,25 @@ class CetakPDFController extends Controller
             $mpdf->Image($normalizedPng, 0, 0, $widthMm, $heightMm, 'png', '', true, false);
             $mpdf->Output($tempPdf, \Mpdf\Output\Destination::FILE);
 
-            if (File::exists($normalizedPng)) File::delete($normalizedPng);
+            if (File::exists($normalizedPng)) {
+                File::delete($normalizedPng);
+            }
 
             clearstatcache(false, $tempPdf);
             $pdfSize = File::exists($tempPdf) ? filesize($tempPdf) : 0;
             Log::info("createTempPdfFromPath - PDF created: {$tempPdf} size={$pdfSize}");
 
             if ($pdfSize < 1000) {
-                throw new \RuntimeException("PDF generation failed (file too small)");
+                throw new \RuntimeException('PDF generation failed (file too small)');
             }
 
             return $tempPdf;
         }
 
         // Unsupported
-        \PDF::loadHTML('<h3>Lampiran tidak didukung</h3><p>File: ' . e(basename($full)) . '</p>')
-            ->setPaper('A4', 'portrait')->save($tempPdf);
+        PDF::loadHTML('<h3>Lampiran tidak didukung</h3><p>File: ' . e(basename($full)) . '</p>')
+            ->setPaper('A4', 'portrait')
+            ->save($tempPdf);
 
         return $tempPdf;
     }
@@ -1515,11 +1672,11 @@ class CetakPDFController extends Controller
 
             $source = match ($type) {
                 IMAGETYPE_JPEG => @imagecreatefromjpeg($inputPath),
-                IMAGETYPE_PNG  => @imagecreatefrompng($inputPath),
-                IMAGETYPE_GIF  => @imagecreatefromgif($inputPath),
-                IMAGETYPE_BMP  => function_exists('imagecreatefrombmp') ? @imagecreatefrombmp($inputPath) : false,
+                IMAGETYPE_PNG => @imagecreatefrompng($inputPath),
+                IMAGETYPE_GIF => @imagecreatefromgif($inputPath),
+                IMAGETYPE_BMP => function_exists('imagecreatefrombmp') ? @imagecreatefrombmp($inputPath) : false,
                 IMAGETYPE_WEBP => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($inputPath) : false,
-                default        => false,
+                default => false,
             };
 
             if ($source === false) {
@@ -1530,7 +1687,7 @@ class CetakPDFController extends Controller
             $canvas = imagecreatetruecolor($targetWidth, $targetHeight);
             if ($canvas === false) {
                 imagedestroy($source);
-                Log::error("normalizeImageToPNG - Cannot create canvas");
+                Log::error('normalizeImageToPNG - Cannot create canvas');
                 return false;
             }
 
@@ -1558,7 +1715,7 @@ class CetakPDFController extends Controller
 
             return true;
         } catch (\Throwable $e) {
-            Log::error("normalizeImageToPNG - Exception: " . $e->getMessage());
+            Log::error('normalizeImageToPNG - Exception: ' . $e->getMessage());
             return false;
         }
     }
@@ -1579,10 +1736,11 @@ class CetakPDFController extends Controller
         float $headerMm = 28,
         string $footerPath = null,
         float $footerMm = 20,
-        string $mode = 'content-box' // <-- default aman
+        string $mode = 'content-box', // <-- default aman
     ): bool {
         if (!class_exists('\\setasign\\Fpdi\\Tcpdf\\Fpdi')) {
-            \Log::warning('FPDI-TCPDF not available');
+            PDF::setLogger(new \Monolog\Logger('TCPDF'));
+            PDF::getLogger()->warning('FPDI-TCPDF not available');
             return false;
         }
 
@@ -1601,7 +1759,7 @@ class CetakPDFController extends Controller
                 $tplSize = $pdf->getTemplateSize($tplId); // ['width','height'] dalam mm (berdasarkan unit TCPDF)
 
                 // Buat halaman baru dengan ukuran halaman sumber (bisa A4 atau ukuran lain)
-                $orientation = ($tplSize['width'] > $tplSize['height']) ? 'L' : 'P';
+                $orientation = $tplSize['width'] > $tplSize['height'] ? 'L' : 'P';
                 $pdf->AddPage($orientation, [$tplSize['width'], $tplSize['height']]);
 
                 $pageW = $pdf->getPageWidth();
@@ -1616,10 +1774,10 @@ class CetakPDFController extends Controller
                     $pdf->useTemplate($tplId, 0, 0, $pageW, $pageH);
                 } else {
                     // MODE CONTENT-BOX: skala isi agar pas di antara header/footer
-                    $contentTopY    = $headerMm;
+                    $contentTopY = $headerMm;
                     $contentBottomY = $pageH - $footerMm;
-                    $contentH       = max(0.0, $contentBottomY - $contentTopY);
-                    $contentW       = $pageW;
+                    $contentH = max(0.0, $contentBottomY - $contentTopY);
+                    $contentW = $pageW;
 
                     // Faktor skala (preserve rasio): muat ke area konten
                     $scale = min($contentW / $tplSize['width'], $contentH / $tplSize['height']);
@@ -1638,8 +1796,12 @@ class CetakPDFController extends Controller
                 // (aktifkan jika PDF sumber punya footer/header sendiri)
                 if ($mode === 'content-box') {
                     $pdf->SetFillColor(255, 255, 255);
-                    if ($headerMm > 0) $pdf->Rect(0, 0, $pageW, $headerMm, 'F');
-                    if ($footerMm > 0) $pdf->Rect(0, $pageH - $footerMm, $pageW, $footerMm, 'F');
+                    if ($headerMm > 0) {
+                        $pdf->Rect(0, 0, $pageW, $headerMm, 'F');
+                    }
+                    if ($footerMm > 0) {
+                        $pdf->Rect(0, $pageH - $footerMm, $pageW, $footerMm, 'F');
+                    }
                 }
 
                 // Gambar HEADER
@@ -1656,11 +1818,10 @@ class CetakPDFController extends Controller
             $pdf->Output($destPath, 'F');
             return true;
         } catch (\Throwable $e) {
-            \Log::error('overlayHeaderFooterOnPdf error: ' . $e->getMessage());
+            PDF::getLogger()->error('overlayHeaderFooterOnPdf error: ' . $e->getMessage());
             return false;
         }
     }
-
 
     private function resolveStoragePath(string $path): string
     {
@@ -1671,10 +1832,7 @@ class CetakPDFController extends Controller
             return $path;
         }
 
-        $candidates = [
-            storage_path('app/' . ltrim($path, '/')),
-            storage_path('app/public/' . ltrim($path, '/')),
-        ];
+        $candidates = [storage_path('app/' . ltrim($path, '/')), storage_path('app/public/' . ltrim($path, '/'))];
 
         if (Str::startsWith($path, 'storage/')) {
             $candidates[] = storage_path('app/public/' . substr($path, strlen('storage/')));
@@ -1696,7 +1854,9 @@ class CetakPDFController extends Controller
     {
         foreach ($paths as $p) {
             try {
-                if ($p && File::exists($p)) File::delete($p);
+                if ($p && File::exists($p)) {
+                    File::delete($p);
+                }
             } catch (\Throwable $e) {
             }
         }
@@ -1812,9 +1972,11 @@ class CetakPDFController extends Controller
 
             Log::info("ZIP dibuat dengan {$addedFiles} file: {$zipPath}");
 
-            return response()->download($zipPath, $zipFileName, [
-                'Content-Type' => 'application/zip',
-            ])->deleteFileAfterSend(true);
+            return response()
+                ->download($zipPath, $zipFileName, [
+                    'Content-Type' => 'application/zip',
+                ])
+                ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Error in downloadAllAttachmentsZip: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal mengunduh lampiran: ' . $e->getMessage()], 500);
@@ -1866,15 +2028,22 @@ class CetakPDFController extends Controller
         } elseif (is_array($lampiranField)) {
             $items = $lampiranField;
         } elseif ($lampiranField instanceof \Illuminate\Support\Collection) {
-            $items = $lampiranField->map(function ($row) {
-                foreach (['path', 'file', 'url', 'lampiran', 'content', 'blob', 'base64'] as $key) {
-                    if (isset($row[$key])) return $row[$key];
-                    if (isset($row->$key)) return $row->$key;
-                }
-                return null;
-            })->filter()->values()->all();
+            $items = $lampiranField
+                ->map(function ($row) {
+                    foreach (['path', 'file', 'url', 'lampiran', 'content', 'blob', 'base64'] as $key) {
+                        if (isset($row[$key])) {
+                            return $row[$key];
+                        }
+                        if (isset($row->$key)) {
+                            return $row->$key;
+                        }
+                    }
+                    return null;
+                })
+                ->filter()
+                ->values()
+                ->all();
         }
-
 
         Log::info('parseLampiranData result: ' . json_encode($items));
         return $items;
@@ -1959,9 +2128,11 @@ class CetakPDFController extends Controller
 
             Log::info("ZIP dibuat dengan {$addedFiles} file: {$zipPath}");
 
-            return response()->download($zipPath, $zipFileName, [
-                'Content-Type' => 'application/zip',
-            ])->deleteFileAfterSend(true);
+            return response()
+                ->download($zipPath, $zipFileName, [
+                    'Content-Type' => 'application/zip',
+                ])
+                ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Error in downloadAllAttachmentsZipUndangan: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal mengunduh lampiran: ' . $e->getMessage()], 500);
@@ -2044,9 +2215,11 @@ class CetakPDFController extends Controller
 
             Log::info("ZIP dibuat dengan {$addedFiles} file: {$zipPath}");
 
-            return response()->download($zipPath, $zipFileName, [
-                'Content-Type' => 'application/zip',
-            ])->deleteFileAfterSend(true);
+            return response()
+                ->download($zipPath, $zipFileName, [
+                    'Content-Type' => 'application/zip',
+                ])
+                ->deleteFileAfterSend(true);
         } catch (\Throwable $e) {
             Log::error('Error in downloadAllAttachmentsZipRisalah: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal mengunduh lampiran: ' . $e->getMessage()], 500);

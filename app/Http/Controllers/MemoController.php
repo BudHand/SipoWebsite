@@ -28,6 +28,8 @@ use setasign\Fpdi\Fpdi;
 use App\Services\QrCodeService;
 use ZipArchive;
 use Illuminate\Support\Facades\Log;
+use App\Services\NotifService;
+use Illuminate\Support\Facades\Cache;
 
 class MemoController extends Controller
 {
@@ -1831,11 +1833,12 @@ class MemoController extends Controller
     public function update(Request $request, $id)
     {
         $memo = Memo::findOrFail($id);
+
         $emojiErrors = $this->validateNoEmoji($request);
         if (!empty($emojiErrors)) {
             return redirect()->back()->withErrors($emojiErrors)->withInput();
         }
-        // dd($memo, $request->all());
+
         $request->validate(
             [
                 'judul' => 'required|string|max:255',
@@ -1843,9 +1846,7 @@ class MemoController extends Controller
                     'required',
                     function ($attribute, $value, $fail) {
                         $clean = strip_tags($value);
-
                         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
                         $clean = preg_replace('/\xc2\xa0|\s+/u', '', $clean);
                         if ($clean === '') {
                             $fail('Isi memo tidak boleh kosong.');
@@ -1857,7 +1858,6 @@ class MemoController extends Controller
                 'nomor_memo' => 'required|string|max:255',
                 'nama_bertandatangan' => 'required|string|max:255',
                 'tgl_dibuat' => 'required|date',
-                // 'seri_surat' => 'required|string',
                 'tgl_disahkan' => 'nullable|date',
                 'kategori_barang' => 'sometimes|required|array|min:1',
                 'kategori_barang.*.barang' => 'sometimes|required|string',
@@ -1868,8 +1868,9 @@ class MemoController extends Controller
                 'kategori_barang.*.barang.required' => 'Nama barang harus diisi.',
                 'kategori_barang.*.qty.required' => 'Qty barang harus diisi.',
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
-            ],
+            ]
         );
+
         if ($request->filled('judul')) {
             $memo->judul = $request->judul;
         }
@@ -1898,23 +1899,80 @@ class MemoController extends Controller
         if ($request->filled('tgl_disahkan')) {
             $memo->tgl_disahkan = $request->tgl_disahkan;
         }
+
+        // versi lama: lampiran disimpan sebagai BLOB
         if ($request->hasFile('lampiran')) {
             $file = $request->file('lampiran');
             $memo->lampiran = file_get_contents($file->getRealPath());
         }
 
-        $memo->status = 'pending'; // Set status ke pending saat update
+        // resubmit => balik pending
+        $memo->status = 'pending';
         $memo->save();
 
         // Update status pada kirim_document juga jika ada
-        \App\Models\Kirim_Document::where('id_document', $memo->id_memo)
+        Kirim_Document::where('id_document', $memo->id_memo)
             ->where('jenis_document', 'memo')
             ->update(['status' => 'pending', 'updated_at' => now()]);
+
+        // ============================
+        // ✅ NOTIF + PUSH RESUBMIT KE APPROVER (pakai NotifService)
+        // ============================
+        $notifService = app(NotifService::class);
+
+        $approverIds = Kirim_Document::where('id_document', $memo->id_memo)
+            ->where('jenis_document', 'memo')
+            ->pluck('id_penerima')
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->filter(fn($v) => $v > 0)
+            ->values();
+
+        foreach ($approverIds as $approverId) {
+            // DB notif selalu update (unread)
+            Notifikasi::updateOrCreate(
+                [
+                    'id_user'        => $approverId,
+                    'judul'          => 'Memo Menunggu Persetujuan',
+                    'judul_document' => $memo->judul,
+                    'id_document'    => (int) $memo->id_memo,
+                ],
+                [
+                    'dibaca'     => 0,
+                    'updated_at' => now(), // penting karena timestamps=false
+                ]
+            );
+
+            // anti spam push: 30 detik per memo-user
+            $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$approverId}";
+            if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
+                $notifService->createAndPush(
+                    $approverId,
+                    'Memo Menunggu Persetujuan',
+                    $memo->judul,
+                    (int) $memo->id_memo
+                );
+            }
+        }
+
+        // notif ke pembuat (DB saja)
+        Notifikasi::updateOrCreate(
+            [
+                'id_user'        => (int) $memo->pembuat,
+                'judul'          => 'Memo Dalam Proses Persetujuan',
+                'judul_document' => $memo->judul,
+                'id_document'    => (int) $memo->id_memo,
+            ],
+            [
+                'dibaca'     => 0,
+                'updated_at' => now(),
+            ]
+        );
+        // ============================
 
         if ($request->has('kategori_barang')) {
             foreach ($request->kategori_barang as $dataBarang) {
                 if (isset($dataBarang['id_kategori_barang']) && $dataBarang['id_kategori_barang'] != null) {
-                    // Cek apakah barang sudah ada di database
                     $barang = $memo->kategoriBarang()->find($dataBarang['id_kategori_barang']);
                     if ($barang) {
                         $barang->update([
@@ -1928,6 +1986,7 @@ class MemoController extends Controller
                 }
             }
         }
+
         if (Auth::user()->role_id_role == 1) {
             return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
         } else {
@@ -1936,6 +1995,7 @@ class MemoController extends Controller
                 ->with('success', 'Memo berhasil diubah.');
         }
     }
+
     //HAPUS SEMENTARA
     public function delete($id)
     {
@@ -3065,16 +3125,16 @@ class MemoController extends Controller
             )
         );
     }
+
     public function updateBaru(Request $request, $id)
     {
-        // Log::info('Tembusan diterima:', $request->tembusan);
-
         $memo = Memo::findOrFail($id);
+
         $emojiErrors = $this->validateNoEmoji($request);
         if (!empty($emojiErrors)) {
             return redirect()->back()->withErrors($emojiErrors)->withInput();
         }
-        //dd($memo, $request->all());
+
         $request->validate(
             [
                 'judul' => 'required|string|max:255',
@@ -3082,9 +3142,7 @@ class MemoController extends Controller
                     'required',
                     function ($attribute, $value, $fail) {
                         $clean = strip_tags($value);
-
                         $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
                         $clean = preg_replace('/\xc2\xa0|\s+/u', '', $clean);
                         if ($clean === '') {
                             $fail('Isi memo tidak boleh kosong.');
@@ -3097,7 +3155,6 @@ class MemoController extends Controller
                 'nama_bertandatangan' => 'required|string|max:255',
                 'tgl_dibuat' => 'required|date',
                 'kode_bagian' => 'required|exists:bagian_kerja,kode_bagian',
-                // 'seri_surat' => 'required|string',
                 'tgl_disahkan' => 'nullable|date',
                 'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
                 'kategori_barang' => 'sometimes|required|array|min:1',
@@ -3110,131 +3167,189 @@ class MemoController extends Controller
                 'kategori_barang.*.barang.required' => 'Nama barang harus diisi.',
                 'kategori_barang.*.qty.required' => 'Qty barang harus diisi.',
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
-            ],
+            ]
         );
-        // CC/BCC Memo: samakan dengan tujuan (simpan id user)
-        $tujuanId = $this->convertTujuanToUserId($request->tujuan);
-        $tembusanUserIds = [];
-        if ($request->has('tembusan') && is_array($request->tembusan)) {
-            $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
-            $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
-            $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
-        } else {
-            $memo->tembusan = null;
-        }
 
-        $bccUserIds = [];
-        if ($request->has('bcc') && is_array($request->bcc)) {
-            $bccUserIds = $this->convertTujuanToUserId($request->bcc);
-            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
-            $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
-        } else {
-            $memo->bcc = null;
-        }
+        $notifService = app(NotifService::class);
 
-        if ($request->filled('kode_bagian')) {
-            $memo->kode_bagian = $request->kode_bagian;
-        }
-        if ($request->filled('judul')) {
-            $memo->judul = $request->judul;
-        }
-        if ($request->filled('isi_memo')) {
-            $memo->isi_memo = $request->isi_memo;
-        }
-        if ($request->filled('tujuan')) {
-            $memo->tujuan = implode(';', $tujuanId);
-        }
-        if ($request->filled('tujuanString')) {
-            $memo->tujuan_string = implode(';', $request->tujuanString);
-        }
-        if ($request->filled('nomor_memo')) {
-            $memo->nomor_memo = $request->nomor_memo;
-        }
-        if ($request->filled('nama_bertandatangan')) {
-            $memo->nama_bertandatangan = $request->nama_bertandatangan;
-        }
-        if ($request->filled('tgl_dibuat')) {
-            $memo->tgl_dibuat = $request->tgl_dibuat;
-        }
-        if ($request->filled('seri_surat')) {
-            $memo->seri_surat = $request->seri_surat;
-        }
-        if ($request->filled('tgl_disahkan')) {
-            $memo->tgl_disahkan = $request->tgl_disahkan;
-        }
+        return DB::transaction(function () use ($request, $memo, $notifService) {
 
-        // Handle multiple file uploads
-        if ($request->hasFile('lampiran')) {
-            $existingLampiran = [];
-            if ($memo->lampiran) {
-                $existingLampiran = json_decode($memo->lampiran, true) ?? [];
+            // ============================
+            // CC/BCC: gabungkan ke tujuan (simpan id user)
+            // ============================
+            $tujuanId = $this->convertTujuanToUserId($request->tujuan);
+
+            $tembusanUserIds = [];
+            if ($request->has('tembusan') && is_array($request->tembusan)) {
+                $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
+                $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
+                $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
+            } else {
+                $memo->tembusan = null;
             }
 
-            $newFiles = [];
-            foreach ($request->file('lampiran') as $file) {
-                if ($file->isValid()) {
-                    $ext = strtolower($file->getClientOriginalExtension());
-                    // Determine folder
-                    if ($ext === 'pdf') {
-                        $folder = 'lampiran/memo/pdf';
-                    } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])) {
-                        $folder = 'lampiran/memo/image';
-                    } else {
-                        // fallback folder (optional)
-                        $folder = 'lampiran/memo/other';
-                    }
-                    // Generate unique filename
-                    $filename = time() . '_' . $file->getClientOriginalName();
-                    $filePath = $file->storeAs($folder, $filename, 'public');
+            $bccUserIds = [];
+            if ($request->has('bcc') && is_array($request->bcc)) {
+                $bccUserIds = $this->convertTujuanToUserId($request->bcc);
+                $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
+                $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
+            } else {
+                $memo->bcc = null;
+            }
 
-                    $newFiles[] = [
-                        'name' => $file->getClientOriginalName(),
-                        'path' => $filePath,
-                        'size' => $file->getSize(),
-                        'uploaded_at' => now()->toDateTimeString()
-                    ];
+            // ============================
+            // Update field memo
+            // ============================
+            if ($request->filled('kode_bagian')) $memo->kode_bagian = $request->kode_bagian;
+            if ($request->filled('judul')) $memo->judul = $request->judul;
+            if ($request->filled('isi_memo')) $memo->isi_memo = $request->isi_memo;
+            if ($request->filled('tujuan')) $memo->tujuan = implode(';', $tujuanId);
+            if ($request->filled('tujuanString')) $memo->tujuan_string = implode(';', $request->tujuanString);
+            if ($request->filled('nomor_memo')) $memo->nomor_memo = $request->nomor_memo;
+            if ($request->filled('nama_bertandatangan')) $memo->nama_bertandatangan = $request->nama_bertandatangan;
+            if ($request->filled('tgl_dibuat')) $memo->tgl_dibuat = $request->tgl_dibuat;
+            if ($request->filled('seri_surat')) $memo->seri_surat = $request->seri_surat;
+            if ($request->filled('tgl_disahkan')) $memo->tgl_disahkan = $request->tgl_disahkan;
+
+            // ============================
+            // Lampiran JSON list
+            // ============================
+            if ($request->hasFile('lampiran')) {
+                $existingLampiran = [];
+                if ($memo->lampiran) {
+                    $existingLampiran = json_decode($memo->lampiran, true) ?? [];
+                }
+
+                $newFiles = [];
+                foreach ($request->file('lampiran') as $file) {
+                    if ($file->isValid()) {
+                        $ext = strtolower($file->getClientOriginalExtension());
+
+                        if ($ext === 'pdf') {
+                            $folder = 'lampiran/memo/pdf';
+                        } elseif (in_array($ext, ['png', 'jpg', 'jpeg'])) {
+                            $folder = 'lampiran/memo/image';
+                        } else {
+                            $folder = 'lampiran/memo/other';
+                        }
+
+                        $filename = time() . '_' . $file->getClientOriginalName();
+                        $filePath = $file->storeAs($folder, $filename, 'public');
+
+                        $newFiles[] = [
+                            'name' => $file->getClientOriginalName(),
+                            'path' => $filePath,
+                            'size' => $file->getSize(),
+                            'uploaded_at' => now()->toDateTimeString(),
+                        ];
+                    }
+                }
+
+                $allFiles = array_merge($existingLampiran, $newFiles);
+                $memo->lampiran = !empty($allFiles) ? json_encode($allFiles) : null;
+            }
+
+            // ============================
+            // resubmit => balik pending
+            // ============================
+            $memo->status = 'pending';
+            $memo->save();
+
+            Kirim_Document::where('id_document', $memo->id_memo)
+                ->where('jenis_document', 'memo')
+                ->update(['status' => 'pending', 'updated_at' => now()]);
+
+            // ============================
+            // ✅ NOTIF + PUSH (PAKAI SERVICE)
+            // ============================
+
+            // ambil semua approver dari kirim_document memo ini
+            $approverIds = Kirim_Document::where('id_document', $memo->id_memo)
+                ->where('jenis_document', 'memo')
+                ->pluck('id_penerima')
+                ->map(fn ($v) => (int) $v)
+                ->unique()
+                ->filter(fn ($v) => $v > 0)
+                ->values();
+
+            foreach ($approverIds as $approverId) {
+
+                // Simpan notif DB (biar list notif muncul)
+                Notifikasi::updateOrCreate(
+                    [
+                        'id_user'        => $approverId,
+                        'judul'          => 'Memo Menunggu Persetujuan',
+                        'judul_document' => $memo->judul,
+                    ],
+                    [
+                        'dibaca'     => 0,
+                        'updated_at' => now(),
+                    ]
+                );
+
+                // anti spam push: kunci 30 detik per memo+approver
+                $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$approverId}";
+                if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
+                    $notifService->createAndPush(
+                        $approverId,
+                        'Memo Menunggu Persetujuan',
+                        $memo->judul
+                    );
                 }
             }
 
-            // Merge existing and new files
-            $allFiles = array_merge($existingLampiran, $newFiles);
-            $memo->lampiran = !empty($allFiles) ? json_encode($allFiles) : null;
-        }
-        //dd($memo);
-        $memo->status = 'pending'; // Set status ke pending saat update
-        $memo->save();
+            // notif ke pembuat (tanpa push juga boleh, tapi aku samakan)
+            Notifikasi::updateOrCreate(
+                [
+                    'id_user'        => (int) $memo->pembuat,
+                    'judul'          => 'Memo Dalam Proses Persetujuan',
+                    'judul_document' => $memo->judul,
+                ],
+                [
+                    'dibaca'     => 0,
+                    'updated_at' => now(),
+                ]
+            );
 
-        // Update status pada kirim_document juga jika ada
-        \App\Models\Kirim_Document::where('id_document', $memo->id_memo)
-            ->where('jenis_document', 'memo')
-            ->update(['status' => 'pending', 'updated_at' => now()]);
+            $lockCreator = "push:memo_resubmit:{$memo->id_memo}:creator";
+            if (Cache::add($lockCreator, 1, now()->addSeconds(30))) {
+                $notifService->createAndPush(
+                    (int) $memo->pembuat,
+                    'Memo Dalam Proses Persetujuan',
+                    $memo->judul,
+                    (int) $memo->id_memo
+                );
+            }
 
-        if ($request->has('kategori_barang')) {
-            foreach ($request->kategori_barang as $dataBarang) {
-                if (isset($dataBarang['id_kategori_barang']) && $dataBarang['id_kategori_barang'] != null) {
-                    // Cek apakah barang sudah ada di database
-                    $barang = $memo->kategoriBarang()->find($dataBarang['id_kategori_barang']);
-                    if ($barang) {
-                        $barang->update([
-                            'memo_id_memo' => $memo->id_memo,
-                            'nomor' => $dataBarang['nomor'],
-                            'barang' => $dataBarang['barang'],
-                            'qty' => $dataBarang['qty'],
-                            'satuan' => $dataBarang['satuan'],
-                        ]);
+            // ============================
+            // kategori_barang update (tetap)
+            // ============================
+            if ($request->has('kategori_barang')) {
+                foreach ($request->kategori_barang as $dataBarang) {
+                    if (isset($dataBarang['id_kategori_barang']) && $dataBarang['id_kategori_barang'] != null) {
+                        $barang = $memo->kategoriBarang()->find($dataBarang['id_kategori_barang']);
+                        if ($barang) {
+                            $barang->update([
+                                'memo_id_memo' => $memo->id_memo,
+                                'nomor' => $dataBarang['nomor'],
+                                'barang' => $dataBarang['barang'],
+                                'qty' => $dataBarang['qty'],
+                                'satuan' => $dataBarang['satuan'],
+                            ]);
+                        }
                     }
                 }
             }
-        }
 
-        if (Auth::user()->role_id_role == 1) {
-            return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
-        } elseif (Auth::user()->role_id_role == 2) {
-            return redirect()->route('admin.memo.index')->with('success', 'Memo berhasil diubah.');
-        } else {
-            return redirect()
-                ->route('memo.terkirim')->with('success', 'Memo berhasil diubah.');
-        }
+            // redirect sesuai role
+            if (Auth::user()->role_id_role == 1) {
+                return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
+            } elseif (Auth::user()->role_id_role == 2) {
+                return redirect()->route('admin.memo.index')->with('success', 'Memo berhasil diubah.');
+            }
+
+            return redirect()->route('memo.terkirim')->with('success', 'Memo berhasil diubah.');
+        });
     }
 
     public function deleteLampiranExisting($memoId, $index)
