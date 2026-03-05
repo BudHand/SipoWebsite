@@ -26,6 +26,7 @@ use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
 use App\Services\QrCodeService;
 use App\Models\BagianKerja;
+use App\Services\NotifService;
 
 
 use Illuminate\Http\Request;
@@ -1316,41 +1317,40 @@ class UndanganController extends Controller
             'bagianKerja'
         ));
     }
+
     public function update(Request $request, $id)
     {
-        //dd($request->all());
         $undangan = Undangan::findOrFail($id);
-        // SIMPAN RAW HTML DARI TINYMCE (JANGAN DIUBAH)
-        $rawIsiUndangan = $request->isi_undangan;
 
-        // BIKIN VERSI PLAIN TEXT HANYA UNTUK CEK EMOJI
+        // =============================
+        // VALIDASI EMOJI
+        // =============================
+        $rawIsiUndangan = $request->isi_undangan;
         $isiUndanganBersih = trim(strip_tags($rawIsiUndangan));
 
-        // CLONE REQUEST KHUSUS UNTUK VALIDASI EMOJI
         $requestForEmoji = clone $request;
         $requestForEmoji->merge([
             'isi_undangan' => $isiUndanganBersih,
         ]);
 
-        // VALIDASI EMOJI DULU SEBELUM VALIDASI LAINNYA
         $emojiErrors = $this->validateNoEmoji($request);
         if (!empty($emojiErrors)) {
             return redirect()->back()
                 ->withErrors($emojiErrors)
                 ->withInput();
         }
-        // Validasi input
+
+        // =============================
+        // VALIDASI FORM
+        // =============================
         $request->validate([
             'judul' => 'required|string|max:255',
-            // 'kepada' => 'required|string',
             'isi_undangan' => 'required|string',
             'tujuan' => 'required|array|min:1',
-            //'tujuan.*' => 'exists:divisi,id_divisi',
             'nomor_undangan' => 'nullable|string|max:255',
             'kode_bagian' => 'required|string',
             'nama_bertandatangan' => 'required|string|max:255',
             'tgl_dibuat' => 'required|date',
-            // 'seri_surat' => 'required|numeric',
             'tgl_disahkan' => 'nullable|date',
             'tgl_rapat' => 'required|date',
             'tempat' => 'required|string',
@@ -1359,68 +1359,47 @@ class UndanganController extends Controller
             'lampiran.*' => 'nullable|file|mimes:pdf,jpg,jpeg,png|max:2048',
         ], [
             'lampiran.*' => 'Lampiran gagal diunggah. Pastikan format dan ukuran file sesuai ketentuan.',
-
         ]);
-        //dd($request->errors());
 
+        // =============================
+        // UPDATE FIELD
+        // =============================
+        $undangan->judul = $request->judul;
+        $undangan->isi_undangan = $rawIsiUndangan;
 
-        if ($request->filled('judul')) {
-            $undangan->judul = $request->judul;
-        }
-        if ($request->filled('kepada')) {
-            $undangan->kepada = $request->kepada;
-        }
-        if (!empty($rawIsiUndangan)) {
-            $undangan->isi_undangan = $rawIsiUndangan;
-        }
         if ($request->filled('tujuan')) {
             $tujuanIds = $this->convertTujuanToUserId($request->tujuan);
             $undangan->tujuan = implode(';', $tujuanIds);
         }
-        // Set status ke pending saat update (opsional, seperti memo)
+
         $undangan->status = 'pending';
 
         if ($request->filled('nomor_undangan')) {
             $undangan->nomor_undangan = $request->nomor_undangan;
         }
-        if ($request->filled('nama_bertandatangan')) {
-            $undangan->nama_bertandatangan = $request->nama_bertandatangan;
-        }
-        if ($request->filled('tgl_dibuat')) {
-            $undangan->tgl_dibuat = $request->tgl_dibuat;
-        }
-        if ($request->filled('seri_surat')) {
-            $undangan->seri_surat = $request->seri_surat;
-        }
-        if ($request->filled('tgl_disahkan')) {
-            $undangan->tgl_disahkan = $request->tgl_disahkan;
-        }
-        if ($request->filled('tgl_rapat')) {
-            $undangan->tgl_rapat = $request->tgl_rapat;
-        }
-        if ($request->filled('tempat')) {
-            $undangan->tempat = $request->tempat;
-        }
-        if ($request->filled('waktu_mulai')) {
-            $undangan->waktu_mulai = $request->waktu_mulai;
-        }
-        if ($request->filled('waktu_selesai')) {
-            $undangan->waktu_selesai = $request->waktu_selesai;
-        }
-        if ($request->filled('kode_bagian')) {
-            $undangan->kode_bagian = $request->kode_bagian;
-        }
 
-        // Handle lampiran files
+        $undangan->nama_bertandatangan = $request->nama_bertandatangan;
+        $undangan->tgl_dibuat = $request->tgl_dibuat;
+        $undangan->tgl_disahkan = $request->tgl_disahkan;
+        $undangan->tgl_rapat = $request->tgl_rapat;
+        $undangan->tempat = $request->tempat;
+        $undangan->waktu_mulai = $request->waktu_mulai;
+        $undangan->waktu_selesai = $request->waktu_selesai;
+        $undangan->kode_bagian = $request->kode_bagian;
+
+        // =============================
+        // HANDLE LAMPIRAN
+        // =============================
         if ($request->hasFile('lampiran')) {
+
             $files = $request->file('lampiran');
             $newFiles = [];
 
-            // Create folders if not exist
             $folder = 'undangan/lampiran/' . $undangan->id_undangan;
 
             foreach ($files as $file) {
                 if ($file->isValid()) {
+
                     $filename = time() . '_' . uniqid() . '_' . $file->getClientOriginalName();
                     $filePath = $file->storeAs($folder, $filename, 'public');
 
@@ -1433,8 +1412,8 @@ class UndanganController extends Controller
                 }
             }
 
-            // Get existing files
             $existingFiles = [];
+
             if ($undangan->lampiran) {
                 $jsonData = json_decode($undangan->lampiran, true);
                 if ($jsonData !== null && is_array($jsonData)) {
@@ -1442,30 +1421,80 @@ class UndanganController extends Controller
                 }
             }
 
-            // Merge existing and new files
             $allFiles = array_merge($existingFiles, $newFiles);
-            $undangan->lampiran = !empty($allFiles) ? json_encode($allFiles) : null;
+
+            $undangan->lampiran = !empty($allFiles)
+                ? json_encode($allFiles)
+                : null;
         }
 
+        // =============================
+        // SAVE
+        // =============================
         $undangan->save();
-        \Illuminate\Support\Facades\Log::info('Update undangan berhasil', [
-            'undangan' => is_object($undangan) && method_exists($undangan, 'toArray')
-                ? $undangan->toArray()
-                : (array) $undangan
-        ]);
 
-        // Update status pada kirim_document juga jika ada
+        // =============================
+        // RESET WORKFLOW APPROVAL
+        // =============================
         \App\Models\Kirim_Document::where('id_document', $undangan->id_undangan)
             ->where('jenis_document', 'undangan')
-            ->update(['status' => 'pending', 'updated_at' => now()]);
-        if (Auth::user()->role_id_role == 1) {
-            return redirect()->route('superadmin.undangan.index')->with('success', 'Undangan berhasil diubah dan disimpan.');
-        } else if (Auth::user()->role_id_role == 2) {
-            return redirect()->route(Auth::user()->role->nm_role . '.undangan.terkirim')->with('success', 'Undangan berhasil diubah dan disimpan.');
-        } else {
-            return redirect()->route('undangan.terkirim')->with('success', 'Undangan berhasil diubah dan disimpan.');
+            ->update([
+                'status' => 'pending',
+                'updated_at' => now()
+            ]);
+
+        // =============================
+        // NOTIFIKASI RESUBMIT
+        // =============================
+        $notifService = app(\App\Services\NotifService::class);
+
+        // ambil semua approver
+        $approverIds = \App\Models\Kirim_Document::where('id_document', $undangan->id_undangan)
+            ->where('jenis_document', 'undangan')
+            ->pluck('id_penerima')
+            ->map(fn($v) => (int) $v)
+            ->unique()
+            ->filter(fn($v) => $v > 0)
+            ->values();
+
+        foreach ($approverIds as $approverId) {
+
+            $notifService->createAndPush(
+                $approverId,
+                'Undangan Diedit, Menunggu Persetujuan',
+                $undangan->judul
+            );
         }
+
+        // notif ke pembuat
+        $notifService->createAndPush(
+            (int) $undangan->pembuat,
+            'Undangan Diedit, Menunggu Persetujuan',
+            $undangan->judul
+        );
+
+        // =============================
+        // REDIRECT
+        // =============================
+        if (Auth::user()->role_id_role == 1) {
+
+            return redirect()
+                ->route('superadmin.undangan.index')
+                ->with('success', 'Undangan berhasil diubah dan dikirim ulang untuk persetujuan.');
+        }
+
+        if (Auth::user()->role_id_role == 2) {
+
+            return redirect()
+                ->route(Auth::user()->role->nm_role . '.undangan.terkirim')
+                ->with('success', 'Undangan berhasil diubah dan dikirim ulang untuk persetujuan.');
+        }
+
+        return redirect()
+            ->route('undangan.terkirim')
+            ->with('success', 'Undangan berhasil diubah dan dikirim ulang untuk persetujuan.');
     }
+
     public function destroy($id)
     {
         try {

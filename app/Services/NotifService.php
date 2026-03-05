@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\NotifApiController;
 
 class NotifService
 {
-    public function createAndPush(int $userId, string $judul, ?string $judulDocument = null)
+    public function createAndPush(int $userId, string $judul, ?string $judulDocument = null) : Notifikasi
     {
         // Simpan / update notifikasi DB
         $notif = Notifikasi::updateOrCreate(

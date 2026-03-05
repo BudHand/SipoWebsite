@@ -1933,7 +1933,7 @@ class MemoController extends Controller
             Notifikasi::updateOrCreate(
                 [
                     'id_user'        => $approverId,
-                    'judul'          => 'Memo Menunggu Persetujuan',
+                    'judul'          => 'Memo Telah Diupdate',
                     'judul_document' => $memo->judul,
                     'id_document'    => (int) $memo->id_memo,
                 ],
@@ -1948,7 +1948,7 @@ class MemoController extends Controller
             if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
                 $notifService->createAndPush(
                     $approverId,
-                    'Memo Menunggu Persetujuan',
+                    'Memo Telah Diupdate',
                     $memo->judul,
                     (int) $memo->id_memo
                 );
@@ -1959,7 +1959,7 @@ class MemoController extends Controller
         Notifikasi::updateOrCreate(
             [
                 'id_user'        => (int) $memo->pembuat,
-                'judul'          => 'Memo Dalam Proses Persetujuan',
+                'judul'          => 'Memo Telah Diupdate',
                 'judul_document' => $memo->judul,
                 'id_document'    => (int) $memo->id_memo,
             ],
@@ -3278,7 +3278,7 @@ class MemoController extends Controller
                 Notifikasi::updateOrCreate(
                     [
                         'id_user'        => $approverId,
-                        'judul'          => 'Memo Menunggu Persetujuan',
+                        'judul'          => 'Memo Diupdate, Menunggu Persetujuan',
                         'judul_document' => $memo->judul,
                     ],
                     [
@@ -3292,7 +3292,7 @@ class MemoController extends Controller
                 if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
                     $notifService->createAndPush(
                         $approverId,
-                        'Memo Menunggu Persetujuan',
+                        'Memo Diupdate, Menunggu Persetujuan',
                         $memo->judul
                     );
                 }
@@ -3302,7 +3302,7 @@ class MemoController extends Controller
             Notifikasi::updateOrCreate(
                 [
                     'id_user'        => (int) $memo->pembuat,
-                    'judul'          => 'Memo Dalam Proses Persetujuan',
+                    'judul'          => 'Memo Diupdate, Menunggu Persetujuan',
                     'judul_document' => $memo->judul,
                 ],
                 [
@@ -3315,7 +3315,7 @@ class MemoController extends Controller
             if (Cache::add($lockCreator, 1, now()->addSeconds(30))) {
                 $notifService->createAndPush(
                     (int) $memo->pembuat,
-                    'Memo Dalam Proses Persetujuan',
+                    'Memo Diupdate, Menunggu Persetujuan',
                     $memo->judul,
                     (int) $memo->id_memo
                 );
