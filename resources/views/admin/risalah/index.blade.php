@@ -169,7 +169,7 @@
                                                     <i class="fas fa-eye" alt="Detail"></i>
                                                 </button>
                                                 @if ($risalah->status == 'pending' || $risalah->status == 'correction')
-                                                    @if (Auth::user()->fullname == $risalah->nama_notulis_acara)
+                                                    @if (Auth::user()->id == $risalah->pembuat)
                                                         <button type="button"
                                                             class="btn btn-sm rounded-circle text-white border-0 bg-secondary"
                                                             style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"

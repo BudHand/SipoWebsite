@@ -314,115 +314,6 @@
         .header2 table td {
             line-height: 1.5;
         }
-
-
-        /* ------------------------------------------------------------------
-                                     Debug borders (testing only) - named colors
-
-                                     - Global selectors so debug outlines appear even if body classes
-                                         are stripped by the renderer. Each selector uses a distinct
-                                         named CSS color (no hex codes) for easy visual testing.
-                                     - Header and table colors are intentionally different and clear.
-                                ------------------------------------------------------------------ */
-
-        /* High-level page areas */
-        /* header {
-            outline: 3px solid red;
-            border-color: red;
-        }
-
-        footer {
-            outline: 3px solid blue;
-            border-color: blue;
-        }
-
-        main {
-            outline: 2px dashed green;
-            border-color: green;
-        }
-
-        /* Content blocks */
-        /* .content {
-            outline: 2px solid orange;
-            border-color: orange;
-        }
-
-        .letter {
-            outline: 2px dotted purple;
-            border-color: purple;
-        } */
-
-        /* Header sections (distinct from page header) */
-        /* .header1 {
-            outline: 2px solid teal;
-            border-color: teal;
-        }
-
-        .header2 {
-            outline: 2px solid navy;
-            border-color: navy;
-        }
-
-        .header2 table {
-            outline: 2px solid olive;
-            border-color: olive;
-        }
-
-        .header2 th {
-            outline: 2px solid maroon;
-            border-color: maroon;
-        }
-
-        .header2 td {
-            outline: 1px solid gray;
-            border-color: gray;
-        } */
-
-        /* Main table */
-        /* .fill {
-            outline: 2px solid lime;
-            border-color: lime;
-        }
-
-        .fill th {
-            outline: 2px solid black;
-            border-color: black;
-        }
-
-        .fill td {
-            outline: 1px dashed pink;
-            border-color: pink;
-        } */
-
-        /* Other areas */
-        /* .collab {
-            outline: 2px dashed brown;
-            border-color: brown;
-        }
-
-        .date {
-            outline: 2px solid yellow;
-            border-color: yellow;
-        }
-
-        .title {
-            outline: 2px solid gold;
-            border-color: gold;
-        }
-
-        .signature {
-            outline: 2px dashed silver;
-            border-color: silver;
-        } */
-
-        /* Mode indicators */
-        /* .view-mode {
-            outline: 2px solid coral;
-        }
-
-        .pdf-mode {
-            outline: 2px solid indigo;
-        }  */
     </style>
 </head>
 
@@ -485,19 +376,6 @@
             <img src="{{ $footerImage }}" width="100%">
         @endif
     </footer>
-
-    {{-- <htmlpageheader name="pageHeader">
-        <img src="{{ $headerImage }}" width="100%">
-    </htmlpageheader>
-
-    <htmlpagefooter name="pageFooter">
-        <img src="{{ $footerImage }}" width="100%">
-    </htmlpagefooter>
-
-    <sethtmlpageheader name="pageHeader" value="on" />
-    <sethtmlpagefooter name="pageFooter" value="on" /> --}}
-
-
 
     <main>
         <div class="first-page-adjust"></div>
@@ -656,8 +534,13 @@
                                 @endphp
 
                                 <p style="margin: 0; text-align:center">Notulis</p>
-                                <p style="margin: 4px 0; text-align:center">
-                                    {{ $jabatanNotulis }} {{ $departemenNotulis }}
+                                <p
+                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $jabatanNotulis }}
+                                </p>
+                                <p
+                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $departemenNotulis }}
                                 </p>
 
                                 @if (!empty($risalah->qr_notulis_acara))
@@ -678,8 +561,13 @@
                                 @endphp
 
                                 <p style="margin: 0; text-align:center">Pemimpin Acara</p>
-                                <p style="margin: 4px 0;  text-align:center">
-                                    {{ $jabatanPemimpin }} {{ $departemenPemimpin }}
+                                <p
+                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $jabatanPemimpin }}
+                                </p>
+                                <p
+                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                    {{ $departemenPemimpin }}
                                 </p>
 
                                 @if (!empty($risalah->qr_pemimpin_acara))

@@ -27,6 +27,7 @@ use App\Http\Controllers\MemoController;
 use App\Http\Controllers\Api\NotifApiController;
 use App\Services\QrCodeService;
 use Illuminate\Support\Str;
+use App\Services\NotifService;
 
 class RisalahController extends Controller
 {
@@ -98,12 +99,17 @@ class RisalahController extends Controller
         $query = Risalah::query()
             ->whereNotIn('id_risalah', $risalahDiarsipkan)
             ->where(function ($q) use ($userId) {
-                // Jika user terlibat dalam kirimDocument jenis risalah
-                $q->orWhereHas('kirimDocument', function ($query) use ($userId) {
+
+                // 1) RISALAH YANG DIBUAT USER INI
+                $q->where('pembuat', $userId)
+
+                // 2) ATAU USER TERLIBAT VIA KIRIM_DOCUMENT
+                ->orWhereHas('kirimDocument', function ($query) use ($userId) {
                     $query->where('jenis_document', 'risalah')
                         ->where(function ($query) use ($userId) {
                             $query->where('id_pengirim', $userId)
-                                ->orWhere('id_penerima', $userId);
+                                ->orWhere('id_penerima', $userId)
+                                ->orWhere('pembuat', $userId);
                         });
                 });
             });
@@ -861,7 +867,6 @@ class RisalahController extends Controller
 
     public function update(Request $request, $id)
     {
-        // Validasi data
         $request->validate([
             'judul' => 'required',
             'agenda' => 'required',
@@ -889,112 +894,187 @@ class RisalahController extends Controller
 
         $risalah = Risalah::findOrFail($id);
 
-        // ⚠️ PENTING: Cek jika sudah approve dan user coba ganti kode_bagian
-        if ($risalah->status == 'approve' && $request->kode_bagian != $risalah->kode_bagian) {
+        // ⚠️ tidak boleh ubah kode_bagian kalau sudah approve
+        if ($risalah->status === 'approve' && $request->kode_bagian != $risalah->kode_bagian) {
             return back()->with('error', 'Tidak dapat mengubah kode bagian setelah risalah disetujui.');
         }
 
-        // Proses file lampiran baru (jika ada)
-        $existingLampiran = $risalah->lampiran ? json_decode($risalah->lampiran, true) : [];
-        $allFiles = is_array($existingLampiran) ? $existingLampiran : [];
+        DB::beginTransaction();
+        try {
+            // =============================
+            // HANDLE LAMPIRAN (merge JSON)
+            // =============================
+            $existingLampiran = $risalah->lampiran ? json_decode($risalah->lampiran, true) : [];
+            $allFiles = is_array($existingLampiran) ? $existingLampiran : [];
 
-        if ($request->hasFile('lampiran')) {
-            foreach ($request->file('lampiran') as $file) {
-                $originalName = $file->getClientOriginalName();
-                $extension = $file->getClientOriginalExtension();
-                $fileName = time() . '_' . uniqid() . '_' . $originalName;
+            if ($request->hasFile('lampiran')) {
+                foreach ($request->file('lampiran') as $file) {
+                    $originalName = $file->getClientOriginalName();
+                    $extension = strtolower($file->getClientOriginalExtension());
+                    $fileName = time() . '_' . uniqid() . '_' . $originalName;
 
-                if (in_array($extension, ['pdf'])) {
-                    $folder = 'lampiran/risalah/pdf';
-                } elseif (in_array($extension, ['jpg', 'jpeg', 'png'])) {
-                    $folder = 'lampiran/risalah/image';
-                } else {
-                    $folder = 'lampiran/risalah/other';
-                }
+                    if ($extension === 'pdf') {
+                        $folder = 'lampiran/risalah/pdf';
+                    } elseif (in_array($extension, ['jpg', 'jpeg', 'png'])) {
+                        $folder = 'lampiran/risalah/image';
+                    } else {
+                        $folder = 'lampiran/risalah/other';
+                    }
 
-                $filePath = $file->storeAs($folder, $fileName, 'public');
+                    $filePath = $file->storeAs($folder, $fileName, 'public');
 
-                if ($filePath) {
-                    $allFiles[] = [
-                        'name' => $originalName,
-                        'path' => $filePath,
-                        'size' => $file->getSize(),
-                        'type' => $file->getMimeType()
-                    ];
+                    if ($filePath) {
+                        $allFiles[] = [
+                            'name' => $originalName,
+                            'path' => $filePath,
+                            'size' => $file->getSize(),
+                            'type' => $file->getMimeType(),
+                            'uploaded_at' => now()->toDateTimeString(),
+                        ];
+                    }
                 }
             }
-        }
 
-        $lampiranPath = !empty($allFiles) ? json_encode($allFiles) : $risalah->lampiran;
+            $lampiranPath = !empty($allFiles) ? json_encode($allFiles) : $risalah->lampiran;
 
-        $notulis = User::where('id', $request->notulis_acara)->first();
-        $pemimpin = User::where('id', $request->pemimpin_acara)->first();
+            // =============================
+            // PEMIMPIN & NOTULIS
+            // =============================
+            $notulis  = User::findOrFail($request->notulis_acara);
+            $pemimpin = User::findOrFail($request->pemimpin_acara);
 
-        // Update QR notulis (dengan nomor lama jika sudah ada, atau placeholder jika belum)
-        $nomorRisalahText = $risalah->nomor_risalah ?? '(Menunggu Persetujuan)';
-        $qrText = "Notulis Acara: " . $notulis->fullname
-            . "\nNomor Risalah: " . $nomorRisalahText
-            . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s')
-            . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
-        $qrService = new QRCodeService();
-        $qrNotulisAcara = $qrService->generateWithLogo($qrText);
+            // =============================
+            // TUJUAN (undangan vs manual)
+            // =============================
+            if ($request->with_undangan) {
+                // kalau memakai undangan, tujuan tetap
+                $tujuan = $risalah->tujuan;
+            } else {
+                $tujuan = implode(';', $this->convertTujuanToUserId($request->tujuan));
+            }
 
-        if ($request->with_undangan) {
-            $tujuan = $risalah->tujuan;
-        } else {
-            $tujuan = implode(';', $this->convertTujuanToUserId($request->tujuan));
-        }
+            // =============================
+            // QR NOTULIS (pakai nomor lama / placeholder)
+            // =============================
+            $nomorRisalahText = $risalah->nomor_risalah ?? '(Menunggu Persetujuan)';
+            $qrText = "Notulis Acara: " . $notulis->fullname
+                . "\nNomor Risalah: " . $nomorRisalahText
+                . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s')
+                . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
 
-        $risalah->update([
-            'tgl_dibuat' => $request->tgl_dibuat,
-            'judul' => $request->judul,
-            'agenda' => $request->agenda,
-            'kode_bagian' => $request->kode_bagian,
-            'tempat' => $request->tempat,
-            'waktu_mulai' => $request->waktu_mulai,
-            'waktu_selesai' => $request->waktu_selesai,
-            'nama_pemimpin_acara' => $pemimpin->fullname,
-            'nama_notulis_acara' => $notulis->fullname,
-            'qr_notulis_acara' => $qrNotulisAcara,
-            'lampiran' => $lampiranPath,
-            'status' => 'pending', // Reset ke pending saat edit
-            'tujuan' => $tujuan,
-        ]);
+            $qrService = new \App\Services\QrCodeService();
+            $qrNotulisAcara = $qrService->generateWithLogo($qrText);
 
-        $statusKirimDokumen = Kirim_Document::where('id_document', $risalah->id_risalah)
-            ->where('jenis_document', 'risalah')
-            ->first();
+            // =============================
+            // UPDATE RISALAH (reset pending)
+            // =============================
+            $risalah->update([
+                'tgl_dibuat' => $request->tgl_dibuat,
+                'judul' => $request->judul,
+                'agenda' => $request->agenda,
+                'kode_bagian' => $request->kode_bagian,
+                'tempat' => $request->tempat,
+                'waktu_mulai' => $request->waktu_mulai,
+                'waktu_selesai' => $request->waktu_selesai,
+                'nama_pemimpin_acara' => $pemimpin->fullname,
+                'nama_notulis_acara' => $notulis->fullname,
+                'qr_notulis_acara' => $qrNotulisAcara,
+                'lampiran' => $lampiranPath,
+                'status' => 'pending',
+                'tgl_disahkan' => null, // reset pengesahan karena diedit
+                'tujuan' => $tujuan,
+            ]);
 
-        if ($statusKirimDokumen) {
-            $statusKirimDokumen->status = 'pending';
-            $statusKirimDokumen->id_pengirim = $notulis->id;
-            $statusKirimDokumen->id_penerima = $pemimpin->id;
-            $statusKirimDokumen->save();
-        }
-
-        // Hapus dan update risalahDetails
-        if ($request->has('nomor')) {
-            if ($risalah->risalahDetails()->exists()) {
+            // =============================
+            // DETAIL: replace (hapus lalu insert)
+            // =============================
+            if ($request->has('nomor') && is_array($request->nomor)) {
                 $risalah->risalahDetails()->delete();
+
+                foreach ($request->nomor as $index => $nomor) {
+                    $risalah->risalahDetails()->create([
+                        'nomor' => $nomor,
+                        'topik' => $request->topik[$index] ?? '',
+                        'pembahasan' => $request->pembahasan[$index] ?? '',
+                        'tindak_lanjut' => $request->tindak_lanjut[$index] ?? '',
+                        'target' => $request->target[$index] ?? '',
+                        'pic' => $request->pic[$index] ?? '',
+                    ]);
+                }
             }
 
-            foreach ($request->nomor as $index => $nomor) {
-                $risalah->risalahDetails()->create([
-                    'nomor' => $nomor,
-                    'topik' => $request->topik[$index],
-                    'pembahasan' => $request->pembahasan[$index],
-                    'tindak_lanjut' => $request->tindak_lanjut[$index],
-                    'target' => $request->target[$index],
-                    'pic' => $request->pic[$index],
+            // =============================
+            // RESET WORKFLOW APPROVAL
+            // (mirip undangan)
+            // =============================
+            Kirim_Document::where('id_document', $risalah->id_risalah)
+                ->where('jenis_document', 'risalah')
+                ->update([
+                    'status' => 'pending',
+                    'updated_at' => now(),
                 ]);
-            }
-        }
 
-        // Redirect
-        if (Auth::user()->role->id_role == 3) {
-            return redirect()->route('risalah.manager')->with('success', 'Risalah berhasil diperbarui.');
+            // pastikan ada baris notulis -> pemimpin sebagai approver utama
+            Kirim_Document::updateOrCreate(
+                [
+                    'id_document' => $risalah->id_risalah,
+                    'jenis_document' => 'risalah',
+                    'id_pengirim' => $notulis->id,
+                    'id_penerima' => $pemimpin->id,
+                ],
+                [
+                    'status' => 'pending',
+                    'updated_at' => now(),
+                ]
+            );
+
+            // =============================
+            // NOTIFIKASI RESUBMIT (NotifService)
+            // =============================
+            $notifService = app(NotifService::class);
+
+            // ambil semua approver (penerima di kirim_document risalah)
+            $approverIds = Kirim_Document::where('id_document', $risalah->id_risalah)
+                ->where('jenis_document', 'risalah')
+                ->pluck('id_penerima')
+                ->map(fn($v) => (int) $v)
+                ->unique()
+                ->filter(fn($v) => $v > 0)
+                ->values();
+
+            foreach ($approverIds as $approverId) {
+                $notifService->createAndPush(
+                    $approverId,
+                    'Risalah Diedit, Menunggu Persetujuan',
+                    $risalah->judul
+                );
+            }
+
+            // notif ke pembuat
+            $notifService->createAndPush(
+                (int) $risalah->pembuat,
+                'Risalah Diedit, Menunggu Persetujuan',
+                $risalah->judul
+            );
+
+            DB::commit();
+
+            // =============================
+            // REDIRECT
+            // =============================
+            if (Auth::user()->role->id_role == 3) {
+                return redirect()->route('risalah.manager')
+                    ->with('success', 'Risalah berhasil diperbarui dan dikirim ulang untuk persetujuan.');
+            }
+
+            return redirect()->route(Auth::user()->role->nm_role . '.risalah.index')
+                ->with('success', 'Risalah berhasil diperbarui dan dikirim ulang untuk persetujuan.');
+
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            Log::error('Risalah update error: ' . $e->getMessage());
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
-        return redirect()->route(Auth::user()->role->nm_role . '.risalah.index')->with('success', 'Risalah berhasil diperbarui.');
     }
 
     public function destroy($id, Request $request)
