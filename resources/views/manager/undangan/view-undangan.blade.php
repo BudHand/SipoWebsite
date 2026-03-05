@@ -216,6 +216,28 @@
                                         <pre style="font-family: Public Sans, sans-serif">{{ $undangan->tujuan }}</pre>
                                     </div>
                                 </div>
+
+                                @if (!empty($tembusanList ?? []))
+                                    <div class="info-row d-flex flex-column flex-sm-row">
+                                        <div class="info-label">Tembusan</div>
+                                        <div class="info-value">
+                                            @foreach ($tembusanList as $index => $item)
+                                                <p class="m-0">{{ $index + 1 }}. {{ $item }}</p>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if (($canViewBcc ?? false) && !empty($bccDisplayList ?? []))
+                                    <div class="info-row d-flex flex-column flex-sm-row">
+                                        <div class="info-label">BCC</div>
+                                        <div class="info-value">
+                                            @foreach ($bccDisplayList as $index => $item)
+                                                <p class="m-0">{{ $index + 1 }}. {{ $item }}</p>
+                                            @endforeach
+                                        </div>
+                                    </div>
+                                @endif
                             </div>
                         </div>
                     </div>
