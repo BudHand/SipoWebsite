@@ -408,6 +408,13 @@
                 },
                 'plugins': ['checkbox', 'search']
             }).on('ready.jstree', function(e, data) {
+                $('#org-tree li').each(function() {
+                    var node = data.instance.get_node(this.id);
+                    if (node && node.parent === '#') {
+                        $(this).find('.jstree-checkbox').css('display', 'none');
+                    }
+                });
+
                 selectedTujuan.forEach(id => {
                     $('#org-tree').jstree('check_node', '#user-' + id);
                 });
