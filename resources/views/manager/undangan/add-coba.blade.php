@@ -372,11 +372,7 @@
                                     'dots': true
                                 }
                             },
-                            'plugins': ['checkbox', 'search'],
-                            'checkbox': {
-                                'three_state': false,
-                                'cascade': 'none'
-                            }
+                            'plugins': ['checkbox', 'search']
                         }).on('ready.jstree', function(e, data) {
                             console.log('JSTree initialized successfully');
 
