@@ -3169,8 +3169,56 @@ class MemoController extends Controller
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
             ]
         );
+        // CC/BCC Memo: samakan dengan tujuan (simpan id user)
+        $tujuanId = $this->convertTujuanToUserId($request->tujuan);
+        $tembusanUserIds = [];
+        if ($request->has('tembusan') && is_array($request->tembusan)) {
+            $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
+            $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
+        } else {
+            $memo->tembusan = null;
+        }
 
-        $notifService = app(NotifService::class);
+        $bccUserIds = [];
+        if ($request->has('bcc') && is_array($request->bcc)) {
+            $bccUserIds = $this->convertTujuanToUserId($request->bcc);
+            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
+            $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
+        } else {
+            $memo->bcc = null;
+        }
+
+        if ($request->filled('kode_bagian')) {
+            $memo->kode_bagian = $request->kode_bagian;
+        }
+        if ($request->filled('judul')) {
+            $memo->judul = $request->judul;
+        }
+        if ($request->filled('isi_memo')) {
+            $memo->isi_memo = $request->isi_memo;
+        }
+        if ($request->filled('tujuan')) {
+            $memo->tujuan = implode(';', $tujuanId);
+        }
+        if ($request->filled('tujuanString')) {
+            $memo->tujuan_string = implode(';', $request->tujuanString);
+        }
+        if ($request->filled('nomor_memo')) {
+            $memo->nomor_memo = $request->nomor_memo;
+        }
+        if ($request->filled('nama_bertandatangan')) {
+            $memo->nama_bertandatangan = $request->nama_bertandatangan;
+        }
+        if ($request->filled('tgl_dibuat')) {
+            $memo->tgl_dibuat = $request->tgl_dibuat;
+        }
+        if ($request->filled('seri_surat')) {
+            $memo->seri_surat = $request->seri_surat;
+        }
+        if ($request->filled('tgl_disahkan')) {
+            $memo->tgl_disahkan = $request->tgl_disahkan;
+        }
 
         return DB::transaction(function () use ($request, $memo, $notifService) {
 
