@@ -418,88 +418,95 @@
                     </table>
 
                     @php
-                        $buildRecipientList = function (?string $rawRecipients) {
+                        $buildGroupedRecipientList = function (?string $rawRecipients) {
                             $parsedValues = array_values(
                                 array_filter(explode(';', (string) $rawRecipients), fn($t) => trim($t) !== ''),
                             );
 
-                            $recipientIds = collect($parsedValues)
+                            if (empty($parsedValues)) {
+                                return [];
+                            }
+
+                            $selectedUserIds = collect($parsedValues)
                                 ->filter(fn($t) => is_numeric($t))
                                 ->map(fn($t) => (int) $t)
                                 ->unique()
                                 ->values();
 
                             $legacyRecipients = collect($parsedValues)->filter(fn($t) => !is_numeric($t))->values()->all();
-                            $resolvedRecipients = [];
 
-                            if ($recipientIds->isNotEmpty()) {
-                                $selectedUsers = \App\Models\User::with([
-                                    'position:id_position,nm_position',
-                                ])
-                                    ->whereIn('id', $recipientIds)
-                                    ->get([
-                                        'id',
-                                        'firstname',
-                                        'lastname',
-                                        'position_id_position',
-                                        'director_id_director',
-                                        'divisi_id_divisi',
-                                        'department_id_department',
-                                        'section_id_section',
-                                        'unit_id_unit',
-                                    ]);
+                            if ($selectedUserIds->isEmpty()) {
+                                return array_values(array_filter($legacyRecipients));
+                            }
 
-                                $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
-                                $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
-                                $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
-                                $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
-                                $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
+                            $selectedUsers = \App\Models\User::whereIn('id', $selectedUserIds)
+                                ->get([
+                                    'id',
+                                    'firstname',
+                                    'lastname',
+                                    'director_id_director',
+                                    'divisi_id_divisi',
+                                    'department_id_department',
+                                    'section_id_section',
+                                    'unit_id_unit',
+                                ]);
 
-                                $sortedUsers = $selectedUsers->sortBy(fn($u) => trim($u->firstname . ' ' . $u->lastname));
+                            if ($selectedUsers->isEmpty()) {
+                                return array_values(array_filter($legacyRecipients));
+                            }
 
-                                foreach ($sortedUsers as $user) {
-                                    $fullName = trim($user->firstname . ' ' . $user->lastname);
-                                    $positionName = $user->position->nm_position ?? '-';
-                                    $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
-                                    $positionLower = strtolower($positionName);
-                                    $isStaff = str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+                            $selectedIdSet = $selectedUsers->pluck('id')->flip();
+                            $remainingIds = $selectedUsers->pluck('id')->all();
 
-                                    $bagianKerja = '-';
-                                    if ($isStaff) {
-                                        if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
-                                            $bagianKerja = $unitMap[$user->unit_id_unit];
-                                        } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
-                                            $bagianKerja = $sectionMap[$user->section_id_section];
-                                        } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
-                                            $bagianKerja = $departmentMap[$user->department_id_department];
-                                        } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
-                                            $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                        } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
-                                            $bagianKerja = $directorMap[$user->director_id_director];
-                                        }
-                                    } else {
-                                        if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
-                                            $bagianKerja = $departmentMap[$user->department_id_department];
-                                        } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
-                                            $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                        } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
-                                            $bagianKerja = $sectionMap[$user->section_id_section];
-                                        } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
-                                            $bagianKerja = $unitMap[$user->unit_id_unit];
-                                        } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
-                                            $bagianKerja = $directorMap[$user->director_id_director];
-                                        }
+                            $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
+                            $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
+                            $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                            $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
+                            $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
+
+                            $result = [];
+                            $scopes = [
+                                ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
+                                ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
+                                ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
+                                ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
+                                ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
+                            ];
+
+                            foreach ($scopes as $scope) {
+                                $groupIds = $selectedUsers
+                                    ->whereIn('id', $remainingIds)
+                                    ->pluck($scope['col'])
+                                    ->filter()
+                                    ->unique()
+                                    ->values();
+
+                                foreach ($groupIds as $groupId) {
+                                    $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+                                    if ($allMemberIds->isEmpty()) {
+                                        continue;
                                     }
 
-                                    $resolvedRecipients[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
+                                    $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                                    if ($allSelected) {
+                                        $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                        $result[] = $scope['label'] . ': ' . $scopeName;
+                                        $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                    }
                                 }
                             }
 
-                            return array_values(array_filter(array_merge($resolvedRecipients, $legacyRecipients)));
+                            foreach ($selectedUsers->whereIn('id', $remainingIds)->sortBy(fn($u) => trim(($u->firstname ?? '') . ' ' . ($u->lastname ?? ''))) as $user) {
+                                $fullName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+                                if ($fullName !== '') {
+                                    $result[] = $fullName;
+                                }
+                            }
+
+                            return array_values(array_filter(array_merge($result, $legacyRecipients)));
                         };
 
-                        $tembusanList = $buildRecipientList($undangan->tembusan ?? null);
-                        $bccList = $buildRecipientList($undangan->bcc ?? null);
+                        $tembusanList = $buildGroupedRecipientList($undangan->tembusan ?? null);
                     @endphp
 
                     @if (!empty($tembusanList))
@@ -507,15 +514,6 @@
                             <b>Tembusan :</b>
                             @foreach ($tembusanList as $tembusan)
                                 <p style="margin: 0;">{{ $tembusan }}</p>
-                            @endforeach
-                        </div>
-                    @endif
-
-                    @if (!empty($bccList))
-                        <div class="bcc" style="margin-top: 10px; text-align: left;">
-                            <b>BCC :</b>
-                            @foreach ($bccList as $bcc)
-                                <p style="margin: 0;">{{ $bcc }}</p>
                             @endforeach
                         </div>
                     @endif
