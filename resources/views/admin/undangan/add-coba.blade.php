@@ -444,9 +444,16 @@
 
                                 }
                             },
-                            'plugins': ['checkbox']
-                        }).on('ready.jstree', function() {
+                            'plugins': ['checkbox', 'search']
+                        }).on('ready.jstree', function(e, data) {
                             console.log('JSTree initialized successfully');
+
+                            $('#org-tree li').each(function() {
+                                var node = data.instance.get_node(this.id);
+                                if (node && node.parent === '#') {
+                                    $(this).find('.jstree-checkbox').css('display', 'none');
+                                }
+                            });
                         }).on('changed.jstree', function(e, data) {
                             console.log('JSTree selection changed:', data.selected);
 

@@ -1076,13 +1076,11 @@ class UndanganController extends Controller
         $tembusanIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
             $tembusanIds = $this->convertTujuanToUserId($request->tembusan);
-            $tujuanIds = array_values(array_unique(array_merge($tujuanIds, $tembusanIds)));
         }
 
         $bccIds = [];
         if ($request->has('bcc') && is_array($request->bcc)) {
             $bccIds = $this->convertTujuanToUserId($request->bcc);
-            $tujuanIds = array_values(array_unique(array_merge($tujuanIds, $bccIds)));
         }
 
         $tujuanString = implode(';', $tujuanIds);
@@ -1268,11 +1266,19 @@ class UndanganController extends Controller
                 \Illuminate\Support\Facades\Log::error('Generate QR Code gagal: ' . $e->getMessage());
             }
 
-            // Kirim ke tujuan
-            $tujuanUserId = is_array($undangan->tujuan) ? $undangan->tujuan : explode(';', $undangan->tujuan);
+            // Kirim ke seluruh penerima undangan (tujuan + tembusan + bcc)
+            $tujuanUserId = is_array($undangan->tujuan) ? $undangan->tujuan : explode(';', (string) $undangan->tujuan);
+            $tembusanUserId = $this->parseRecipientUserIds($undangan->tembusan ?? null);
+            $bccUserId = $this->parseRecipientUserIds($undangan->bcc ?? null);
 
-            foreach ($tujuanUserId as $user) {
-                if ($user == $undangan->pembuat) continue;
+            $allRecipientIds = collect(array_merge($tujuanUserId, $tembusanUserId, $bccUserId))
+                ->map(fn($v) => is_numeric($v) ? (int) $v : null)
+                ->filter(fn($v) => !is_null($v) && $v > 0)
+                ->unique()
+                ->values();
+
+            foreach ($allRecipientIds as $user) {
+                if ((int) $user === (int) $undangan->pembuat) continue;
 
                 $sudahDikirim = Kirim_Document::where([
                     ['id_document', $undangan->id_undangan],
@@ -1504,7 +1510,6 @@ class UndanganController extends Controller
             $tembusanIds = [];
             if ($request->has('tembusan') && is_array($request->tembusan)) {
                 $tembusanIds = $this->convertTujuanToUserId($request->tembusan);
-                $tujuanIds = array_values(array_unique(array_merge($tujuanIds, $tembusanIds)));
                 $undangan->tembusan = !empty($tembusanIds) ? implode(';', $tembusanIds) : null;
             } else {
                 $undangan->tembusan = null;
@@ -1513,7 +1518,6 @@ class UndanganController extends Controller
             $bccIds = [];
             if ($request->has('bcc') && is_array($request->bcc)) {
                 $bccIds = $this->convertTujuanToUserId($request->bcc);
-                $tujuanIds = array_values(array_unique(array_merge($tujuanIds, $bccIds)));
                 $undangan->bcc = !empty($bccIds) ? implode(';', $bccIds) : null;
             } else {
                 $undangan->bcc = null;
