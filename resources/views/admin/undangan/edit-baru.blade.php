@@ -406,7 +406,8 @@
                 'core': {
                     'data': @json($jsTreeData)
                 },
-                'plugins': ['checkbox', 'search']
+                'plugins': ['checkbox', 'search'],
+                'checkbox': { 'three_state': false, 'cascade': 'none' }
             }).on('ready.jstree', function(e, data) {
                 $('#org-tree li').each(function() {
                     var node = data.instance.get_node(this.id);
