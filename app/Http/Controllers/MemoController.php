@@ -3220,6 +3220,8 @@ class MemoController extends Controller
             $memo->tgl_disahkan = $request->tgl_disahkan;
         }
 
+        $notifService = app(NotifService::class);
+
         return DB::transaction(function () use ($request, $memo, $notifService) {
 
             // ============================
