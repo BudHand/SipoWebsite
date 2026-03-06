@@ -1266,11 +1266,19 @@ class UndanganController extends Controller
                 \Illuminate\Support\Facades\Log::error('Generate QR Code gagal: ' . $e->getMessage());
             }
 
-            // Kirim ke tujuan
-            $tujuanUserId = is_array($undangan->tujuan) ? $undangan->tujuan : explode(';', $undangan->tujuan);
+            // Kirim ke seluruh penerima undangan (tujuan + tembusan + bcc)
+            $tujuanUserId = is_array($undangan->tujuan) ? $undangan->tujuan : explode(';', (string) $undangan->tujuan);
+            $tembusanUserId = $this->parseRecipientUserIds($undangan->tembusan ?? null);
+            $bccUserId = $this->parseRecipientUserIds($undangan->bcc ?? null);
 
-            foreach ($tujuanUserId as $user) {
-                if ($user == $undangan->pembuat) continue;
+            $allRecipientIds = collect(array_merge($tujuanUserId, $tembusanUserId, $bccUserId))
+                ->map(fn($v) => is_numeric($v) ? (int) $v : null)
+                ->filter(fn($v) => !is_null($v) && $v > 0)
+                ->unique()
+                ->values();
+
+            foreach ($allRecipientIds as $user) {
+                if ((int) $user === (int) $undangan->pembuat) continue;
 
                 $sudahDikirim = Kirim_Document::where([
                     ['id_document', $undangan->id_undangan],
