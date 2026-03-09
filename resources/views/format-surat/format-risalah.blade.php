@@ -123,6 +123,21 @@
             font-size: 11px;
             table-layout: fixed;
             width: 100%;
+            page-break-inside: auto;
+        }
+
+        .fill thead {
+            display: table-header-group;
+        }
+
+        .fill tfoot {
+            display: table-footer-group;
+        }
+
+        .fill tr,
+        .fill td,
+        .fill th {
+            page-break-inside: auto;
         }
 
         .fill th,
@@ -290,8 +305,9 @@
             margin-left: 2.5px;
             margin-right: auto;
             text-align: justify;
-            overflow-y: auto;
-            max-height: calc(100vh - 12cm);
+            overflow: visible;
+            max-height: none;
+            height: auto;
             padding: 0;
             margin-top: 0;
         }
