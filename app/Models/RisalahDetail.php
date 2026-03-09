@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use App\Models\Risalah;
+use App\Models\SubRisalahDetail;
 
 class RisalahDetail extends Model
 {
@@ -32,6 +33,15 @@ class RisalahDetail extends Model
     public function risalah()
     {
         return $this->belongsTo(Risalah::class, 'risalah_id_risalah', 'id_risalah');
+    }
+
+    public function subDetails()
+    {
+        return $this->hasMany(
+            SubRisalahDetail::class,
+            'risalah_detail_id_risalah_detail',
+            'id_risalah_detail'
+        );
     }
 }
 

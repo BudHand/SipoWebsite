@@ -20,7 +20,6 @@
             padding: 0;
             padding-top: 120px;
             padding-bottom: 100px;
-
         }
 
         .first-page-adjust {
@@ -28,7 +27,6 @@
             margin-top: -120px;
         }
 
-        /* header/footer tetap */
         header {
             position: fixed;
             top: 0;
@@ -49,7 +47,6 @@
             margin-top: 5px;
             margin-bottom: 10px;
             text-align: center;
-
         }
 
         .content {
@@ -58,7 +55,6 @@
             text-align: center;
         }
 
-        /* blok info (Hari/Tempat/...) */
         .letter {
             margin-left: 2cm;
             margin-right: 2cm;
@@ -90,7 +86,6 @@
             overflow: hidden;
         }
 
-        /* netralisir .header2 th agar <colgroup> tabel utama berlaku */
         .header2 table.fill th {
             width: auto !important;
         }
@@ -116,20 +111,17 @@
             padding-right: 10px;
         }
 
-        /* >>> sejajarkan tabel dengan .letter (2 cm kiri–kanan) <<< */
         .pdf-mode .header2 {
             margin: 0 2cm;
-            /* sama seperti .letter */
             padding: 0;
             width: auto;
         }
 
-        /* tabel inti */
+        /* Tabel utama */
         .fill {
             border-collapse: collapse;
             font-size: 11px;
             table-layout: fixed;
-            /* kolom paten */
             width: 100%;
             page-break-inside: auto;
         }
@@ -155,11 +147,8 @@
             text-align: left;
             vertical-align: top;
             white-space: normal;
-            /* boleh turun baris */
             word-wrap: break-word;
-            /* dompdf */
             word-break: break-word;
-            /* potong kata panjang */
         }
 
         .fill thead th {
@@ -179,6 +168,22 @@
             text-align: center;
         }
 
+        /* ===== SUB RISALAH STYLING ===== */
+        /* Identik dengan baris utama */
+        .sub-row td {
+            border: 1.5px solid black;
+            padding: 6px;
+            text-align: left;
+            vertical-align: top;
+            white-space: normal;
+            word-wrap: break-word;
+            word-break: break-word;
+        }
+
+        .sub-row td.sub-no {
+            text-align: center;
+            white-space: nowrap;
+        }
 
         .contents {
             text-align: justify;
@@ -198,7 +203,7 @@
             margin: 0;
         }
 
-        /* view-mode (punyamu) */
+        /* view-mode */
         .view-mode header img,
         .view-mode footer img,
         .view-mode .content {
@@ -266,7 +271,7 @@
             max-height: calc(100vh - 9cm);
         }
 
-        /* pdf-mode (punyamu) */
+        /* pdf-mode */
         .pdf-mode header img,
         .pdf-mode footer img,
         .pdf-mode .content {
@@ -339,10 +344,10 @@
         $needsWatermark = in_array($status, ['reject', 'correction', 'pending'], true);
 
         $file = match ($status) {
-            'reject' => public_path('assets/img/rejected-rotate-stamp.png'),
+            'reject'     => public_path('assets/img/rejected-rotate-stamp.png'),
             'correction' => public_path('assets/img/oncorrection-rotate-stamp.png'),
-            'pending' => public_path('assets/img/onprogress-rotate-stamp.png'),
-            default => null,
+            'pending'    => public_path('assets/img/onprogress-rotate-stamp.png'),
+            default      => null,
         };
 
         $wmBase64 =
@@ -353,34 +358,27 @@
 
     @if ($needsWatermark && $wmBase64)
         <style>
-            /* Overlay full-page di atas semua konten */
             ._wm_overlay {
                 position: fixed;
                 inset: 0;
                 z-index: 9999;
-                /* di atas semua elemen */
                 opacity: 0.4;
-                /* ubah transparansi sesuai selera */
                 pointer-events: none;
-                /* biar gak ganggu elemen lain */
                 display: flex;
                 align-items: center;
                 justify-content: center;
             }
-
             ._wm_overlay img {
                 width: 100%;
-                /* menutupi 1 halaman penuh */
                 height: 100%;
                 object-fit: contain;
-                /* biar proporsional */
             }
         </style>
-
         <div class="_wm_overlay">
             <img src="{{ $wmBase64 }}" alt="watermark">
         </div>
     @endif
+
     <header>
         @if (isset($headerImage))
             <img src="{{ $headerImage }}" width="100%">
@@ -432,13 +430,10 @@
                         <td>:</td>
                         <td>{{ $risalah->tempat }}</td>
                     </tr>
-
                     <tr>
                         <td>Agenda</td>
                         <td>:</td>
-                        <td> {!! nl2br(e($risalah->agenda)) !!}
-                        </td>
-
+                        <td>{!! nl2br(e($risalah->agenda)) !!}</td>
                     </tr>
                     <tr>
                         <td>Daftar Hadir</td>
@@ -457,13 +452,12 @@
 
             <div class="collab">
                 <div class="header2">
-                    <table class="fill">
-                        <!-- total 100% -->
+                    <table class="fill" style="page-break-inside: always;">
                         <colgroup>
-                            <col style="width:6%">
-                            <col style="width:16%">
-                            <col style="width:26%">
-                            <col style="width:29%"> <!-- Tindak Lanjut paling lebar -->
+                            <col style="width:5%">
+                            <col style="width:12%">
+                            <col style="width:30%">
+                            <col style="width:30%">
                             <col style="width:13%">
                             <col style="width:10%">
                         </colgroup>
@@ -479,6 +473,7 @@
                         </thead>
                         <tbody>
                             @foreach ($risalah->risalahDetails as $index => $detail)
+                                {{-- ===== BARIS UTAMA ===== --}}
                                 <tr>
                                     <td style="text-align: center;">{{ $index + 1 }}</td>
                                     <td>{{ $detail->topik }}</td>
@@ -503,105 +498,108 @@
                                         @endforeach
                                     </td>
                                 </tr>
+
+                                {{-- ===== BARIS SUB RISALAH ===== --}}
+                                @if ($detail->subDetails && $detail->subDetails->count() > 0)
+                                    @foreach ($detail->subDetails as $subIndex => $sub)
+                                            <tr class="sub-row">
+                                            {{-- Kolom No: tampilkan label sub --}}
+                                            <td class="sub-no"></td>
+                                            <td>
+                                                @if (!empty($sub->topik))
+                                                    {{ $sub->topik }}
+                                                @else
+
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if (!empty($sub->pembahasan))
+                                                    @foreach (explode(';', $sub->pembahasan) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @else
+
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if (!empty($sub->tindak_lanjut))
+                                                    @foreach (explode(';', $sub->tindak_lanjut) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @else
+
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if (!empty($sub->target))
+                                                    @foreach (explode(';', $sub->target) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @else
+
+                                                @endif
+                                            </td>
+                                            <td>
+                                                @if (!empty($sub->pic))
+                                                    @foreach (explode(';', $sub->pic) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @else
+
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
                             @endforeach
                         </tbody>
                     </table>
-                    {{-- <table style="width:100%; text-align:center; align:center;">
-                        <tr>
-                            <td width="50%" style="text-align: center">
-                                @php
-                                    $namaJabatan = $pemimpin?->position?->nm_position;
-                                @endphp
-                                <p style="text-align:center">Pemimpin Acara</p>
-                                <p style="margin:0; text-align:center;">
-                                    {{ $namaJabatan }}
-                                    {{ $pemimpin?->department?->name_department ?? ($userBertandatangan?->divisi?->nm_divisi ?? '-') }}
-                                </p>
-                                @if (!empty($risalah->qr_pemimpin_acara))
-                                    <img src="data:image/png;base64,{{ $risalah->qr_pemimpin_acara }}" width="150" height="150">
-                                @endif
-                                <p style="margin:0; text-align:center;">{{ $risalah->nama_pemimpin_acara }}</p>
-                            </td>
 
-                            <td width="50%" style="text-align: center">
-                                @php
-                                    $namaJabatan = $notulis?->position?->nm_position;
-                                @endphp
-                                <p style="text-align: center">Notulis</p>
-                                <p style="margin:0; text-align: center; ">
-                                    {{ $namaJabatan }}
-                                    {{ $notulis?->department?->name_department ?? '-' }}
-                                </p>
-                                @if (!empty($risalah->qr_notulis_acara))
-                                    <img src="data:image/png;base64,{{ $risalah->qr_notulis_acara }}" width="150" height="150">
-                                @endif
-                                <p style="margin:0; text-align: center;">{{ $risalah->nama_notulis_acara }}</p>
-                            </td>
-                        </tr>
-                    </table> --}}
+                    {{-- ===== TANDA TANGAN ===== --}}
                     <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
                         <tr>
                             <!-- Kolom Kiri: Notulis Acara -->
-                            <td
-                                style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
+                            <td style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
                                 @php
-                                    $jabatanNotulis = $notulis?->position?->nm_position;
+                                    $jabatanNotulis   = $notulis?->position?->nm_position;
                                     $departemenNotulis = $notulis?->department?->name_department ?? '-';
                                 @endphp
-
                                 <p style="margin: 0; text-align:center">Notulis</p>
-                                <p
-                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $jabatanNotulis }}
                                 </p>
-                                <p
-                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $departemenNotulis }}
                                 </p>
-
                                 @if (!empty($risalah->qr_notulis_acara))
-                                    <img src="data:image/png;base64,{{ $risalah->qr_notulis_acara }}" width="150"
-                                        height="150" style="margin: 8px 0;">
+                                    <img src="data:image/png;base64,{{ $risalah->qr_notulis_acara }}" width="150" height="150" style="margin: 8px 0;">
                                 @endif
-
                                 <p style="margin: 4px 0; text-align:center">{{ $risalah->nama_notulis_acara }}</p>
                             </td>
-                            <!-- Kolom Kanan: Pemimpin -->
-                            <td
-                                style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
-                                @php
-                                    $jabatanPemimpin = $pemimpin?->position?->nm_position;
-                                    $departemenPemimpin =
-                                        $pemimpin?->department?->name_department ??
-                                        ($userBertandatangan?->divisi?->nm_divisi ?? '-');
-                                @endphp
 
+                            <!-- Kolom Kanan: Pemimpin Acara -->
+                            <td style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
+                                @php
+                                    $jabatanPemimpin   = $pemimpin?->position?->nm_position;
+                                    $departemenPemimpin = $pemimpin?->department?->name_department ?? ($userBertandatangan?->divisi?->nm_divisi ?? '-');
+                                @endphp
                                 <p style="margin: 0; text-align:center">Pemimpin Acara</p>
-                                <p
-                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $jabatanPemimpin }}
                                 </p>
-                                <p
-                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $departemenPemimpin }}
                                 </p>
-
                                 @if (!empty($risalah->qr_pemimpin_acara))
-                                    <img src="data:image/png;base64,{{ $risalah->qr_pemimpin_acara }}" width="150"
-                                        height="150" style="margin: 8px 0;">
+                                    <img src="data:image/png;base64,{{ $risalah->qr_pemimpin_acara }}" width="150" height="150" style="margin: 8px 0;">
                                 @endif
-
                                 <p style="margin: 4px 0; text-align:center">{{ $risalah->nama_pemimpin_acara }}</p>
                             </td>
-
-
-
                         </tr>
                     </table>
                 </div>
                 <div style="clear: both;"></div>
-            </div> <!-- /.header2 -->
-        </div> <!-- /.collab -->
+            </div>
         </div>
     </main>
 </body>

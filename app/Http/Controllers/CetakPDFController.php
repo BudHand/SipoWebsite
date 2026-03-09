@@ -1062,90 +1062,91 @@ class CetakPDFController extends Controller
     }
 
     public function viewrisalahPDF($id_risalah)
-    {
-        try {
-            $risalah = Risalah::findOrFail($id_risalah);
+        {
+            try {
+                // Load risalah beserta detail dan sub detail sekaligus
+                $risalah = Risalah::with('risalahDetails.subDetails')->findOrFail($id_risalah);
 
-            if ($risalah->with_undangan) {
-                $undangan = Undangan::where('judul', $risalah->judul)->first();
-            } else {
-                $undangan = null;
-            }
-            $headerPath = public_path('assets/img/bheader.png');
-            $footerPath = public_path('assets/img/bfooter.png');
-            $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
-            $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
-
-            $pemimpin = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-                ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_pemimpin_acara])
-                ->first();
-
-            $notulis = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-                ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_notulis_acara])
-                ->first();
-
-            if ($pemimpin) {
-                $level = $this->detectLevel($pemimpin);
-                $pemimpin->level_kerja = $level;
-                $pemimpin->bagian_text = $this->getBagianText($pemimpin, $level);
-            }
-            if ($notulis) {
-                $level = $this->detectLevel($notulis);
-                $notulis->level_kerja = $level;
-                $notulis->bagian_text = $this->getBagianText($notulis, $level);
-            }
-            $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-
-            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
-                'risalah' => $risalah,
-                'undangan' => $undangan,
-                'cleanIsi' => $cleanIsi,
-                'pemimpin' => $pemimpin,
-                'notulis' => $notulis,
-                'headerImage' => $headerBase64,
-                'footerImage' => $footerBase64,
-                'isPdf' => true,
-                'docStatus' => $risalah->status,
-            ])->setPaper('A4', 'portrait');
-
-            $mainPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
-            $formatRisalahPdf->save($mainPath);
-
-            // Ambil lampiran dan konversi ke array jika JSON string
-            $lampiranField = $risalah->lampiran ?? null;
-            Log::info('Risalah View - Lampiran raw data: ' . ($lampiranField ? substr((string) $lampiranField, 0, 100) : 'kosong'));
-
-            $attPdfs = $this->createTempPdfsFromAnyMany($lampiranField, $risalah->id_risalah, 'risalah');
-            Log::info('Risalah View - Total lampiran PDF yang dibuat: ' . count($attPdfs));
-
-            $output = storage_path('app/view_risalah_' . $risalah->id_risalah . '.pdf');
-
-            // Coba merge jika ada lampiran
-            if (!empty($attPdfs)) {
-                if ($this->mergeAllPdfs($mainPath, $attPdfs, $output)) {
-                    Log::info('Risalah View - Merge PDF berhasil');
-                    $this->cleanupTempFiles([$mainPath]);
-                    return response()
-                        ->file($output, ['Content-Type' => 'application/pdf'])
-                        ->deleteFileAfterSend(true);
+                if ($risalah->with_undangan) {
+                    $undangan = Undangan::where('judul', $risalah->judul)->first();
                 } else {
-                    Log::warning('Risalah View - Merge PDF gagal, menampilkan surat utama saja');
-                    $this->cleanupTempFiles($attPdfs);
+                    $undangan = null;
                 }
-            } else {
-                Log::info('Risalah View - Tidak ada lampiran, menampilkan surat utama saja');
-            }
 
-            // Fallback: tampilkan surat utama saja jika tidak ada lampiran atau merge gagal
-            return response()
-                ->file($mainPath, ['Content-Type' => 'application/pdf'])
-                ->deleteFileAfterSend(true);
-        } catch (\Throwable $e) {
-            Log::error('Error in viewrisalahPDF: ' . $e->getMessage());
-            Log::error('Stack trace: ' . $e->getTraceAsString());
-            return response()->json(['error' => $e->getMessage()], 500);
+                $headerPath = public_path('assets/img/bheader.png');
+                $footerPath = public_path('assets/img/bfooter.png');
+                $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
+                $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
+
+                $pemimpin = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
+                    ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_pemimpin_acara])
+                    ->first();
+
+                $notulis = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
+                    ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_notulis_acara])
+                    ->first();
+
+                if ($pemimpin) {
+                    $level = $this->detectLevel($pemimpin);
+                    $pemimpin->level_kerja = $level;
+                    $pemimpin->bagian_text = $this->getBagianText($pemimpin, $level);
+                }
+                if ($notulis) {
+                    $level = $this->detectLevel($notulis);
+                    $notulis->level_kerja = $level;
+                    $notulis->bagian_text = $this->getBagianText($notulis, $level);
+                }
+
+                $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+
+                $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
+                    'risalah'     => $risalah,
+                    'undangan'    => $undangan,
+                    'cleanIsi'    => $cleanIsi,
+                    'pemimpin'    => $pemimpin,
+                    'notulis'     => $notulis,
+                    'headerImage' => $headerBase64,
+                    'footerImage' => $footerBase64,
+                    'isPdf'       => true,
+                    'docStatus'   => $risalah->status,
+                ])->setPaper('A4', 'portrait');
+
+                $mainPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
+                $formatRisalahPdf->save($mainPath);
+
+                $lampiranField = $risalah->lampiran ?? null;
+                Log::info('Risalah View - Lampiran raw data: ' . ($lampiranField ? substr((string) $lampiranField, 0, 100) : 'kosong'));
+
+                $attPdfs = $this->createTempPdfsFromAnyMany($lampiranField, $risalah->id_risalah, 'risalah');
+                Log::info('Risalah View - Total lampiran PDF yang dibuat: ' . count($attPdfs));
+
+                $output = storage_path('app/view_risalah_' . $risalah->id_risalah . '.pdf');
+
+                if (!empty($attPdfs)) {
+                    if ($this->mergeAllPdfs($mainPath, $attPdfs, $output)) {
+                        Log::info('Risalah View - Merge PDF berhasil');
+                        $this->cleanupTempFiles([$mainPath]);
+                        return response()
+                            ->file($output, ['Content-Type' => 'application/pdf'])
+                            ->deleteFileAfterSend(true);
+                    } else {
+                        Log::warning('Risalah View - Merge PDF gagal, menampilkan surat utama saja');
+                        $this->cleanupTempFiles($attPdfs);
+                    }
+                } else {
+                    Log::info('Risalah View - Tidak ada lampiran, menampilkan surat utama saja');
+                }
+
+                return response()
+                    ->file($mainPath, ['Content-Type' => 'application/pdf'])
+                    ->deleteFileAfterSend(true);
+
+            } catch (\Throwable $e) {
+                Log::error('Error in viewrisalahPDF: ' . $e->getMessage());
+                Log::error('Stack trace: ' . $e->getTraceAsString());
+                return response()->json(['error' => $e->getMessage()], 500);
+            }
         }
-    }
 
     public function laporanrisalahPDF(Request $request)
     {

@@ -397,139 +397,111 @@
 
 @push('scripts')
     <script>
-        $(function() {
-            const selectedTujuan = @json($tujuanArray);
-            const selectedTembusan = @json($selectedTembusan ?? []);
-            const selectedBcc = @json($selectedBcc ?? []);
+$(function() {
+    const treeData = @json($jsTreeData);
+    const selectedTujuan = @json($tujuanArray);
+    const selectedTembusan = @json($selectedTembusan ?? []);
+    const selectedBcc = @json($selectedBcc ?? []);
 
-            $('#org-tree').jstree({
-                'core': {
-                    'data': @json($jsTreeData)
-                },
-                'plugins': ['checkbox', 'search'],
-                'checkbox': { 'three_state': false, 'cascade': 'none' }
-            }).on('ready.jstree', function(e, data) {
-                $('#org-tree li').each(function() {
-                    var node = data.instance.get_node(this.id);
-                    if (node && node.parent === '#') {
-                        $(this).find('.jstree-checkbox').css('display', 'none');
-                    }
-                });
+    // =============================================
+    // SATU FUNGSI UNTUK SEMUA TREE
+    // =============================================
+    function initRecipientTree(treeSelector, preSelected, selectedListSelector, sectionSelector, inputContainer, inputName) {
+        $(treeSelector).jstree({
+            'core': {
+                'data': treeData,
+                'themes': { 'dots': true }
+            },
+            'plugins': ['checkbox', 'search'],
+            'checkbox': {
+                'three_state': false,
+                'cascade': 'down'
+            }
+        }).on('ready.jstree', function(e, data) {
+            // Sembunyikan checkbox node root
+            $(treeSelector + ' li').each(function() {
+                var node = data.instance.get_node(this.id);
+                if (node && node.parent === '#') {
+                    $(this).find('.jstree-checkbox').css('display', 'none');
+                }
+            });
 
-                selectedTujuan.forEach(id => {
-                    $('#org-tree').jstree('check_node', '#user-' + id);
-                });
-
-                updateSelectedRecipients(data);
-
-                data.instance.get_selected(true).forEach(function(node) {
-                    let parentId = data.instance.get_parent(node.id);
+            // Pre-select data yang sudah tersimpan
+            preSelected.forEach(function(id) {
+                var nodeId = id.toString().startsWith('user-') ? id : 'user-' + id;
+                if (data.instance.get_node(nodeId)) {
+                    data.instance.check_node(nodeId);
+                    // Buka parent agar node terlihat
+                    var parentId = data.instance.get_parent(nodeId);
                     while (parentId && parentId !== '#') {
                         data.instance.open_node(parentId);
                         parentId = data.instance.get_parent(parentId);
                     }
-                });
-            }).on('changed.jstree', function(e, data) {
-                updateSelectedRecipients(data);
+                }
             });
 
-            function initRecipientTree(treeSelector, selectedNodes, selectedListSelector, sectionSelector) {
-                $(treeSelector).jstree({
-                    'core': { 'data': @json($jsTreeData) },
-                    'plugins': ['checkbox', 'search'],
-                    'checkbox': { 'three_state': false, 'cascade': 'none' }
-                }).on('ready.jstree', function(e, data) {
-                    $(treeSelector + ' li').each(function() {
-                        var node = data.instance.get_node(this.id);
-                        if (node && node.parent === '#') {
-                            $(this).find('.jstree-checkbox').css('display', 'none');
-                        }
-                    });
+        }).on('changed.jstree', function(e, data) {
+            var selectedNodes = data.instance.get_selected(true);
+            var userNodes = selectedNodes.filter(function(node) {
+                return node.id && node.id.toString().startsWith('user-');
+            });
+            var names = userNodes.map(function(node) { return node.text; });
 
-                    selectedNodes.forEach(nodeId => {
-                        if (data.instance.get_node(nodeId)) {
-                            data.instance.check_node(nodeId);
-                        }
-                    });
-                }).on('changed.jstree', function(e, data) {
-                    const names = data.instance.get_selected(true)
-                        .filter(node => node.icon && node.icon === 'fa fa-user')
-                        .map(node => node.text);
-
-                    const list = $(selectedListSelector);
-                    list.empty();
-                    if (names.length) {
-                        names.forEach(name => list.append(`<li>${name}</li>`));
-                        $(sectionSelector).show();
-                    } else {
-                        $(sectionSelector).hide();
-                    }
+            // Update daftar tampilan
+            var list = $(selectedListSelector);
+            list.empty();
+            if (names.length) {
+                names.forEach(function(name) {
+                    list.append('<li>' + name + '</li>');
                 });
+                $(sectionSelector).show();
+            } else {
+                $(sectionSelector).hide();
             }
 
-            initRecipientTree('#tembusan-tree', selectedTembusan, '#selected-tembusan', '#selected-tembusan-section');
-            initRecipientTree('#bcc-tree', selectedBcc, '#selected-bcc', '#selected-bcc-section');
+            // Isi hidden input
+            $(inputContainer).empty();
+            userNodes.forEach(function(node) {
+                var userId = node.id.replace('user-', '');
+                $(inputContainer).append(
+                    '<input type="hidden" name="' + inputName + '" value="' + userId + '">'
+                );
+            });
 
-            function updateSelectedRecipients(data) {
-                let allSelectedNodes = data.instance.get_selected(true);
-                let selectedNodes = [];
-
-                allSelectedNodes.forEach(function(node) {
-                    if (node.icon && node.icon === 'fa fa-user') {
-                        selectedNodes.push(node.text);
-                    }
-
-                    if (data.instance.is_selected(node.id)) {
-                        data.instance.open_node(node.id);
-                    }
-                });
-
-                selectedNodes.sort(function(a, b) {
-                    const positionOrder = {
-                        'Direktur': 1,
-                        'GM': 2,
-                        'General Manager': 2,
-                        'SM': 3,
-                        'Senior Manager': 3,
-                        'M': 4,
-                        'Manager': 4,
-                        'PJ SM': 5,
-                        'Penanggung Jawab Senior Manager': 5,
-                        'PJ M': 6,
-                        'Penanggung Jawab Manager': 6,
-                        'SPV': 7,
-                        'Supervisor': 7,
-                        'PJ SPV': 8,
-                        'Penanggung Jawab Supervisor': 8,
-                        'Staff': 9
-                    };
-
-                    const getPositionPriority = function(text) {
-                        for (let pos in positionOrder) {
-                            if (text.startsWith(pos)) {
-                                return positionOrder[pos];
-                            }
-                        }
-                        return 999;
-                    };
-
-                    return getPositionPriority(a) - getPositionPriority(b);
-                });
-
-                let list = $('#selected-recipients');
-                let section = $('#selected-section');
-                list.empty();
-
-                if (selectedNodes.length) {
-                    selectedNodes.forEach(name => {
-                        list.append(`<li>${name}</li>`);
-                    });
-                    section.show();
-                } else {
-                    section.hide();
-                }
+            // Sembunyikan error tujuan
+            if (inputName === 'tujuan[]' && userNodes.length > 0) {
+                $('#tujuanError').hide();
             }
         });
+    }
+
+    // Inisialisasi ketiga tree
+    initRecipientTree('#org-tree',      selectedTujuan,    '#selected-recipients', '#selected-section',          '#tujuan-container',   'tujuan[]');
+    initRecipientTree('#tembusan-tree', selectedTembusan,  '#selected-tembusan',   '#selected-tembusan-section',  '#tembusan-container', 'tembusan[]');
+    initRecipientTree('#bcc-tree',      selectedBcc,       '#selected-bcc',        '#selected-bcc-section',       '#bcc-container',      'bcc[]');
+
+    // =============================================
+    // VALIDASI SUBMIT
+    // =============================================
+    $('#addUndanganForm').on('submit', function(e) {
+        e.preventDefault();
+
+        if ($('#submitBtn').prop('disabled')) return false;
+
+        var tujuanInputs = $('#tujuan-container input[name="tujuan[]"]');
+        if (tujuanInputs.length === 0) {
+            $('#tujuanError').text("Minimal pilih satu tujuan!").show();
+            $('#tujuanError')[0].scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return false;
+        }
+
+        $('#tujuanError').hide();
+        $('#submitBtn').prop('disabled', true)
+            .html('<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...');
+
+        this.submit();
+    });
+});
 
         // =========================
         // LAMPIRAN: pilih satu per satu, tampil sebagai list
