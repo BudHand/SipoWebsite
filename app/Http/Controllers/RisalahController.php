@@ -594,6 +594,26 @@ class RisalahController extends Controller
             'pic' => 'nullable|array',
             'lampiran' => 'nullable',
             'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
+            //SUB
+            'sub_topik' => 'nullable|array',
+            'sub_topik.*' => 'nullable|array',
+            'sub_topik.*.*' => 'nullable|string',
+
+            'sub_pembahasan' => 'nullable|array',
+            'sub_pembahasan.*' => 'nullable|array',
+            'sub_pembahasan.*.*' => 'nullable|string',
+
+            'sub_tindak_lanjut' => 'nullable|array',
+            'sub_tindak_lanjut.*' => 'nullable|array',
+            'sub_tindak_lanjut.*.*' => 'nullable|string',
+
+            'sub_target' => 'nullable|array',
+            'sub_target.*' => 'nullable|array',
+            'sub_target.*.*' => 'nullable|string',
+
+            'sub_pic' => 'nullable|array',
+            'sub_pic.*' => 'nullable|array',
+            'sub_pic.*.*' => 'nullable|string',
         ], [
             'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
             'kode_bagian.required' => 'Bagian kerja wajib dipilih.',
@@ -686,7 +706,7 @@ class RisalahController extends Controller
         // Create details
         if ($request->has('nomor') && is_array($request->nomor)) {
             foreach ($request->nomor as $index => $no) {
-                RisalahDetail::create([
+                $detail = RisalahDetail::create([
                     'risalah_id_risalah' => $risalah->id_risalah,
                     'nomor' => $no,
                     'topik' => $request->topik[$index] ?? '',
@@ -695,6 +715,34 @@ class RisalahController extends Controller
                     'target' => $request->target[$index] ?? '',
                     'pic' => $request->pic[$index] ?? '',
                 ]);
+
+                if (isset($request->sub_topik[$index]) && is_array($request->sub_topik[$index])) {
+                    foreach ($request->sub_topik[$index] as $subIndex => $subTopik) {
+                        $subPembahasan   = $request->sub_pembahasan[$index][$subIndex] ?? '';
+                        $subTindakLanjut = $request->sub_tindak_lanjut[$index][$subIndex] ?? '';
+                        $subTarget       = $request->sub_target[$index][$subIndex] ?? '';
+                        $subPic          = $request->sub_pic[$index][$subIndex] ?? '';
+
+                        if (
+                            empty($subTopik) &&
+                            empty($subPembahasan) &&
+                            empty($subTindakLanjut) &&
+                            empty($subTarget) &&
+                            empty($subPic)
+                        ) {
+                            continue;
+                        }
+
+                        $detail->subDetails()->create([
+                            'risalah_detail_id_risalah_detail' => $detail->id_risalah_detail,
+                            'topik' => $subTopik,
+                            'pembahasan' => $subPembahasan,
+                            'tindak_lanjut' => $subTindakLanjut,
+                            'target' => $subTarget,
+                            'pic' => $subPic,
+                        ]);
+                    }
+                }
             }
         }
 
@@ -787,7 +835,7 @@ class RisalahController extends Controller
         $divisi = Divisi::all();
         $seri = SeriRisalah::all();
         $user = Auth::User();
-        $risalah = Risalah::with('risalahDetails')->findOrFail($id);
+        $risalah = Risalah::with('risalahDetails.subDetails')->findOrFail($id);
         $departmentId = $user->department_id_department;
         $divisiId = $user->divisi_id_divisi;
 
@@ -883,6 +931,25 @@ class RisalahController extends Controller
             'pic.*' => 'required',
             'lampiran' => 'nullable',
             'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
+            'sub_topik' => 'nullable|array',
+            'sub_topik.*' => 'nullable|array',
+            'sub_topik.*.*' => 'nullable|string',
+
+            'sub_pembahasan' => 'nullable|array',
+            'sub_pembahasan.*' => 'nullable|array',
+            'sub_pembahasan.*.*' => 'nullable|string',
+
+            'sub_tindak_lanjut' => 'nullable|array',
+            'sub_tindak_lanjut.*' => 'nullable|array',
+            'sub_tindak_lanjut.*.*' => 'nullable|string',
+
+            'sub_target' => 'nullable|array',
+            'sub_target.*' => 'nullable|array',
+            'sub_target.*.*' => 'nullable|string',
+
+            'sub_pic' => 'nullable|array',
+            'sub_pic.*' => 'nullable|array',
+            'sub_pic.*.*' => 'nullable|string',
         ], [
             'lampiran.*' => 'Lampiran gagal diunggah. Pastikan format dan ukuran file sesuai ketentuan.',
             'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
@@ -992,7 +1059,7 @@ class RisalahController extends Controller
                 $risalah->risalahDetails()->delete();
 
                 foreach ($request->nomor as $index => $nomor) {
-                    $risalah->risalahDetails()->create([
+                    $detail = $risalah->risalahDetails()->create([
                         'nomor' => $nomor,
                         'topik' => $request->topik[$index] ?? '',
                         'pembahasan' => $request->pembahasan[$index] ?? '',
@@ -1000,6 +1067,34 @@ class RisalahController extends Controller
                         'target' => $request->target[$index] ?? '',
                         'pic' => $request->pic[$index] ?? '',
                     ]);
+
+                    if (isset($request->sub_topik[$index]) && is_array($request->sub_topik[$index])) {
+                        foreach ($request->sub_topik[$index] as $subIndex => $subTopik) {
+                            $subPembahasan   = $request->sub_pembahasan[$index][$subIndex] ?? '';
+                            $subTindakLanjut = $request->sub_tindak_lanjut[$index][$subIndex] ?? '';
+                            $subTarget       = $request->sub_target[$index][$subIndex] ?? '';
+                            $subPic          = $request->sub_pic[$index][$subIndex] ?? '';
+
+                            if (
+                                empty($subTopik) &&
+                                empty($subPembahasan) &&
+                                empty($subTindakLanjut) &&
+                                empty($subTarget) &&
+                                empty($subPic)
+                            ) {
+                                continue;
+                            }
+
+                            $detail->subDetails()->create([
+                                'risalah_detail_id_risalah_detail' => $detail->id_risalah_detail,
+                                'topik' => $subTopik,
+                                'pembahasan' => $subPembahasan,
+                                'tindak_lanjut' => $subTindakLanjut,
+                                'target' => $subTarget,
+                                'pic' => $subPic,
+                            ]);
+                        }
+                    }
                 }
             }
 
@@ -1122,7 +1217,7 @@ class RisalahController extends Controller
     public function view($id)
     {
         $userId = Auth::id();
-        $risalah = Risalah::where('id_risalah', $id)->firstOrFail();
+        $risalah = Risalah::with('risalahDetails.subDetails')->where('id_risalah', $id)->firstOrFail();
 
         // Ambil data undangan yang judulnya sama
         $undangan = Undangan::where('judul', $risalah->judul)->first();

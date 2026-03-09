@@ -56,7 +56,7 @@
                                         @csrf
                                         <div class="row">
                                             <!-- Nomor Surat -->
-                                            <div class="col-md-6">
+                                            {{-- <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="nomor_undangan" class="form-label">
                                                         <i class="fas fa-file-alt text-primary me-1"></i>
@@ -71,17 +71,47 @@
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
                                                 </div>
+                                            </div> --}}
+                                            {{-- Kode Bagian Kerja --}}
+                                            <div class="col-md-6">
+
+                                                <div class="form-group">
+                                                    <label for="kode_bagian" class="form-label">
+                                                        <i class="fas fa-building text-primary me-1"></i>
+                                                        Kode Bagian Kerja <span class="text-danger">*</span>
+                                                    </label>
+
+                                                    <select name="kode_bagian" id="kode_bagian"
+                                                        class="form-control @error('kode_bagian') is-invalid @enderror"
+                                                        required>
+                                                        <option value="">-- Pilih Bagian Kerja --</option>
+
+                                                        @foreach ($bagianKerja as $bk)
+                                                            <option value="{{ $bk->kode_bagian }}"
+                                                                {{ old('kode_bagian') == $bk->kode_bagian ? 'selected' : '' }}>
+                                                                {{ $bk->kode_bagian }} — {{ $bk->nama_bagian ?? '' }}
+                                                            </option>
+                                                        @endforeach
+                                                    </select>
+
+                                                    @error('kode_bagian')
+                                                        <div class="invalid-feedback">{{ $message }}</div>
+                                                    @enderror
+                                                </div>
                                             </div>
+                                            <!-- Tanggal Surat -->
                                             <div class="col-md-6">
                                                 <div class="form-group">
                                                     <label for="tanggal_surat" class="form-label">
                                                         <i class="fas fa-calendar-alt text-primary me-1"></i>
                                                         Tanggal Surat <span class="text-danger">*</span>
                                                     </label>
+
                                                     <input type="date"
                                                         class="form-control @error('tgl_dibuat') is-invalid @enderror"
-                                                        id="tgl_dibuat" name="tgl_dibuat"
-                                                        value="{{ old('tgl_dibuat', date('Y-m-d')) }}">
+                                                        id="tanggal_surat" name="tgl_dibuat"
+                                                        value="{{ old('tgl_dibuat', now()->format('Y-m-d')) }}" readonly>
+
                                                     @error('tgl_dibuat')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
@@ -159,6 +189,8 @@
                                                     </div>
                                                     <!-- ADD TUJUAN JSTREE CONTAINER -->
                                                     <div id="tujuan-container"></div>
+                                                    <div id="tembusan-container"></div>
+                                                    <div id="bcc-container"></div>
                                                     @error('kepada')
                                                         <div class="invalid-feedback">{{ $message }}</div>
                                                     @enderror
@@ -189,6 +221,29 @@
                                                             }
                                                         </style>
                                                     </div>
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <div class="row mb-3">
+                                            <div class="col-md-6">
+                                                <label class="form-label"><i class="fas fa-user text-primary me-1"></i>Tembusan</label>
+                                                <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
+                                                    <div style="font-size: small" id="tembusan-tree"></div>
+                                                </div>
+                                                <div style="display:none;" id="selected-tembusan-section" class="mt-2">
+                                                    <small class="fw-semibold">Tembusan Terpilih:</small>
+                                                    <ul id="selected-tembusan" style="font-size: small; padding-left: 16px; margin: 0;"></ul>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <label class="form-label"><i class="fas fa-user-secret text-primary me-1"></i>BCC</label>
+                                                <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
+                                                    <div style="font-size: small" id="bcc-tree"></div>
+                                                </div>
+                                                <div style="display:none;" id="selected-bcc-section" class="mt-2">
+                                                    <small class="fw-semibold">BCC Terpilih:</small>
+                                                    <ul id="selected-bcc" style="font-size: small; padding-left: 16px; margin: 0;"></ul>
                                                 </div>
                                             </div>
                                         </div>
@@ -361,7 +416,6 @@
                 </div>
             @endsection
 
-            <script src="https://cdn.ckeditor.com/ckeditor5/47.3.0/ckeditor5.umd.js"></script>
             <script>
                 // Debug: Check if libraries are loaded
                 console.log('jQuery loaded:', typeof jQuery !== 'undefined');
@@ -390,9 +444,16 @@
 
                                 }
                             },
-                            'plugins': ['checkbox']
-                        }).on('ready.jstree', function() {
+                            'plugins': ['checkbox', 'search']
+                        }).on('ready.jstree', function(e, data) {
                             console.log('JSTree initialized successfully');
+
+                            $('#org-tree li').each(function() {
+                                var node = data.instance.get_node(this.id);
+                                if (node && node.parent === '#') {
+                                    $(this).find('.jstree-checkbox').css('display', 'none');
+                                }
+                            });
                         }).on('changed.jstree', function(e, data) {
                             console.log('JSTree selection changed:', data.selected);
 
@@ -424,7 +485,7 @@
                             });
 
                             console.log('Selected users:', selectedNodes);
-                            console.log('User IDs:', userIds);
+                            console.log('Tujuan Nodes:', userIds);
 
                             // Add hidden inputs for form submission
                             userIds.forEach(function(userId) {
@@ -493,6 +554,44 @@
                             '</p>');
                     }
 
+                    function initRecipientTree(treeSelector, selectedSelector, sectionSelector) {
+                        $(treeSelector).jstree({
+                            'core': {
+                                'data': treeData
+                            },
+                            'plugins': ['checkbox', 'search'],
+                            'checkbox': {
+                                'three_state': false,
+                                'cascade': 'none'
+                            }
+                        }).on('ready.jstree', function(e, data) {
+                            $(treeSelector + ' li').each(function() {
+                                var node = data.instance.get_node(this.id);
+                                if (node && node.parent === '#') {
+                                    $(this).find('.jstree-checkbox').css('display', 'none');
+                                }
+                            });
+                        }).on('changed.jstree', function(e, data) {
+                            const selectedNodes = data.instance.get_selected(true);
+                            const names = selectedNodes
+                                .filter(node => node.icon && node.icon === 'fa fa-user')
+                                .map(node => node.text);
+
+                            let list = $(selectedSelector);
+                            list.empty();
+
+                            if (names.length) {
+                                names.forEach(name => list.append('<li>' + name + '</li>'));
+                                $(sectionSelector).show();
+                            } else {
+                                $(sectionSelector).hide();
+                            }
+                        });
+                    }
+
+                    initRecipientTree('#tembusan-tree', '#selected-tembusan', '#selected-tembusan-section');
+                    initRecipientTree('#bcc-tree', '#selected-bcc', '#selected-bcc-section');
+
                     // Form submission validation dengan prevent double click
                     $('#addUndanganForm').on('submit', function(e) {
                         console.log('Form submitting...');
@@ -505,14 +604,13 @@
                         }
 
                         const selected = $('#org-tree').jstree('get_selected', true);
-                        const userIds = selected
-                            .filter(node => node.id.startsWith('user-'))
-                            .map(node => node.id.replace('user-', ''));
+                        const tujuanNodes = selected
+                            .map(node => node.id);
 
-                        console.log('Form validation - User IDs:', userIds);
+                        console.log('Form validation - Tujuan Nodes:', tujuanNodes);
 
                         // Validate at least one recipient is selected
-                        if (userIds.length === 0) {
+                        if (tujuanNodes.length === 0) {
                             $('#tujuanError').text("Minimal pilih satu tujuan!");
                             $('#tujuanError').show();
 
@@ -525,6 +623,18 @@
                             e.preventDefault();
                             return false;
                         }
+
+                        $('#tembusan-container').empty();
+                        const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
+                        selectedTembusan.forEach(node => {
+                            $('#tembusan-container').append('<input type="hidden" name="tembusan[]" value="' + node.id + '">');
+                        });
+
+                        $('#bcc-container').empty();
+                        const selectedBcc = $('#bcc-tree').jstree('get_selected', true);
+                        selectedBcc.forEach(node => {
+                            $('#bcc-container').append('<input type="hidden" name="bcc[]" value="' + node.id + '">');
+                        });
 
                         // Jika validasi berhasil, disable tombol dan ubah text dengan loading
                         $('#submitBtn').prop('disabled', true)
@@ -686,36 +796,395 @@
                 });
 
                 // ==========================
-                // CKEditor Initialization for Isi Undangan
+                // TinyMCE Initialization - Undangan/Agenda
+                // Enter = BR, Shift+Enter = P
                 // ==========================
-                document.addEventListener('DOMContentLoaded', function () {
-                const editorTarget = document.querySelector('#isi_undangan');
-                if (!editorTarget) {
-                    console.error('Element #isi_undangan tidak ditemukan');
-                    return;
-                }
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('DOM loaded, initializing TinyMCE for Agenda...');
 
-                ClassicEditor
-                    .create(editorTarget, {
-                        toolbar: [
-                            'heading', '|',
-                            'bold', 'italic', 'underline', 'strikethrough', 'link', '|',
-                            'bulletedList', 'numberedList', 'blockQuote', '|',
-                            'insertTable', 'tableColumn', 'tableRow', 'mergeTableCells', '|',
-                            'undo', 'redo', '|',
-                            'alignment', 'fontColor', 'fontBackgroundColor', 'fontSize', 'fontFamily'
-                        ],
-                        table: {
-                            contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
+                    if (typeof tinymce === 'undefined') {
+                        console.error('TinyMCE not loaded! Check if CDN is accessible.');
+                        var wrapper = document.getElementById('tinymce-agenda-container');
+                        var textarea = document.getElementById('isi_undangan');
+                        if (wrapper && textarea) {
+                            wrapper.classList.remove('loading');
+                            textarea.style.display = 'block';
+                            var notice = document.createElement('div');
+                            notice.className = 'alert alert-danger mt-2';
+                            notice.innerHTML =
+                                '<i class="fas fa-exclamation-triangle"></i> TinyMCE tidak dapat dimuat. Pastikan koneksi internet stabil.';
+                            textarea.parentNode.insertBefore(notice, textarea.nextSibling);
                         }
-                    })
-                    .then(editor => {
-                        console.log('CKEditor berhasil dimuat');
-                    })
-                    .catch(error => {
-                        console.error('CKEditor error:', error);
-                    });
-            });
+                        return;
+                    }
 
+                    console.log('TinyMCE version:', tinymce.majorVersion + '.' + tinymce.minorVersion);
+
+                    var wrapper = document.getElementById('tinymce-agenda-container');
+                    if (wrapper) {
+                        wrapper.classList.add('loading');
+                    }
+
+                    var loadingTimeout = setTimeout(function() {
+                        if (wrapper && wrapper.classList.contains('loading')) {
+                            console.warn('TinyMCE loading timeout - using fallback');
+                            wrapper.classList.remove('loading');
+                            var textarea = document.getElementById('isi_undangan');
+                            if (textarea) {
+                                textarea.style.display = 'block';
+                                textarea.classList.add('form-control');
+                                var notice = document.createElement('div');
+                                notice.className = 'alert alert-info mt-2';
+                                notice.innerHTML =
+                                    '<i class="fas fa-info-circle"></i> Editor loading timeout. Menggunakan editor teks sederhana.';
+                                textarea.parentNode.insertBefore(notice, textarea.nextSibling);
+                            }
+                        }
+                    }, 10000);
+
+                    try {
+                        tinymce.init({
+                            selector: '#isi_undangan',
+                            height: 500,
+                            placeholder: 'Tulis agenda rapat di sini...',
+                            menubar: 'edit view insert format tools table',
+                            plugins: [
+                                'advlist', 'autolink', 'lists', 'link', 'image', 'table', 'code',
+                                'wordcount', 'paste', 'searchreplace', 'fullscreen', 'help', 'nonbreaking'
+                            ],
+
+                            // ========== TOOLBAR DENGAN FONT & VERTICAL ALIGN ==========
+                            toolbar: [
+                                'undo redo | fontfamily fontsize | bold italic underline | forecolor backcolor',
+                                'alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent',
+                                'link image table tablecellvalign | tabAlign | nonbreaking | code fullscreen | help'
+                            ],
+
+                            // Font Family Options
+                            font_family_formats: 'Arial=arial,helvetica,sans-serif; Calibri=calibri,sans-serif; Times New Roman=times new roman,times,serif; Courier New=courier new,courier,monospace; Verdana=verdana,geneva,sans-serif; Georgia=georgia,palatino,serif; Tahoma=tahoma,arial,helvetica,sans-serif',
+
+                            // Font Size Options
+                            font_size_formats: '8pt 9pt 10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt 36pt',
+
+                            branding: false,
+                            promotion: false,
+                            statusbar: false,
+
+                            // ========== KONFIGURASI TABLE UNTUK WYSIWYG ==========
+                            table_resize_bars: true,
+                            table_column_resizing: 'preservetable',
+                            table_use_colgroups: true,
+                            object_resizing: true,
+                            table_advtab: true,
+                            table_cell_advtab: true,
+                            table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol | tablecellvalign',
+
+                            table_default_attributes: {
+                                'border': '1'
+                            },
+                            table_default_styles: {
+                                'border-collapse': 'collapse',
+                                'width': '100%'
+                            },
+                            table_cell_default_styles: {
+                                'border': '1px solid #000',
+                                'padding': '8px',
+                                'word-wrap': 'break-word',
+                                'vertical-align': 'top'
+                            },
+
+                            // Preserve width attributes dan colgroup
+                            extended_valid_elements: 'table[border|style|class|width],colgroup,col[style|width],td[style|colspan|rowspan|width],th[style|colspan|rowspan|width]',
+                            valid_children: '+body[style],+table[colgroup]',
+                            // ========== END KONFIGURASI TABLE ==========
+
+                            paste_data_images: true,
+                            paste_word_valid_elements: "b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ol,ul,li,a[href],span,color,font-size,font-color,font-family,mark,table,tr,td,th,div,colgroup,col",
+                            paste_retain_style_properties: "all",
+                            entity_encoding: 'raw',
+                            keep_styles: true,
+
+                            formats: {
+                                alignleft: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'left'
+                                    }
+                                },
+                                aligncenter: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'center'
+                                    }
+                                },
+                                alignright: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'right'
+                                    }
+                                },
+                                alignjustify: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'justify'
+                                    }
+                                }
+                            },
+
+                            indent_use_margin: true,
+
+                            // ========== KONFIGURASI ENTER = BR (BUKAN P BARU) ==========
+                            forced_root_block: 'p',
+                            force_br_newlines: false,
+                            force_p_newlines: false,
+                            end_container_on_empty_block: false,
+                            newline_behavior: 'linebreak',
+                            // ========== END KONFIGURASI ENTER ==========
+
+                            content_style: `
+                body {
+                    font-family: Arial, Helvetica, sans-serif !important;
+                    font-size: 12pt;
+                }
+            `,
+                            content_css: 'data:text/css;charset=UTF-8,' + encodeURIComponent(`
+                body {
+                    line-height: 1.5 !important;
+                    margin: 0;
+                    padding: 8px;
+                    font-family: arial, helvetica, sans-serif;
+                    font-size: 12pt;
+                }
+                p {
+                    margin: 0 !important;
+                    line-height: 1.5 !important;
+                    padding: 0 !important;
+                    display: block !important;
+                }
+                br {
+                    line-height: 1.5 !important;
+                    display: block !important;
+                    content: "" !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+                div {
+                    margin: 0 !important;
+                    line-height: 1.5 !important;
+                    padding: 0 !important;
+                }
+                .tab-space {
+                    display: inline-block;
+                    width: 40px;
+                    text-align: center;
+                }
+                .tab-right {
+                    display: inline-block;
+                    min-width: 40px;
+                    text-align: right;
+                }
+                .tab-formatted {
+                    white-space: pre;
+                    font-family: 'Courier New', monospace;
+                    tab-size: 8;
+                }
+                table {
+                    margin: 0.3em 0 !important;
+                    line-height: 1.5 !important;
+                    border-collapse: collapse !important;
+                }
+                table p {
+                    margin: 0 !important;
+                    line-height: 1.5 !important;
+                }
+                td, th {
+                    padding: 8px !important;
+                    line-height: 1.5 !important;
+                    border: 1px solid #000 !important;
+                    vertical-align: top !important;
+                }
+                ul, ol {
+                    margin: 0.3em 0 !important;
+                    padding-left: 2em !important;
+                    line-height: 1.5 !important;
+                }
+                li {
+                    line-height: 1.5 !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                }
+            `),
+
+                            quickbars_selection_toolbar: 'bold italic underline | tabAlign | alignleft aligncenter alignright',
+                            quickbars_insert_toolbar: 'quickimage quicktable | hr pagebreak',
+
+                            setup: function(editor) {
+                                editor.on('change keyup', function() {
+                                    editor.save();
+                                    $('#isi_undangan').trigger('input');
+                                });
+
+                                editor.on('PastePostProcess', function(e) {
+                                    var allElements = e.node.querySelectorAll('*');
+                                    allElements.forEach(function(el) {
+                                        if (el.tagName.toLowerCase() !== 'p') {
+                                            el.style.lineHeight = '1.5';
+                                        }
+                                    });
+                                });
+
+                                // ========== CUSTOM ENTER BEHAVIOR ==========
+                                editor.on('keydown', function(e) {
+                                    if (e.keyCode === 13) { // Enter key
+                                        var node = editor.selection.getNode();
+                                        var inList = editor.dom.getParent(node, 'li,ol,ul');
+                                        var inTable = editor.dom.getParent(node, 'td,th');
+
+                                        if (inList || inTable) {
+                                            return;
+                                        }
+
+                                        if (e.shiftKey) {
+                                            e.preventDefault();
+                                            editor.execCommand('InsertParagraph');
+                                            return false;
+                                        } else {
+                                            e.preventDefault();
+                                            editor.execCommand('InsertLineBreak');
+                                            return false;
+                                        }
+                                    }
+
+                                    // Tab functionality
+                                    if (e.keyCode === 9) {
+                                        e.preventDefault();
+                                        if (e.shiftKey) {
+                                            var content = editor.selection.getContent();
+                                            if (content.includes('&nbsp;')) {
+                                                var newContent = content.replace(/^(&nbsp;){1,8}/, '');
+                                                editor.selection.setContent(newContent);
+                                            } else {
+                                                editor.execCommand('Outdent');
+                                            }
+                                        } else {
+                                            var tabSpaces =
+                                                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                                            editor.insertContent(tabSpaces);
+                                        }
+                                    }
+                                });
+
+                                editor.ui.registry.addButton('tabAlign', {
+                                    text: 'Tab Align',
+                                    tooltip: 'Insert tab spaces for alignment',
+                                    onAction: function() {
+                                        var tabSpaces =
+                                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                                        editor.insertContent(tabSpaces);
+                                    }
+                                });
+
+                                editor.ui.registry.addMenuButton('tablecellvalign', {
+                                    text: 'V-Align',
+                                    tooltip: 'Vertical Alignment',
+                                    fetch: function(callback) {
+                                        var items = [{
+                                                type: 'menuitem',
+                                                text: 'Top',
+                                                onAction: function() {
+                                                    editor.execCommand(
+                                                        'mceTableApplyCellStyle',
+                                                        false, {
+                                                            'vertical-align': 'top'
+                                                        });
+                                                }
+                                            },
+                                            {
+                                                type: 'menuitem',
+                                                text: 'Middle',
+                                                onAction: function() {
+                                                    editor.execCommand(
+                                                        'mceTableApplyCellStyle',
+                                                        false, {
+                                                            'vertical-align': 'middle'
+                                                        });
+                                                }
+                                            },
+                                            {
+                                                type: 'menuitem',
+                                                text: 'Bottom',
+                                                onAction: function() {
+                                                    editor.execCommand(
+                                                        'mceTableApplyCellStyle',
+                                                        false, {
+                                                            'vertical-align': 'bottom'
+                                                        });
+                                                }
+                                            }
+                                        ];
+                                        callback(items);
+                                    }
+                                });
+
+                                editor.on('init', function() {
+                                    console.log('TinyMCE editor initialized successfully');
+
+                                    if (loadingTimeout) {
+                                        clearTimeout(loadingTimeout);
+                                    }
+                                    var wrapper = document.getElementById('tinymce-agenda-container');
+                                    if (wrapper) {
+                                        wrapper.classList.remove('loading');
+                                    }
+                                });
+
+                                editor.on('LoadError', function(e) {
+                                    console.error('TinyMCE load error:', e);
+                                });
+
+                                editor.on('SetupEditor', function(e) {
+                                    console.log('TinyMCE setup completed for editor:', e.editor.id);
+                                });
+                            }
+                        });
+                    } catch (error) {
+                        console.error('Error initializing TinyMCE (full config):', error);
+                        console.log('Attempting simple TinyMCE configuration...');
+
+                        try {
+                            tinymce.init({
+                                selector: '#isi_undangan',
+                                height: 400,
+                                menubar: false,
+                                plugins: ['lists', 'table'],
+                                toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | table',
+                                branding: false,
+                                init_instance_callback: function(editor) {
+                                    console.log('Simple TinyMCE loaded successfully');
+                                    if (loadingTimeout) clearTimeout(loadingTimeout);
+                                    var wrapper = document.getElementById('tinymce-agenda-container');
+                                    if (wrapper) wrapper.classList.remove('loading');
+                                }
+                            });
+                        } catch (simpleError) {
+                            console.error('Even simple TinyMCE failed:', simpleError);
+                            var wrapper = document.getElementById('tinymce-agenda-container');
+                            var textarea = document.getElementById('isi_undangan');
+                            if (wrapper) wrapper.classList.remove('loading');
+                            if (loadingTimeout) clearTimeout(loadingTimeout);
+                            if (textarea) {
+                                textarea.style.display = 'block';
+                                textarea.style.minHeight = '400px';
+                                textarea.style.width = '100%';
+                                textarea.classList.add('form-control');
+                                var notice = document.createElement('div');
+                                notice.className = 'alert alert-warning mt-2';
+                                notice.innerHTML =
+                                    '<i class="fas fa-exclamation-triangle"></i> Editor canggih gagal dimuat. Menggunakan editor teks sederhana.';
+                                textarea.parentNode.insertBefore(notice, textarea.nextSibling);
+                            }
+                        }
+                    }
+                });
             </script>
         @endpush

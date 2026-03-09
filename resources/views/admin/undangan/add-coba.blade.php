@@ -120,22 +120,6 @@
                                         </div>
 
                                         <div class="row">
-                                            <!-- Tanggal Surat -->
-                                            {{-- <div class="col-md-6">
-                                                <div class="form-group">
-                                                    <label for="tanggal_surat" class="form-label">
-                                                        <i class="fas fa-calendar-alt text-primary me-1"></i>
-                                                        Kepada <span class="text-danger">*</span>
-                                                    </label>
-                                                    <input type="text"
-                                                        class="form-control @error('kepada') is-invalid @enderror"
-                                                        id="kepada" name="kepada" value="{{ old('kepada') }}"
-                                                        placeholder="Tulis tujuan surat">
-                                                    @error('kepada')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
-                                                </div>
-                                            </div> --}}
                                             <!-- Perihal -->
                                             <div class="col-md-6">
                                                 <div class="form-group">
@@ -176,18 +160,16 @@
                                                         di bawah struktur akan otomatis terpilih</small>
                                                     <div class="border rounded p-2"
                                                         style="max-height: 300px; overflow-y: auto;">
-                                                        <div style="font-size: small" class="form-label" id="org-tree">
-                                                        </div>
-                                                        <style>
-                                                            #org-tree .jstree-anchor {
-                                                                color: #1f4178;
-                                                                font-weight: 500;
-                                                            }
-                                                        </style>
-                                                        <small id="tujuanError" class="text-danger"
-                                                            style="display:none;">Minimal pilih satu tujuan!</small>
+                                                        <div style="font-size: small" id="org-tree"></div>
                                                     </div>
-                                                    <!-- ADD TUJUAN JSTREE CONTAINER -->
+                                                    <small id="tujuanError" class="text-danger" style="display:none;">Minimal
+                                                        pilih satu tujuan!</small>
+                                                    <div style="display:none;" id="selected-tujuan-section" class="mt-2">
+                                                        <small class="fw-semibold">Penerima Terpilih:</small>
+                                                        <ul id="selected-tujuan"
+                                                            style="font-size: small; padding-left: 16px; margin: 0;"></ul>
+                                                    </div>
+                                                    <!-- Hidden input containers -->
                                                     <div id="tujuan-container"></div>
                                                     <div id="tembusan-container"></div>
                                                     <div id="bcc-container"></div>
@@ -227,23 +209,27 @@
 
                                         <div class="row mb-3">
                                             <div class="col-md-6">
-                                                <label class="form-label"><i class="fas fa-user text-primary me-1"></i>Tembusan</label>
+                                                <label class="form-label"><i
+                                                        class="fas fa-user text-primary me-1"></i>Tembusan</label>
                                                 <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                                                     <div style="font-size: small" id="tembusan-tree"></div>
                                                 </div>
                                                 <div style="display:none;" id="selected-tembusan-section" class="mt-2">
                                                     <small class="fw-semibold">Tembusan Terpilih:</small>
-                                                    <ul id="selected-tembusan" style="font-size: small; padding-left: 16px; margin: 0;"></ul>
+                                                    <ul id="selected-tembusan"
+                                                        style="font-size: small; padding-left: 16px; margin: 0;"></ul>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label"><i class="fas fa-user-secret text-primary me-1"></i>BCC</label>
+                                                <label class="form-label"><i
+                                                        class="fas fa-user-secret text-primary me-1"></i>BCC</label>
                                                 <div class="border rounded p-2" style="max-height: 250px; overflow-y: auto;">
                                                     <div style="font-size: small" id="bcc-tree"></div>
                                                 </div>
                                                 <div style="display:none;" id="selected-bcc-section" class="mt-2">
                                                     <small class="fw-semibold">BCC Terpilih:</small>
-                                                    <ul id="selected-bcc" style="font-size: small; padding-left: 16px; margin: 0;"></ul>
+                                                    <ul id="selected-bcc"
+                                                        style="font-size: small; padding-left: 16px; margin: 0;"></ul>
                                                 </div>
                                             </div>
                                         </div>
@@ -425,7 +411,6 @@
                 $(document).ready(function() {
                     console.log('Document ready, initializing JSTree...');
 
-                    // Check if JSTree data exists
                     var treeData = @json(json_decode($jsTreeData));
                     if (!treeData || treeData.length === 0) {
                         console.error('JSTree data is empty or invalid');
@@ -433,138 +418,26 @@
                         return;
                     }
 
-                    // Initialize JSTree with error handling
-                    try {
-                        $('#org-tree').jstree({
+                    // =============================================
+                    // SATU FUNGSI UNTUK SEMUA TREE (tujuan, tembusan, bcc)
+                    // =============================================
+                    function initRecipientTree(treeSelector, selectedSelector, sectionSelector, inputContainer, inputName) {
+                        $(treeSelector).jstree({
                             'core': {
                                 'data': treeData,
                                 'themes': {
-                                    //'responsive': true,
-                                    'dots': true,
-
+                                    'dots': true
                                 }
-                            },
-                            'plugins': ['checkbox', 'search']
-                        }).on('ready.jstree', function(e, data) {
-                            console.log('JSTree initialized successfully');
-
-                            $('#org-tree li').each(function() {
-                                var node = data.instance.get_node(this.id);
-                                if (node && node.parent === '#') {
-                                    $(this).find('.jstree-checkbox').css('display', 'none');
-                                }
-                            });
-                        }).on('changed.jstree', function(e, data) {
-                            console.log('JSTree selection changed:', data.selected);
-
-                            // Clear previous hidden inputs
-                            $('#tujuan-container').empty();
-
-                            let allSelectedNodes = data.instance.get_selected(true);
-                            let selectedNodes = [];
-                            let userIds = [];
-
-                            console.log('All selected nodes:', allSelectedNodes);
-
-                            allSelectedNodes.forEach(function(node) {
-                                console.log('Processing node:', node);
-
-                                // Check if node has 'fa fa-user' icon (which indicates it's a user)
-                                if (node.icon && node.icon === 'fa fa-user') {
-                                    selectedNodes.push(node.text);
-                                    // Extract user ID from node.id (assuming format is 'user-{id}')
-                                    if (node.id.startsWith('user-')) {
-                                        userIds.push(node.id.replace('user-', ''));
-                                    }
-                                }
-
-                                // Auto expand selected nodes to show their children
-                                if (data.instance.is_selected(node.id)) {
-                                    data.instance.open_node(node.id);
-                                }
-                            });
-
-                            console.log('Selected users:', selectedNodes);
-                            console.log('Tujuan Nodes:', userIds);
-
-                            // Add hidden inputs for form submission
-                            userIds.forEach(function(userId) {
-                                $('#tujuan-container').append(
-                                    '<input type="hidden" name="tujuan[]" value="' + userId + '">');
-                            });
-
-                            // Sort selectedNodes by position hierarchy
-                            selectedNodes.sort(function(a, b) {
-                                const positionOrder = {
-                                    'Direktur': 1,
-                                    'GM': 2,
-                                    'General Manager': 2,
-                                    'SM': 3,
-                                    'Senior Manager': 3,
-                                    'M': 4,
-                                    'Manager': 4,
-                                    'PJ SM': 5,
-                                    'Penanggung Jawab Senior Manager': 5,
-                                    'PJ M': 6,
-                                    'Penanggung Jawab Manager': 6,
-                                    'SPV': 7,
-                                    'Supervisor': 7,
-                                    'PJ SPV': 8,
-                                    'Penanggung Jawab Supervisor': 8,
-                                    'Staff': 9
-                                };
-
-                                const getPositionPriority = function(text) {
-                                    for (let pos in positionOrder) {
-                                        if (text.startsWith(pos)) {
-                                            return positionOrder[pos];
-                                        }
-                                    }
-                                    return 999;
-                                };
-
-                                return getPositionPriority(a) - getPositionPriority(b);
-                            });
-
-                            // Update display list
-                            let list = $('#selected-recipients');
-                            let section = $('#selected-section');
-                            list.empty();
-
-                            if (selectedNodes.length) {
-                                selectedNodes.forEach(function(name) {
-                                    list.append('<li>' + name + '</li>');
-                                });
-                                section.show();
-                            } else {
-                                section.hide();
-                            }
-
-                            // Hide error message if users are selected
-                            if (userIds.length > 0) {
-                                $('#tujuanError').hide();
-                            }
-                        }).on('error.jstree', function(e, data) {
-                            console.error('JSTree error:', data);
-                        });
-
-                    } catch (error) {
-                        console.error('JSTree initialization failed:', error);
-                        $('#org-tree').html('<p class="text-danger">Gagal memuat data organisasi. Error: ' + error.message +
-                            '</p>');
-                    }
-
-                    function initRecipientTree(treeSelector, selectedSelector, sectionSelector) {
-                        $(treeSelector).jstree({
-                            'core': {
-                                'data': treeData
                             },
                             'plugins': ['checkbox', 'search'],
                             'checkbox': {
                                 'three_state': false,
-                                'cascade': 'none'
+                                'cascade': 'down' // Pilihan cascade yang lebih intuitif untuk struktur organisasi
+                                // 'three_state': true,
+                                // 'cascade': 'undetermined'
                             }
                         }).on('ready.jstree', function(e, data) {
+                            // Sembunyikan checkbox untuk node root
                             $(treeSelector + ' li').each(function() {
                                 var node = data.instance.get_node(this.id);
                                 if (node && node.parent === '#') {
@@ -572,79 +445,76 @@
                                 }
                             });
                         }).on('changed.jstree', function(e, data) {
-                            const selectedNodes = data.instance.get_selected(true);
-                            const names = selectedNodes
-                                .filter(node => node.icon && node.icon === 'fa fa-user')
-                                .map(node => node.text);
+                            var selectedNodes = data.instance.get_selected(true);
+                            var userNodes = selectedNodes.filter(function(node) {
+                                return node.icon && node.icon === 'fa fa-user';
+                            });
+                            var names = userNodes.map(function(node) {
+                                return node.text;
+                            });
 
-                            let list = $(selectedSelector);
+                            // Update daftar tampilan
+                            var list = $(selectedSelector);
                             list.empty();
-
                             if (names.length) {
-                                names.forEach(name => list.append('<li>' + name + '</li>'));
+                                names.forEach(function(name) {
+                                    list.append('<li>' + name + '</li>');
+                                });
                                 $(sectionSelector).show();
                             } else {
                                 $(sectionSelector).hide();
                             }
+
+                            // Isi hidden input
+                            $(inputContainer).empty();
+                            userNodes.forEach(function(node) {
+                                var userId = node.id.startsWith('user-') ? node.id.replace('user-', '') :
+                                    node.id;
+                                $(inputContainer).append(
+                                    '<input type="hidden" name="' + inputName + '" value="' + userId +
+                                    '">'
+                                );
+                            });
+
+                            // Sembunyikan error tujuan jika sudah ada yang dipilih
+                            if (inputName === 'tujuan[]' && userNodes.length > 0) {
+                                $('#tujuanError').hide();
+                            }
                         });
                     }
 
-                    initRecipientTree('#tembusan-tree', '#selected-tembusan', '#selected-tembusan-section');
-                    initRecipientTree('#bcc-tree', '#selected-bcc', '#selected-bcc-section');
+                    // Inisialisasi ketiga tree
+                    initRecipientTree('#org-tree', '#selected-tujuan', '#selected-tujuan-section', '#tujuan-container',
+                        'tujuan[]');
+                    initRecipientTree('#tembusan-tree', '#selected-tembusan', '#selected-tembusan-section',
+                        '#tembusan-container', 'tembusan[]');
+                    initRecipientTree('#bcc-tree', '#selected-bcc', '#selected-bcc-section', '#bcc-container', 'bcc[]');
 
-                    // Form submission validation dengan prevent double click
+                    // =============================================
+                    // VALIDASI SUBMIT
+                    // =============================================
                     $('#addUndanganForm').on('submit', function(e) {
-                        console.log('Form submitting...');
-
-                        // Cek jika tombol sudah disabled (sudah diklik sebelumnya)
                         if ($('#submitBtn').prop('disabled')) {
-                            console.log('Button already disabled, preventing duplicate submission');
                             e.preventDefault();
                             return false;
                         }
 
-                        const selected = $('#org-tree').jstree('get_selected', true);
-                        const tujuanNodes = selected
-                            .map(node => node.id);
-
-                        console.log('Form validation - Tujuan Nodes:', tujuanNodes);
-
-                        // Validate at least one recipient is selected
-                        if (tujuanNodes.length === 0) {
-                            $('#tujuanError').text("Minimal pilih satu tujuan!");
-                            $('#tujuanError').show();
-
-                            // Scroll to error
+                        var tujuanInputs = $('#tujuan-container input[name="tujuan[]"]');
+                        if (tujuanInputs.length === 0) {
+                            $('#tujuanError').text("Minimal pilih satu tujuan!").show();
                             $('#tujuanError')[0].scrollIntoView({
                                 behavior: 'smooth',
                                 block: 'center'
                             });
-
                             e.preventDefault();
                             return false;
                         }
 
-                        $('#tembusan-container').empty();
-                        const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
-                        selectedTembusan.forEach(node => {
-                            $('#tembusan-container').append('<input type="hidden" name="tembusan[]" value="' + node.id + '">');
-                        });
-
-                        $('#bcc-container').empty();
-                        const selectedBcc = $('#bcc-tree').jstree('get_selected', true);
-                        selectedBcc.forEach(node => {
-                            $('#bcc-container').append('<input type="hidden" name="bcc[]" value="' + node.id + '">');
-                        });
-
-                        // Jika validasi berhasil, disable tombol dan ubah text dengan loading
                         $('#submitBtn').prop('disabled', true)
                             .html(
                                 '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Mengirim...'
                             );
 
-                        console.log('Form submission allowed, processing...');
-
-                        // Form akan disubmit secara normal
                         return true;
                     });
                 });

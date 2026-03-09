@@ -15,8 +15,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('admin.risalah.index') }}" class="text-decoration-none text-primary">Risalah
-                                Rapat</a>
+                            <a href="{{ route('admin.risalah.index') }}" class="text-decoration-none text-primary">Risalah Rapat</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Edit Risalah</span>
                         </div>
@@ -39,6 +38,7 @@
                                 </ul>
                             </div>
                         @endif
+
                         <div class="card-header py-2 rounded-top-3"
                             style="background:#e3f2fd;border-bottom:1px solid #bbdefb;">
                             <i class="fa fa-edit me-2 text-primary"></i>
@@ -46,15 +46,6 @@
                         </div>
 
                         <div class="card-body">
-                            @if ($errors->any())
-                                <div class="alert alert-danger mb-3">
-                                    <ul class="mb-0">
-                                        @foreach ($errors->all() as $error)
-                                            <li>{{ $error }}</li>
-                                        @endforeach
-                                    </ul>
-                                </div>
-                            @endif
 
                             <div class="row mb-3">
                                 {{-- Kode Bagian Kerja --}}
@@ -63,25 +54,21 @@
                                         <i class="fas fa-building text-primary me-1"></i>
                                         Kode Bagian Kerja <span class="text-danger">*</span>
                                     </label>
-
                                     <select name="kode_bagian" id="kode_bagian"
                                         class="form-control @error('kode_bagian') is-invalid @enderror" required>
                                         <option value="">-- Pilih Bagian Kerja --</option>
-
                                         @foreach ($bagianKerja as $bk)
-                                            <option value="{{ $bk->kode_bagian }}" <option value="{{ $bk->kode_bagian }}"
+                                            <option value="{{ $bk->kode_bagian }}"
                                                 {{ old('kode_bagian', $risalah->kode_bagian ?? '') == $bk->kode_bagian ? 'selected' : '' }}>
                                                 {{ $bk->kode_bagian }} — {{ $bk->nama_bagian ?? '' }}
                                             </option>
-
-                                            </option>
                                         @endforeach
                                     </select>
-
                                     @error('kode_bagian')
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
                                 </div>
+
                                 <div class="col-md-6">
                                     <label for="tanggal_surat" class="form-label">
                                         <i class="fas fa-calendar-alt text-primary me-1"></i>
@@ -91,7 +78,8 @@
                                         value="{{ $risalah->tgl_dibuat->format('Y-m-d') }}" required>
                                     <input type="hidden" name="tgl_disahkan">
                                 </div>
-                                <div class="col-md-6">
+
+                                <div class="col-md-6 mt-3">
                                     <label for="perihal" class="form-label">
                                         <i class="fas fa-tag text-primary me-1"></i>
                                         Judul <span class="text-danger">*</span>
@@ -118,8 +106,8 @@
                                         value="{{ $risalah->agenda }}" required>
                                 </div>
                                 <div class="col-md-6">
-                                    <label for="tempat" class="form-label"> <i
-                                            class="fas fa-map-marker-alt text-primary me-1"></i>
+                                    <label for="tempat" class="form-label">
+                                        <i class="fas fa-map-marker-alt text-primary me-1"></i>
                                         Tempat Rapat <span class="text-danger">*</span>
                                     </label>
                                     <input type="text" name="tempat" id="tempat" class="form-control"
@@ -134,33 +122,28 @@
                                         Waktu Rapat <span class="text-danger">*</span>
                                     </label>
                                     <div class="d-flex align-items-center">
-                                        <input type="text" name="waktu_mulai" id="waktu_mulai" class="form-control me-2"
-                                            placeholder="Mulai" value="{{ $risalah->waktu_mulai }}" required>
+                                        <input type="text" name="waktu_mulai" id="waktu_mulai"
+                                            class="form-control me-2" placeholder="Mulai"
+                                            value="{{ $risalah->waktu_mulai }}" required>
                                         <span class="fw-bold">s/d</span>
                                         <input type="text" name="waktu_selesai" id="waktu_selesai"
                                             class="form-control ms-2" placeholder="Selesai"
                                             value="{{ $risalah->waktu_selesai }}" required>
                                     </div>
                                 </div>
+
                                 <!-- Lampiran -->
                                 <div class="col-md-6">
                                     <label for="lampiran-input" class="form-label">
                                         <i class="fas fa-paperclip text-primary me-1"></i>
                                         Lampiran
                                     </label>
-
-                                    {{-- Input utama yang selalu kosong, dipakai untuk memilih file satu per satu --}}
                                     <div id="lampiran-input-container" class="mb-2">
                                         <input type="file" id="lampiran-input"
                                             class="form-control @error('lampiran') is-invalid @enderror"
                                             accept=".pdf,.jpg,.jpeg,.png">
                                     </div>
-
-                                    {{-- Daftar file yang sudah dipilih --}}
-                                    <div id="lampiran-list" class="mt-2">
-                                        {{-- Item file terpilih akan muncul di sini lewat JS --}}
-                                    </div>
-
+                                    <div id="lampiran-list" class="mt-2"></div>
                                     <small class="form-text text-muted">
                                         Format yang diizinkan: PDF, JPG, JPEG, PNG (Max: 2MB).
                                         File akan dikirim saat Anda klik tombol <b>Simpan</b>.
@@ -169,10 +152,10 @@
                                         <div class="invalid-feedback">{{ $message }}</div>
                                     @enderror
 
-                                    {{-- Tampilan File Lampiran yang Sudah Diupload --}}
+                                    {{-- File yang sudah diupload --}}
                                     @if (!empty($lampiranData) && is_array($lampiranData))
                                         <div class="mt-3">
-                                            <label for="lampiran-input" class="form-label">
+                                            <label class="form-label">
                                                 <i class="fas fa-paperclip text-primary me-1"></i>
                                                 File yang Sudah Diupload
                                             </label>
@@ -187,7 +170,6 @@
                                                                         <i class="fas fa-file text-primary me-1"></i>
                                                                         {{ $lampiran['name'] ?? 'File Lampiran ' . ($index + 1) }}
                                                                     </small>
-
                                                                 </div>
                                                                 <div class="ms-2">
                                                                     @if (isset($lampiran['path']) && file_exists(storage_path('app/public/' . $lampiran['path'])))
@@ -208,8 +190,7 @@
                                                                 </div>
                                                             </div>
                                                             <div class="progress mt-1" style="height: 2px;">
-                                                                <div class="progress-bar bg-success" style="width: 100%;">
-                                                                </div>
+                                                                <div class="progress-bar bg-success" style="width: 100%;"></div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -219,31 +200,28 @@
                                     @endif
                                 </div>
                             </div>
+
+                            {{-- Peserta Acara (hanya jika bukan dari undangan) --}}
                             @if (!$risalah->with_undangan)
                                 <div class="row mb-3">
                                     <div class="col-12">
                                         <div class="form-group">
                                             <label for="kepada" class="form-label">
                                                 <i class="fas fa-user text-primary me-1"></i>
-                                                Pilih Peserta Acara
-                                                <span class="text-danger">*</span>
+                                                Pilih Peserta Acara <span class="text-danger">*</span>
                                             </label>
-                                            <small class="text-danger" style="font-size: x-small"> Pilih user atau
-                                                struktur, semua user
-                                                di bawah struktur akan otomatis terpilih</small>
+                                            <small class="text-danger" style="font-size: x-small">
+                                                Pilih user atau struktur, semua user di bawah struktur akan otomatis terpilih
+                                            </small>
                                             <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                                <div style="font-size: small" class="form-label" id="org-tree">
-                                                </div>
+                                                <div style="font-size: small" class="form-label" id="org-tree"></div>
                                                 <style>
-                                                    #org-tree .jstree-anchor {
-                                                        color: #1f4178;
-                                                        font-weight: 500;
-                                                    }
+                                                    #org-tree .jstree-anchor { color: #1f4178; font-weight: 500; }
                                                 </style>
-                                                <small id="tujuanError" class="text-danger" style="display:none;">Minimal
-                                                    pilih satu tujuan!</small>
+                                                <small id="tujuanError" class="text-danger" style="display:none;">
+                                                    Minimal pilih satu tujuan!
+                                                </small>
                                             </div>
-                                            <!-- ADD TUJUAN JSTREE CONTAINER -->
                                             <div id="tujuan-container"></div>
                                             @error('kepada')
                                                 <div class="invalid-feedback">{{ $message }}</div>
@@ -251,27 +229,17 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class = "row mb-3">
+                                <div class="row mb-3">
                                     <div class="col-12">
                                         <div style="display: none;" id="selected-section">
-                                            <label style="font-size: small;" class="form-label">
-                                                Daftar Penerima:
-                                            </label>
+                                            <label style="font-size: small;" class="form-label">Daftar Penerima:</label>
                                             <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                                 <ul id="selected-recipients"
                                                     style="font-size: small; padding-left: 15px; margin: 0; counter-reset: item; list-style-type: none;">
                                                 </ul>
                                                 <style>
-                                                    #selected-recipients li {
-                                                        display: block;
-                                                        margin-bottom: 0.2em;
-                                                    }
-
-                                                    #selected-recipients li:before {
-                                                        content: counter(item, decimal) ". ";
-                                                        counter-increment: item;
-                                                        font-weight: bold;
-                                                    }
+                                                    #selected-recipients li { display: block; margin-bottom: 0.2em; }
+                                                    #selected-recipients li:before { content: counter(item, decimal) ". "; counter-increment: item; font-weight: bold; }
                                                 </style>
                                             </div>
                                         </div>
@@ -280,6 +248,8 @@
                             @else
                                 <input type="hidden" name="with_undangan" value="{{ $risalah->with_undangan }}">
                             @endif
+
+                            {{-- Pemimpin & Notulis --}}
                             <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="pemimpin_acara" class="form-label">
@@ -296,12 +266,11 @@
                                         @endif
                                         @foreach ($users as $user)
                                             @if ($risalah->pemimpin && $user->id == $risalah->pemimpin->id)
-                                                @continue;
+                                                @continue
                                             @endif
                                             <option value="{{ $user->id }}">{{ $user->fullname }}</option>
                                         @endforeach
                                     </select>
-
                                 </div>
                                 <div class="col-md-6">
                                     <label for="notulis_acara" class="form-label">
@@ -310,70 +279,162 @@
                                     </label>
                                     <select name="notulis_acara" id="notulis_acara" class="select2" required>
                                         @if (!$risalah->notulis)
-                                            <option value="" selected>
-                                                Pilih Notulis Acara</option>
+                                            <option value="" selected>Pilih Notulis Acara</option>
                                         @else
                                             <option value="{{ $risalah->notulis->id }}" selected>
-                                                {{ $risalah->nama_notulis_acara }}</option>
+                                                {{ $risalah->nama_notulis_acara }}
+                                            </option>
                                         @endif
                                         @foreach ($users as $user)
                                             @if ($risalah->notulis && $user->id == $risalah->notulis->id)
-                                                @continue;
+                                                @continue
                                             @endif
                                             <option value="{{ $user->id }}">{{ $user->fullname }}</option>
                                         @endforeach
                                     </select>
-
                                 </div>
                             </div>
 
-                            {{-- Detail Risalah --}}
+                            {{-- ===== DETAIL RISALAH ===== --}}
                             <div id="risalahContainer">
-                                @if (!empty($risalah->risalahDetails) && $risalah->risalahDetails->isNotEmpty())
-                                    @foreach ($risalah->risalahDetails as $detail)
-                                        <div class="isi-surat-row row g-2 mb-2">
-                                            <div class="col-md-1">
-                                                <label>No</label>
-                                                <textarea class="form-control no-auto" name="nomor[]" rows="2" readonly>{{ $detail->nomor }}</textarea>
+                                @foreach ($risalah->risalahDetails as $detailIndex => $detail)
+                                    <div class="risalah-item card mb-3 shadow-sm" data-index="{{ $detailIndex }}">
+                                        <div class="card-body">
+
+                                            {{-- Baris utama --}}
+                                            <div class="row g-2 align-items-stretch isi-surat-row">
+                                                <div class="col-md-1" style="display:flex;flex-direction:column;">
+                                                    <label class="form-label">No.</label>
+                                                    <input type="text" class="form-control no-auto" name="nomor[]"
+                                                        value="{{ $detail->nomor }}" readonly style="flex:1;">
+                                                </div>
+                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
+                                                    <label class="form-label">Topik <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" name="topik[]" rows="2" required
+                                                        style="flex:1;resize:vertical;">{{ $detail->topik }}</textarea>
+                                                </div>
+                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
+                                                    <label class="form-label">Pembahasan <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" name="pembahasan[]" rows="2" required
+                                                        style="flex:1;resize:vertical;">{{ $detail->pembahasan }}</textarea>
+                                                </div>
+                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
+                                                    <label class="form-label">Tindak Lanjut <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" name="tindak_lanjut[]" rows="2" required
+                                                        style="flex:1;resize:vertical;">{{ $detail->tindak_lanjut }}</textarea>
+                                                </div>
+                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
+                                                    <label class="form-label">Target <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" name="target[]" rows="2" required
+                                                        style="flex:1;resize:vertical;">{{ $detail->target }}</textarea>
+                                                </div>
+                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
+                                                    <label class="form-label">PIC <span class="text-danger">*</span></label>
+                                                    <textarea class="form-control" name="pic[]" rows="2" required
+                                                        style="flex:1;resize:vertical;">{{ $detail->pic }}</textarea>
+                                                </div>
+                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
+                                                    <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            <div class="col-md-2">
-                                                <label>Topik</label>
-                                                <textarea class="form-control" name="topik[]" rows="2">{{ $detail->topik }}</textarea>
+
+                                            {{-- Sub Risalah --}}
+                                            <div class="sub-risalah-wrapper mt-3 border-top pt-3">
+                                                <div class="d-flex align-items-center justify-content-between mb-2">
+                                                    <span class="text-muted small fw-semibold">
+                                                        <i class="fas fa-sitemap me-1 text-primary"></i> Sub Risalah
+                                                    </span>
+                                                    <button type="button"
+                                                        class="btn btn-outline-primary btn-sm tambah-sub-risalah-btn">
+                                                        <i class="fas fa-plus-circle me-1"></i> Tambah Sub Isi
+                                                    </button>
+                                                </div>
+                                                <div class="sub-risalah-container">
+                                                    @if ($detail->subDetails && $detail->subDetails->count() > 0)
+                                                        @foreach ($detail->subDetails as $subDetail)
+                                                            <div class="sub-risalah-row border border-primary border-opacity-25 rounded-2 p-3 mt-2 position-relative"
+                                                                style="background:#f8f9ff;">
+                                                                <span class="sub-badge position-absolute badge bg-primary"
+                                                                    style="top:-10px;left:12px;font-size:.7rem;">
+                                                                    Sub {{ $loop->iteration }}
+                                                                </span>
+                                                                <div class="row g-2 align-items-end">
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Topik</label>
+                                                                        <textarea class="form-control form-control-sm"
+                                                                            data-sub-name="sub_topik"
+                                                                            name="sub_topik[{{ $detailIndex }}][]"
+                                                                            placeholder="Sub Topik" rows="2"
+                                                                            style="resize:vertical;">{{ $subDetail->topik }}</textarea>
+                                                                    </div>
+                                                                    <div class="col-md-3">
+                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Pembahasan</label>
+                                                                        <textarea class="form-control form-control-sm"
+                                                                            data-sub-name="sub_pembahasan"
+                                                                            name="sub_pembahasan[{{ $detailIndex }}][]"
+                                                                            placeholder="Sub Pembahasan" rows="2"
+                                                                            style="resize:vertical;">{{ $subDetail->pembahasan }}</textarea>
+                                                                    </div>
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Tindak Lanjut</label>
+                                                                        <textarea class="form-control form-control-sm"
+                                                                            data-sub-name="sub_tindak_lanjut"
+                                                                            name="sub_tindak_lanjut[{{ $detailIndex }}][]"
+                                                                            placeholder="Sub Tindak Lanjut" rows="2"
+                                                                            style="resize:vertical;">{{ $subDetail->tindak_lanjut }}</textarea>
+                                                                    </div>
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Target</label>
+                                                                        <textarea class="form-control form-control-sm"
+                                                                            data-sub-name="sub_target"
+                                                                            name="sub_target[{{ $detailIndex }}][]"
+                                                                            placeholder="Sub Target" rows="2"
+                                                                            style="resize:vertical;">{{ $subDetail->target }}</textarea>
+                                                                    </div>
+                                                                    <div class="col-md-2">
+                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub PIC</label>
+                                                                        <textarea class="form-control form-control-sm"
+                                                                            data-sub-name="sub_pic"
+                                                                            name="sub_pic[{{ $detailIndex }}][]"
+                                                                            placeholder="Sub PIC" rows="2"
+                                                                            style="resize:vertical;">{{ $subDetail->pic }}</textarea>
+                                                                    </div>
+                                                                    <div class="col-md-1 d-flex align-items-end justify-content-center">
+                                                                        <button type="button"
+                                                                            class="btn btn-outline-danger btn-sm hapus-sub-risalah-btn w-100">
+                                                                            <i class="fas fa-trash"></i>
+                                                                        </button>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
+                                                        @endforeach
+                                                    @else
+                                                        <div class="sub-empty-state text-center text-muted small py-2">
+                                                            <i class="fas fa-layer-group me-1"></i> Belum ada sub risalah.
+                                                        </div>
+                                                    @endif
+                                                </div>
                                             </div>
-                                            <div class="col-md-3">
-                                                <label>Pembahasan</label>
-                                                <textarea class="form-control" name="pembahasan[]" rows="2">{{ $detail->pembahasan }}</textarea>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <label>Tindak Lanjut</label>
-                                                <textarea class="form-control" name="tindak_lanjut[]" rows="2">{{ $detail->tindak_lanjut }}</textarea>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <label>Target</label>
-                                                <textarea class="form-control" name="target[]" rows="2">{{ $detail->target }}</textarea>
-                                            </div>
-                                            <div class="col-md-2">
-                                                <label>PIC</label>
-                                                <textarea class="form-control" name="pic[]" rows="2">{{ $detail->pic }}</textarea>
-                                            </div>
+
                                         </div>
-                                    @endforeach
-                                @endif
+                                    </div>
+                                @endforeach
                             </div>
 
-                            <div class="mt-2">
-                                <button type="button" class="btn btn-sm btn-outline-primary" id="tambahIsiRisalahBtn">
-                                    <i class="fa fa-plus me-1"></i> Tambah Isi Risalah
-                                </button>
-                            </div>
+                            <button type="button" class="btn btn-primary mt-3 w-100" id="tambahRisalahBtn">
+                                <i class="bi bi-plus-circle me-1"></i> Tambah Isi Risalah
+                            </button>
 
+                            <div id="risalahAlert" class="mt-2 text-danger" style="display:none;"></div>
                         </div>
+
                         <div class="card-footer text-end">
                             <a href="{{ route('admin.risalah.index') }}" class="btn btn-outline-primary">Batal</a>
-                            <button type="submit" class="btn btn-primary">Simpan</button>
+                            <button type="submit" id="submitBtn" class="btn btn-primary">Simpan</button>
                         </div>
                     </div>
-
                 </form>
             </div>
         </div>
@@ -381,481 +442,429 @@
 @endsection
 
 @push('scripts')
-    <!-- jQuery dulu -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
+    // =========================
+    // SELECT2
+    // =========================
+    $('#pemimpin_acara').select2({ theme: "bootstrap-5", placeholder: "Pilih Pemimpin Acara", allowClear: true, width: "100%" });
+    $('#notulis_acara').select2({ theme: "bootstrap-5", placeholder: "Pilih Notulis Acara", allowClear: true, width: "100%" });
 
+    // =========================
+    // REFERENSI CONTAINER
+    // =========================
+    const risalahContainer = document.getElementById('risalahContainer');
+    const tambahRisalahBtn = document.getElementById('tambahRisalahBtn');
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            $('#pemimpin_acara').select2({
-                theme: "bootstrap-5",
-                placeholder: "Pilih Pemimpin Acara",
-                allowClear: true,
-                width: "100%"
-            });
-            $('#notulis_acara').select2({
-                theme: "bootstrap-5",
-                placeholder: "Pilih Notulis Acara",
-                allowClear: true,
-                width: "100%"
-            });
-            $(document).ready(function() {
-                console.log("Select2 loaded?", typeof $.fn.select2);
-            });
-        });
-    </script>
-    {{-- <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script> --}}
+    // =========================
+    // HELPER: Update nomor & name attribute sub
+    // =========================
+    function updateNomor() {
+        const items = risalahContainer.querySelectorAll('.risalah-item');
+        items.forEach((item, index) => {
+            item.dataset.index = index;
 
-    <!-- Summernote -->
-    <script src="https://cdn.jsdelivr.net/npm/summernote/dist/summernote-lite.min.js"></script>
-    <script>
-        // $(document).ready(function() {
+            const noInput = item.querySelector('.no-auto');
+            if (noInput) noInput.value = index + 1;
 
+            item.querySelectorAll('.sub-risalah-row').forEach((subRow, subIndex) => {
+                const badge = subRow.querySelector('.sub-badge');
+                if (badge) badge.textContent = `Sub ${subIndex + 1}`;
 
-        $(document).ready(function() {
-            $('#dropdownMenuButton').on('change', function() {
-                $(this).css('text-align', 'left');
-                if ($(this).val() === null || $(this).val() === "") {
-                    $(this).css('text-align', 'center');
-                }
+                subRow.querySelectorAll('[data-sub-name]').forEach(el => {
+                    el.name = `${el.dataset.subName}[${index}][]`;
+                });
             });
         });
+    }
 
-        // Tambah & hapus isi risalah
-        document.getElementById('tambahIsiRisalahBtn').addEventListener('click', function(event) {
-            event.preventDefault();
-            var risalahContainer = document.getElementById('risalahContainer');
-            var newRow = document.createElement('div');
-            newRow.classList.add('isi-surat-row', 'row', 'g-2', 'mb-2');
+    // Jalankan sekali saat load untuk set nomor & name yang benar dari data existing
+    updateNomor();
 
-            newRow.innerHTML = `
-                <div class="col-md-1">
-                    <input type="text" class="form-control no-auto" name="nomor[]" readonly>
-                </div>
+    // =========================
+    // TEMPLATE: Sub Risalah Row baru
+    // =========================
+    function createSubRisalahRow(parentIndex) {
+        const subRow = document.createElement('div');
+        subRow.className = 'sub-risalah-row border border-primary border-opacity-25 rounded-2 p-3 mt-2 position-relative';
+        subRow.style.background = '#f8f9ff';
+
+        subRow.innerHTML = `
+            <span class="sub-badge position-absolute badge bg-primary" style="top:-10px;left:12px;font-size:.7rem;">Sub</span>
+            <div class="row g-2 align-items-end">
                 <div class="col-md-2">
-                    <textarea class="form-control" name="topik[]" placeholder="Topik" rows="2"></textarea>
+                    <label class="form-label form-label-sm text-muted mb-1">Sub Topik</label>
+                    <textarea class="form-control form-control-sm"
+                        data-sub-name="sub_topik"
+                        name="sub_topik[${parentIndex}][]"
+                        placeholder="Sub Topik" rows="2"
+                        style="resize:vertical;"></textarea>
                 </div>
                 <div class="col-md-3">
-                    <textarea class="form-control" name="pembahasan[]" placeholder="Pembahasan" rows="2"></textarea>
+                    <label class="form-label form-label-sm text-muted mb-1">Sub Pembahasan</label>
+                    <textarea class="form-control form-control-sm"
+                        data-sub-name="sub_pembahasan"
+                        name="sub_pembahasan[${parentIndex}][]"
+                        placeholder="Sub Pembahasan" rows="2"
+                        style="resize:vertical;"></textarea>
                 </div>
                 <div class="col-md-2">
-                    <textarea class="form-control" name="tindak_lanjut[]" placeholder="Tindak Lanjut" rows="2"></textarea>
+                    <label class="form-label form-label-sm text-muted mb-1">Sub Tindak Lanjut</label>
+                    <textarea class="form-control form-control-sm"
+                        data-sub-name="sub_tindak_lanjut"
+                        name="sub_tindak_lanjut[${parentIndex}][]"
+                        placeholder="Sub Tindak Lanjut" rows="2"
+                        style="resize:vertical;"></textarea>
                 </div>
                 <div class="col-md-2">
-                    <textarea class="form-control" name="target[]" placeholder="Target" rows="2"></textarea>
+                    <label class="form-label form-label-sm text-muted mb-1">Sub Target</label>
+                    <textarea class="form-control form-control-sm"
+                        data-sub-name="sub_target"
+                        name="sub_target[${parentIndex}][]"
+                        placeholder="Sub Target" rows="2"
+                        style="resize:vertical;"></textarea>
                 </div>
-                <div class="col-md-2 position-relative">
-                    <textarea class="form-control" name="pic[]" placeholder="PIC" rows="2"></textarea>
+                <div class="col-md-2">
+                    <label class="form-label form-label-sm text-muted mb-1">Sub PIC</label>
+                    <textarea class="form-control form-control-sm"
+                        data-sub-name="sub_pic"
+                        name="sub_pic[${parentIndex}][]"
+                        placeholder="Sub PIC" rows="2"
+                        style="resize:vertical;"></textarea>
+                </div>
+                <div class="col-md-1 d-flex align-items-end justify-content-center">
+                    <button type="button" class="btn btn-outline-danger btn-sm hapus-sub-risalah-btn w-100">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        return subRow;
+    }
+
+    // =========================
+    // TAMBAH ITEM UTAMA BARU
+    // =========================
+    if (tambahRisalahBtn && risalahContainer) {
+        tambahRisalahBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+
+            const itemIndex = risalahContainer.querySelectorAll('.risalah-item').length;
+            const itemWrapper = document.createElement('div');
+            itemWrapper.className = 'risalah-item card mb-3 shadow-sm';
+            itemWrapper.dataset.index = itemIndex;
+
+            itemWrapper.innerHTML = `
+                <div class="card-body">
+                    <div class="row g-2 align-items-stretch isi-surat-row">
+                        <div class="col-md-1" style="display:flex;flex-direction:column;">
+                            <label class="form-label">No.</label>
+                            <input type="text" class="form-control no-auto" name="nomor[]" readonly style="flex:1;">
+                        </div>
+                        <div class="col-md-2" style="display:flex;flex-direction:column;">
+                            <label class="form-label">Topik <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="topik[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
+                        </div>
+                        <div class="col-md-2" style="display:flex;flex-direction:column;">
+                            <label class="form-label">Pembahasan <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="pembahasan[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
+                        </div>
+                        <div class="col-md-2" style="display:flex;flex-direction:column;">
+                            <label class="form-label">Tindak Lanjut <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="tindak_lanjut[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
+                        </div>
+                        <div class="col-md-2" style="display:flex;flex-direction:column;">
+                            <label class="form-label">Target <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="target[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
+                        </div>
+                        <div class="col-md-2" style="display:flex;flex-direction:column;">
+                            <label class="form-label">PIC <span class="text-danger">*</span></label>
+                            <textarea class="form-control" name="pic[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-center justify-content-center">
+                            <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="sub-risalah-wrapper mt-3 border-top pt-3">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <span class="text-muted small fw-semibold">
+                                <i class="fas fa-sitemap me-1 text-primary"></i> Sub Risalah
+                            </span>
+                            <button type="button" class="btn btn-outline-primary btn-sm tambah-sub-risalah-btn">
+                                <i class="fas fa-plus-circle me-1"></i> Tambah Sub Isi
+                            </button>
+                        </div>
+                        <div class="sub-risalah-container">
+                            <div class="sub-empty-state text-center text-muted small py-2">
+                                <i class="fas fa-layer-group me-1"></i> Belum ada sub risalah.
+                            </div>
+                        </div>
+                    </div>
                 </div>
             `;
 
-            risalahContainer.appendChild(newRow);
+            risalahContainer.appendChild(itemWrapper);
             updateNomor();
         });
+    }
 
-        function updateNomor() {
-            const nomorInputs = document.querySelectorAll('.isi-surat-row .no-auto');
-            nomorInputs.forEach((input, index) => {
-                input.value = index + 1;
-            });
+    // =========================
+    // EVENT DELEGATION
+    // =========================
+    risalahContainer.addEventListener('click', function (e) {
+
+        // Hapus item utama
+        const hapusRisalahBtn = e.target.closest('.hapus-risalah-btn');
+        if (hapusRisalahBtn) {
+            const item = hapusRisalahBtn.closest('.risalah-item');
+            if (item) { item.remove(); updateNomor(); }
+            return;
         }
 
-        // =========================
-        // LAMPIRAN: pilih satu per satu, tampil sebagai list
-        // =========================
-        $(document).ready(function() {
-            const lampiranInputContainer = document.getElementById('lampiran-input-container');
-            const lampiranInput = document.getElementById('lampiran-input');
-            const lampiranList = document.getElementById('lampiran-list');
+        // Tambah sub risalah
+        const tambahSubBtn = e.target.closest('.tambah-sub-risalah-btn');
+        if (tambahSubBtn) {
+            const item = tambahSubBtn.closest('.risalah-item');
+            if (!item) return;
+            const parentIndex = parseInt(item.dataset.index ?? 0, 10);
+            const subContainer = item.querySelector('.sub-risalah-container');
+            if (!subContainer) return;
 
-            if (lampiranInputContainer && lampiranInput && lampiranList) {
-                console.log('Lampiran dynamic initialized');
+            const emptyState = subContainer.querySelector('.sub-empty-state');
+            if (emptyState) emptyState.remove();
 
-                function createEmptyVisibleInput() {
-                    const newInput = document.createElement('input');
-                    newInput.type = 'file';
-                    newInput.id = 'lampiran-input';
-                    newInput.className = 'form-control';
-                    newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
+            subContainer.appendChild(createSubRisalahRow(parentIndex));
+            updateNomor();
+            return;
+        }
 
-                    // Pasang event handler lagi
-                    newInput.addEventListener('change', handleLampiranChange);
-
-                    // Bersihkan container dan pasang input baru
-                    lampiranInputContainer.innerHTML = '';
-                    lampiranInputContainer.appendChild(newInput);
+        // Hapus sub risalah
+        const hapusSubBtn = e.target.closest('.hapus-sub-risalah-btn');
+        if (hapusSubBtn) {
+            const subRow = hapusSubBtn.closest('.sub-risalah-row');
+            const subContainer = subRow ? subRow.closest('.sub-risalah-container') : null;
+            if (subRow) {
+                subRow.remove();
+                updateNomor();
+                if (subContainer && !subContainer.querySelector('.sub-risalah-row')) {
+                    subContainer.insertAdjacentHTML('beforeend', `
+                        <div class="sub-empty-state text-center text-muted small py-2">
+                            <i class="fas fa-layer-group me-1"></i> Belum ada sub risalah.
+                        </div>
+                    `);
                 }
-
-                let isProcessing = false; // Flag untuk mencegah duplikasi
-
-                function handleLampiranChange(e) {
-                    const input = e.target;
-                    if (!input.files || input.files.length === 0 || isProcessing) return;
-
-                    isProcessing = true; // Set flag untuk mencegah duplikasi
-                    input.removeEventListener('change', handleLampiranChange);
-
-                    const file = input.files[0];
-
-                    // Validasi ukuran file (2MB)
-                    const maxSize = 2 * 1024 * 1024; // 2MB
-                    if (file.size > maxSize) {
-                        if (typeof Swal !== 'undefined') {
-                            Swal.fire({
-                                icon: 'error',
-                                title: 'File Terlalu Besar',
-                                text: 'Ukuran file tidak boleh lebih dari 2MB',
-                                confirmButtonColor: '#1572e8'
-                            });
-                        } else {
-                            alert('Ukuran file tidak boleh lebih dari 2MB');
-                        }
-                        // Reset input tanpa membuat yang baru
-                        input.value = '';
-                        isProcessing = false;
-                        return;
-                    }
-
-                    // Wrapper tiap file di list
-                    const itemWrapper = document.createElement('div');
-                    itemWrapper.className =
-                        'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
-
-                    // Bagian info file + progress
-                    const infoWrapper = document.createElement('div');
-                    infoWrapper.className = 'flex-grow-1';
-
-                    const nameSpan = document.createElement('span');
-                    nameSpan.textContent = file.name;
-
-                    // Progress bar simple (indikator "siap diunggah")
-                    const progressOuter = document.createElement('div');
-                    progressOuter.className = 'progress mt-1';
-                    progressOuter.style.height = '4px';
-
-                    const progressInner = document.createElement('div');
-                    progressInner.className = 'progress-bar';
-                    progressInner.style.width = '100%';
-                    progressInner.setAttribute('aria-valuenow', '100');
-                    progressInner.setAttribute('aria-valuemin', '0');
-                    progressInner.setAttribute('aria-valuemax', '100');
-                    progressInner.textContent = ''; // biar tipis
-
-                    progressOuter.appendChild(progressInner);
-                    infoWrapper.appendChild(nameSpan);
-                    infoWrapper.appendChild(progressOuter);
-
-                    // Tombol hapus
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'btn btn-sm btn-outline-danger';
-                    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
-
-                    // Pindahkan input asli ke dalam wrapper, jadikan hidden & beri name
-                    input.name = 'lampiran[]';
-                    input.classList.add('d-none');
-                    input.removeEventListener('change', handleLampiranChange);
-
-                    itemWrapper.appendChild(infoWrapper);
-                    itemWrapper.appendChild(removeBtn);
-                    itemWrapper.appendChild(input); // input tersembunyi tetap di DOM supaya ikut terkirim
-
-                    lampiranList.appendChild(itemWrapper);
-
-                    // Hapus item + input jika tombol hapus diklik
-                    removeBtn.addEventListener('click', function() {
-                        itemWrapper.remove();
-                    });
-
-                    // Buat input baru yang kosong untuk pilih file berikutnya
-                    createEmptyVisibleInput();
-
-                    // Reset flag setelah selesai
-                    setTimeout(() => {
-                        isProcessing = false;
-                    }, 100);
-                }
-
-                // Pasang handler pertama kali
-                lampiranInput.addEventListener('change', handleLampiranChange);
-            } else {
-                console.warn('Lampiran elements not found, skip lampiran dynamic init');
             }
+            return;
+        }
+    });
 
-            // Hapus lampiran yang sudah ada
-            $('.delete-lampiran-existing').on('click', function() {
-                const lampiranIndex = $(this).data('index');
-                const fileName = $(this).data('name');
-                const element = $(this).closest('.col-12');
+    // =========================
+    // LAMPIRAN
+    // =========================
+    const lampiranInputContainer = document.getElementById('lampiran-input-container');
+    const lampiranInput = document.getElementById('lampiran-input');
+    const lampiranList = document.getElementById('lampiran-list');
 
-                // Gunakan SweetAlert jika tersedia, jika tidak gunakan confirm biasa
-                if (typeof Swal !== 'undefined') {
-                    Swal.fire({
-                        title: 'Konfirmasi Hapus',
-                        text: `Apakah Anda yakin ingin menghapus file "${fileName}"?`,
-                        icon: 'warning',
-                        showCancelButton: true,
-                        confirmButtonColor: '#d33',
-                        cancelButtonColor: '#3085d6',
-                        confirmButtonText: 'Ya, Hapus!',
-                        cancelButtonText: 'Batal'
-                    }).then((result) => {
-                        if (result.isConfirmed) {
-                            $.ajax({
-                                url: `/risalah/lampiran-existing/{{ $risalah->id_risalah }}/${lampiranIndex}`,
-                                type: 'DELETE',
-                                data: {
-                                    _token: $('meta[name="csrf-token"]').attr('content')
-                                },
-                                success: function(response) {
-                                    element.remove();
-                                    Swal.fire({
-                                        title: 'Berhasil!',
-                                        text: 'File berhasil dihapus.',
-                                        icon: 'success',
-                                        confirmButtonColor: '#1572e8'
-                                    });
-                                },
-                                error: function(xhr) {
-                                    Swal.fire({
-                                        title: 'Gagal!',
-                                        text: 'Terjadi kesalahan saat menghapus file.',
-                                        icon: 'error',
-                                        confirmButtonColor: '#1572e8'
-                                    });
-                                }
-                            });
-                        }
-                    });
-                } else {
-                    // Fallback ke confirm biasa jika SweetAlert tidak tersedia
-                    if (confirm(`Apakah Anda yakin ingin menghapus file "${fileName}"?`)) {
-                        $.ajax({
-                            url: `/risalah/lampiran-existing/{{ $risalah->id_risalah }}/${lampiranIndex}`,
-                            type: 'DELETE',
-                            data: {
-                                _token: $('meta[name="csrf-token"]').attr('content')
-                            },
-                            success: function(response) {
-                                element.remove();
-                                alert('File berhasil dihapus.');
-                            },
-                            error: function(xhr) {
-                                alert('Terjadi kesalahan saat menghapus file.');
-                            }
-                        });
-                    }
-                }
-            });
-        });
-    </script>
-    <script>
-        $(document).ready(function() {
-            console.log("jQuery loaded?", typeof jQuery);
-            console.log('Document ready, initializing JSTree...');
+    if (lampiranInputContainer && lampiranInput && lampiranList) {
+        function createEmptyVisibleInput() {
+            const newInput = document.createElement('input');
+            newInput.type = 'file';
+            newInput.id = 'lampiran-input';
+            newInput.className = 'form-control';
+            newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
+            newInput.addEventListener('change', handleLampiranChange);
+            lampiranInputContainer.innerHTML = '';
+            lampiranInputContainer.appendChild(newInput);
+        }
 
-            // Check if JSTree data exists
-            var treeData = @json(json_decode($jsTreeData));
-            var selectedTujuan = @json($tujuanArray);
-            if (!treeData || treeData.length === 0) {
-                console.error('JSTree data is empty or invalid');
-                $('#org-tree').html('<p class="text-danger">Data organisasi tidak tersedia</p>');
+        function handleLampiranChange(e) {
+            const input = e.target;
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({ icon: 'error', title: 'File Terlalu Besar', text: 'Ukuran file tidak boleh lebih dari 2MB', confirmButtonColor: '#1572e8' });
+                input.value = '';
                 return;
             }
+            const itemWrapper = document.createElement('div');
+            itemWrapper.className = 'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
+            const infoWrapper = document.createElement('div');
+            infoWrapper.className = 'flex-grow-1';
+            infoWrapper.innerHTML = `<span>${file.name}</span><div class="progress mt-1" style="height:4px;"><div class="progress-bar" style="width:100%"></div></div>`;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            input.name = 'lampiran[]';
+            input.classList.add('d-none');
+            input.removeEventListener('change', handleLampiranChange);
+            itemWrapper.appendChild(infoWrapper);
+            itemWrapper.appendChild(removeBtn);
+            itemWrapper.appendChild(input);
+            lampiranList.appendChild(itemWrapper);
+            removeBtn.addEventListener('click', () => itemWrapper.remove());
+            createEmptyVisibleInput();
+        }
 
-            // Initialize JSTree with error handling
-            try {
-                $('#org-tree').jstree({
-                    'core': {
-                        'data': treeData,
-                        'themes': {
-                            //'responsive': true,
-                            'dots': true,
+        lampiranInput.addEventListener('change', handleLampiranChange);
+    }
 
+    // =========================
+    // HAPUS LAMPIRAN EXISTING
+    // =========================
+    document.querySelectorAll('.delete-lampiran-existing').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            const lampiranIndex = this.dataset.index;
+            const fileName = this.dataset.name;
+            const element = this.closest('.col-12');
+
+            Swal.fire({
+                title: 'Konfirmasi Hapus',
+                text: `Apakah Anda yakin ingin menghapus file "${fileName}"?`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Ya, Hapus!',
+                cancelButtonText: 'Batal'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/risalah/lampiran-existing/{{ $risalah->id_risalah }}/${lampiranIndex}`, {
+                        method: 'DELETE',
+                        headers: {
+                            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                            'Content-Type': 'application/json'
                         }
-                    },
-                    'plugins': ['checkbox']
-                }).on('ready.jstree', function(e, data) {
-                    console.log('JSTree initialized successfully');
-                    selectedTujuan.forEach(id => {
-                        $('#org-tree').jstree('check_node', '#user-' + id);
-                    });
-
-                    // Initial display of selected recipients
-                    updateSelectedRecipients(data);
-
-                    // Auto expand nodes that have selected users
-                    data.instance.get_selected(true).forEach(function(node) {
-                        // Open parent nodes of selected users
-                        let parentId = data.instance.get_parent(node.id);
-                        while (parentId && parentId !== '#') {
-                            data.instance.open_node(parentId);
-                            parentId = data.instance.get_parent(parentId);
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) {
+                            element.remove();
+                            Swal.fire({ title: 'Berhasil!', text: 'File berhasil dihapus.', icon: 'success', confirmButtonColor: '#1572e8' });
+                        } else {
+                            Swal.fire({ title: 'Gagal!', text: 'Terjadi kesalahan saat menghapus file.', icon: 'error', confirmButtonColor: '#1572e8' });
                         }
                     });
-                    // Pre-select nodes based on existing tujuan
-
-                }).on('changed.jstree', function(e, data) {
-                    console.log('JSTree selection changed:', data.selected);
-                    updateSelectedRecipients(data);
-                    // Clear previous hidden inputs
-                    $('#tujuan-container').empty();
-
-                    let allSelectedNodes = data.instance.get_selected(true);
-                    let selectedNodes = [];
-                    let userIds = [];
-
-                    console.log('All selected nodes:', allSelectedNodes);
-
-                    allSelectedNodes.forEach(function(node) {
-                        console.log('Processing node:', node);
-
-                        // Check if node has 'fa fa-user' icon (which indicates it's a user)
-                        if (node.icon && node.icon === 'fa fa-user') {
-                            selectedNodes.push(node.text);
-                            // Extract user ID from node.id (assuming format is 'user-{id}')
-                            userIds.push(node.id);
-                        }
-
-                        // Auto expand selected nodes to show their children
-                        if (data.instance.is_selected(node.id)) {
-                            data.instance.open_node(node.id);
-                        }
-                    });
-
-                    console.log('Selected users:', selectedNodes);
-                    console.log('User IDs:', userIds);
-
-                    // Add hidden inputs for form submission
-                    userIds.forEach(function(nodeId) {
-                        $('#tujuan-container').append(
-                            '<input type="hidden" name="tujuan[]" value="' + nodeId + '">');
-                    });
-
-                    // Sort selectedNodes by position hierarchy
-                    selectedNodes.sort(function(a, b) {
-                        const positionOrder = {
-                            'Direktur': 1,
-                            'GM': 2,
-                            'General Manager': 2,
-                            'SM': 3,
-                            'Senior Manager': 3,
-                            'M': 4,
-                            'Manager': 4,
-                            'PJ SM': 5,
-                            'Penanggung Jawab Senior Manager': 5,
-                            'PJ M': 6,
-                            'Penanggung Jawab Manager': 6,
-                            'SPV': 7,
-                            'Supervisor': 7,
-                            'PJ SPV': 8,
-                            'Penanggung Jawab Supervisor': 8,
-                            'Staff': 9
-                        };
-
-                        const getPositionPriority = function(text) {
-                            for (let pos in positionOrder) {
-                                if (text.startsWith(pos)) {
-                                    return positionOrder[pos];
-                                }
-                            }
-                            return 999;
-                        };
-
-                        return getPositionPriority(a) - getPositionPriority(b);
-                    });
-
-
-                    // Update display list
-                    let list = $('#selected-recipients');
-                    let section = $('#selected-section');
-                    list.empty();
-
-                    if (selectedNodes.length) {
-                        selectedNodes.forEach(function(name) {
-                            list.append('<li>' + name + '</li>');
-                        });
-                        section.show();
-                    } else {
-                        section.hide();
-                    }
-
-                    // Hide error message if users are selected
-                    if (userIds.length > 0) {
-                        $('#tujuanError').hide();
-                    }
-                }).on('error.jstree', function(e, data) {
-                    console.error('JSTree error:', data);
-                });
-
-            } catch (error) {
-                console.error('JSTree initialization failed:', error);
-                $('#org-tree').html('<p class="text-danger">Gagal memuat data organisasi. Error: ' + error.message +
-                    '</p>');
-            }
+                }
+            });
         });
+    });
 
-        function updateSelectedRecipients(data) {
+    // =========================
+    // VALIDASI SUBMIT
+    // =========================
+    const risalahForm = document.querySelector('form');
+    const submitBtn = document.getElementById('submitBtn');
+
+    if (risalahForm && submitBtn) {
+        risalahForm.addEventListener('submit', function (e) {
+            if (submitBtn.disabled) { e.preventDefault(); return false; }
+            const jumlahRisalah = risalahContainer.querySelectorAll('.risalah-item').length;
+            const risalahAlert = document.getElementById('risalahAlert');
+            if (jumlahRisalah < 1) {
+                e.preventDefault();
+                if (risalahAlert) {
+                    risalahAlert.style.display = 'block';
+                    risalahAlert.innerText = 'Minimal harus mengisi 1 risalah rapat!';
+                    risalahAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+            if (risalahAlert) risalahAlert.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...`;
+            return true;
+        });
+    }
+});
+
+// =========================
+// JSTREE
+// =========================
+$(document).ready(function () {
+    var treeData = @json(json_decode($jsTreeData));
+    var selectedTujuan = @json($tujuanArray);
+
+    if (!treeData || treeData.length === 0) {
+        $('#org-tree').html('<p class="text-danger">Data organisasi tidak tersedia</p>');
+        return;
+    }
+
+    try {
+        $('#org-tree').jstree({
+            'core': { 'data': treeData, 'themes': { 'dots': true } },
+            'plugins': ['checkbox']
+        }).on('ready.jstree', function (e, data) {
+            selectedTujuan.forEach(id => {
+                $('#org-tree').jstree('check_node', '#user-' + id);
+            });
+            updateSelectedRecipients(data);
+            data.instance.get_selected(true).forEach(function (node) {
+                let parentId = data.instance.get_parent(node.id);
+                while (parentId && parentId !== '#') {
+                    data.instance.open_node(parentId);
+                    parentId = data.instance.get_parent(parentId);
+                }
+            });
+        }).on('changed.jstree', function (e, data) {
+            $('#tujuan-container').empty();
             let allSelectedNodes = data.instance.get_selected(true);
             let selectedNodes = [];
+            let userIds = [];
 
-            allSelectedNodes.forEach(function(node) {
-                // Check if node has 'fa fa-user' icon (which indicates it's a user)
+            allSelectedNodes.forEach(function (node) {
                 if (node.icon && node.icon === 'fa fa-user') {
                     selectedNodes.push(node.text);
+                    userIds.push(node.id);
                 }
-
-                // Auto expand selected nodes to show their children
-                if (data.instance.is_selected(node.id)) {
-                    data.instance.open_node(node.id);
-                }
+                if (data.instance.is_selected(node.id)) data.instance.open_node(node.id);
             });
 
-            // Sort selectedNodes by position hierarchy
-            selectedNodes.sort(function(a, b) {
-                const positionOrder = {
-                    'Direktur': 1,
-                    'GM': 2,
-                    'General Manager': 2,
-                    'SM': 3,
-                    'Senior Manager': 3,
-                    'M': 4,
-                    'Manager': 4,
-                    'PJ SM': 5,
-                    'Penanggung Jawab Senior Manager': 5,
-                    'PJ M': 6,
-                    'Penanggung Jawab Manager': 6,
-                    'SPV': 7,
-                    'Supervisor': 7,
-                    'PJ SPV': 8,
-                    'Penanggung Jawab Supervisor': 8,
-                    'Staff': 9
-                };
-
-                const getPositionPriority = function(text) {
-                    for (let pos in positionOrder) {
-                        if (text.startsWith(pos)) {
-                            return positionOrder[pos];
-                        }
-                    }
-                    return 999;
-                };
-
-                return getPositionPriority(a) - getPositionPriority(b);
+            userIds.forEach(function (nodeId) {
+                $('#tujuan-container').append('<input type="hidden" name="tujuan[]" value="' + nodeId + '">');
             });
 
-            let list = $('#selected-recipients');
-            let section = $('#selected-section');
-            list.empty();
+            updateSelectedRecipients(data);
+            if (userIds.length > 0) $('#tujuanError').hide();
+        }).on('error.jstree', function (e, data) {
+            console.error('JSTree error:', data);
+        });
+    } catch (error) {
+        $('#org-tree').html('<p class="text-danger">Gagal memuat data organisasi. Error: ' + error.message + '</p>');
+    }
+});
 
-            if (selectedNodes.length) {
-                selectedNodes.forEach(name => {
-                    list.append(`<li>${name}</li>`);
-                });
-                section.show();
-            } else {
-                section.hide();
-            }
-        }
-    </script>
+function updateSelectedRecipients(data) {
+    const positionOrder = {
+        'Direktur': 1, 'GM': 2, 'General Manager': 2,
+        'SM': 3, 'Senior Manager': 3, 'M': 4, 'Manager': 4,
+        'PJ SM': 5, 'Penanggung Jawab Senior Manager': 5,
+        'PJ M': 6, 'Penanggung Jawab Manager': 6,
+        'SPV': 7, 'Supervisor': 7,
+        'PJ SPV': 8, 'Penanggung Jawab Supervisor': 8, 'Staff': 9
+    };
+    const getPriority = text => {
+        for (let pos in positionOrder) { if (text.startsWith(pos)) return positionOrder[pos]; }
+        return 999;
+    };
+
+    let selectedNodes = data.instance.get_selected(true)
+        .filter(n => n.icon && n.icon === 'fa fa-user')
+        .map(n => n.text)
+        .sort((a, b) => getPriority(a) - getPriority(b));
+
+    let list = $('#selected-recipients');
+    let section = $('#selected-section');
+    list.empty();
+    if (selectedNodes.length) {
+        selectedNodes.forEach(name => list.append(`<li>${name}</li>`));
+        section.show();
+    } else {
+        section.hide();
+    }
+}
+</script>
 @endpush

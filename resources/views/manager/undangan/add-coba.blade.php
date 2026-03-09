@@ -50,27 +50,26 @@
                                             <div class="col-md-6">
 
                                                 {{-- <div class="form-group"> --}}
-                                                    <label for="kode_bagian" class="form-label">
-                                                        <i class="fas fa-building text-primary me-1"></i>
-                                                        Kode Bagian Kerja <span class="text-danger">*</span>
-                                                    </label>
+                                                <label for="kode_bagian" class="form-label">
+                                                    <i class="fas fa-building text-primary me-1"></i>
+                                                    Kode Bagian Kerja <span class="text-danger">*</span>
+                                                </label>
 
-                                                    <select name="kode_bagian" id="kode_bagian"
-                                                        class="form-control @error('kode_bagian') is-invalid @enderror"
-                                                        required>
-                                                        <option value="">-- Pilih Bagian Kerja --</option>
+                                                <select name="kode_bagian" id="kode_bagian"
+                                                    class="form-control @error('kode_bagian') is-invalid @enderror" required>
+                                                    <option value="">-- Pilih Bagian Kerja --</option>
 
-                                                        @foreach ($bagianKerja as $bk)
-                                                            <option value="{{ $bk->kode_bagian }}"
-                                                                {{ old('kode_bagian') == $bk->kode_bagian ? 'selected' : '' }}>
-                                                                {{ $bk->kode_bagian }} — {{ $bk->nama_bagian ?? '' }}
-                                                            </option>
-                                                        @endforeach
-                                                    </select>
+                                                    @foreach ($bagianKerja as $bk)
+                                                        <option value="{{ $bk->kode_bagian }}"
+                                                            {{ old('kode_bagian') == $bk->kode_bagian ? 'selected' : '' }}>
+                                                            {{ $bk->kode_bagian }} — {{ $bk->nama_bagian ?? '' }}
+                                                        </option>
+                                                    @endforeach
+                                                </select>
 
-                                                    @error('kode_bagian')
-                                                        <div class="invalid-feedback">{{ $message }}</div>
-                                                    @enderror
+                                                @error('kode_bagian')
+                                                    <div class="invalid-feedback">{{ $message }}</div>
+                                                @enderror
                                                 {{-- </div> --}}
                                             </div>
 
@@ -173,23 +172,27 @@
 
                                         <div class="row g-3 mt-1">
                                             <div class="col-md-6">
-                                                <label class="form-label mb-1"><i class="fas fa-user text-primary me-1"></i>Tembusan</label>
+                                                <label class="form-label mb-1"><i
+                                                        class="fas fa-user text-primary me-1"></i>Tembusan</label>
                                                 <div class="border rounded p-2" style="max-height:250px;overflow-y:auto;">
                                                     <div id="tembusan-tree" style="font-size:small;"></div>
                                                 </div>
                                                 <div id="selected-tembusan-section" style="display:none;" class="mt-2">
                                                     <small class="fw-semibold">Tembusan Terpilih:</small>
-                                                    <ul id="selected-tembusan" style="font-size:small;padding-left:15px;margin:0;"></ul>
+                                                    <ul id="selected-tembusan"
+                                                        style="font-size:small;padding-left:15px;margin:0;"></ul>
                                                 </div>
                                             </div>
                                             <div class="col-md-6">
-                                                <label class="form-label mb-1"><i class="fas fa-user-secret text-primary me-1"></i>BCC</label>
+                                                <label class="form-label mb-1"><i
+                                                        class="fas fa-user-secret text-primary me-1"></i>BCC</label>
                                                 <div class="border rounded p-2" style="max-height:250px;overflow-y:auto;">
                                                     <div id="bcc-tree" style="font-size:small;"></div>
                                                 </div>
                                                 <div id="selected-bcc-section" style="display:none;" class="mt-2">
                                                     <small class="fw-semibold">BCC Terpilih:</small>
-                                                    <ul id="selected-bcc" style="font-size:small;padding-left:15px;margin:0;"></ul>
+                                                    <ul id="selected-bcc" style="font-size:small;padding-left:15px;margin:0;">
+                                                    </ul>
                                                 </div>
                                             </div>
                                         </div>
@@ -352,142 +355,30 @@
                 console.log('JSTree data:', @json(json_decode($jsTreeData)));
 
                 $(document).ready(function() {
-                    console.log('Document ready, initializing JSTree...');
-
-                    // Check if JSTree data exists
                     var treeData = @json(json_decode($jsTreeData));
                     if (!treeData || treeData.length === 0) {
-                        console.error('JSTree data is empty or invalid');
                         $('#org-tree').html('<p class="text-danger">Data organisasi tidak tersedia</p>');
                         return;
                     }
 
-                    // Initialize JSTree with error handling
-                    try {
-                        $('#org-tree').jstree({
+                    // =============================================
+                    // SATU FUNGSI UNTUK SEMUA TREE
+                    // =============================================
+                    function initRecipientTree(treeSelector, selectedSelector, sectionSelector, inputContainer, inputName) {
+                        $(treeSelector).jstree({
                             'core': {
                                 'data': treeData,
                                 'themes': {
-                                    //'responsive': true,
                                     'dots': true
                                 }
                             },
-                            'plugins': ['checkbox', 'search']
-                        }).on('ready.jstree', function(e, data) {
-                            console.log('JSTree initialized successfully');
-
-                            $('#org-tree li').each(function() {
-                                var node = data.instance.get_node(this.id);
-                                if (node && node.parent === '#') {
-                                    $(this).find('.jstree-checkbox').css('display', 'none');
-                                }
-                            });
-                        }).on('changed.jstree', function(e, data) {
-                            console.log('JSTree selection changed:', data.selected);
-
-                            // Clear previous hidden inputs
-                            $('#tujuan-container').empty();
-
-                            let allSelectedNodes = data.instance.get_selected(true);
-                            let selectedNodes = [];
-                            let userIds = [];
-
-                            console.log('All selected nodes:', allSelectedNodes);
-
-                            allSelectedNodes.forEach(function(node) {
-                                console.log('Processing node:', node);
-
-                                // Check if node has 'fa fa-user' icon (which indicates it's a user)
-                                if (node.icon && node.icon === 'fa fa-user') {
-                                    selectedNodes.push(node.text);
-                                    // Extract user ID from node.id (assuming format is 'user-{id}')
-                                    if (node.id.startsWith('user-')) {
-                                        userIds.push(node.id.replace('user-', ''));
-                                    }
-                                }
-
-                                // Auto expand selected nodes to show their children
-                                if (data.instance.is_selected(node.id)) {
-                                    data.instance.open_node(node.id);
-                                }
-                            });
-
-                            console.log('Selected users:', selectedNodes);
-                            console.log('Tujuan Nodes:', userIds);
-
-                            // Add hidden inputs for form submission
-                            userIds.forEach(function(userId) {
-                                $('#tujuan-container').append(
-                                    '<input type="hidden" name="tujuan[]" value="' + userId + '">');
-                            });
-
-                            // Sort selectedNodes by position hierarchy
-                            selectedNodes.sort(function(a, b) {
-                                const positionOrder = {
-                                    'Direktur': 1,
-                                    'GM': 2,
-                                    'General Manager': 2,
-                                    'SM': 3,
-                                    'Senior Manager': 3,
-                                    'M': 4,
-                                    'Manager': 4,
-                                    'PJ SM': 5,
-                                    'Penanggung Jawab Senior Manager': 5,
-                                    'PJ M': 6,
-                                    'Penanggung Jawab Manager': 6,
-                                    'SPV': 7,
-                                    'Supervisor': 7,
-                                    'PJ SPV': 8,
-                                    'Penanggung Jawab Supervisor': 8,
-                                    'Staff': 9
-                                };
-
-                                const getPositionPriority = function(text) {
-                                    for (let pos in positionOrder) {
-                                        if (text.startsWith(pos)) {
-                                            return positionOrder[pos];
-                                        }
-                                    }
-                                    return 999;
-                                };
-
-                                return getPositionPriority(a) - getPositionPriority(b);
-                            });
-
-                            // Update display list
-                            let list = $('#selected-recipients');
-                            let section = $('#selected-section');
-                            list.empty();
-
-                            if (selectedNodes.length) {
-                                selectedNodes.forEach(function(name) {
-                                    list.append('<li>' + name + '</li>');
-                                });
-                                section.show();
-                            } else {
-                                section.hide();
-                            }
-
-                            // Hide error message if users are selected
-                            if (userIds.length > 0) {
-                                $('#tujuanError').hide();
-                            }
-                        }).on('error.jstree', function(e, data) {
-                            console.error('JSTree error:', data);
-                        });
-
-                    } catch (error) {
-                        console.error('JSTree initialization failed:', error);
-                        $('#org-tree').html('<p class="text-danger">Gagal memuat data organisasi. Error: ' + error.message +
-                            '</p>');
-                    }
-
-                    function initRecipientTree(treeSelector, selectedSelector, sectionSelector) {
-                        $(treeSelector).jstree({
-                            'core': { 'data': treeData },
                             'plugins': ['checkbox', 'search'],
-                            'checkbox': { 'three_state': false, 'cascade': 'none' }
+                            'checkbox': {
+                                'three_state': false,
+                                'cascade': 'down'
+                            }
                         }).on('ready.jstree', function(e, data) {
+                            // Sembunyikan checkbox node root
                             $(treeSelector + ' li').each(function() {
                                 var node = data.instance.get_node(this.id);
                                 if (node && node.parent === '#') {
@@ -495,99 +386,95 @@
                                 }
                             });
                         }).on('changed.jstree', function(e, data) {
-                            const selectedNodes = data.instance.get_selected(true);
-                            const names = selectedNodes.filter(n => n.icon && n.icon === 'fa fa-user').map(n => n.text);
-                            const list = $(selectedSelector);
+                            var selectedNodes = data.instance.get_selected(true);
+                            var userNodes = selectedNodes.filter(function(node) {
+                                return node.icon && node.icon === 'fa fa-user';
+                                // return node.id && node.id.toString().startsWith('user-');
+                            });
+                            var names = userNodes.map(function(node) {
+                                return node.text;
+                            });
+
+                            // Update daftar tampilan
+                            var list = $(selectedSelector);
                             list.empty();
                             if (names.length) {
-                                names.forEach(name => list.append('<li>' + name + '</li>'));
+                                names.forEach(function(name) {
+                                    list.append('<li>' + name + '</li>');
+                                });
                                 $(sectionSelector).show();
                             } else {
                                 $(sectionSelector).hide();
                             }
+
+                            // Isi hidden input
+                            $(inputContainer).empty();
+                            userNodes.forEach(function(node) {
+                                var userId = node.id.startsWith('user-') ? node.id.replace('user-', '') :
+                                    node.id;
+                                $(inputContainer).append(
+                                    '<input type="hidden" name="' + inputName + '" value="' + userId +
+                                    '">'
+                                );
+                            });
+
+                            // Sembunyikan error tujuan
+                            if (inputName === 'tujuan[]' && userNodes.length > 0) {
+                                $('#tujuanError').hide();
+                            }
                         });
                     }
 
-                    initRecipientTree('#tembusan-tree', '#selected-tembusan', '#selected-tembusan-section');
-                    initRecipientTree('#bcc-tree', '#selected-bcc', '#selected-bcc-section');
+                    // Inisialisasi ketiga tree
+                    initRecipientTree('#org-tree', '#selected-recipients', '#selected-section', '#tujuan-container',
+                        'tujuan[]');
+                    initRecipientTree('#tembusan-tree', '#selected-tembusan', '#selected-tembusan-section',
+                        '#tembusan-container', 'tembusan[]');
+                    initRecipientTree('#bcc-tree', '#selected-bcc', '#selected-bcc-section', '#bcc-container', 'bcc[]');
 
-                    // Form submission validation dengan prevent double click
+                    // =============================================
+                    // VALIDASI SUBMIT
+                    // =============================================
                     $('#addUndanganForm').on('submit', function(e) {
-                        console.log('Form submitting...');
-
-                        // Cek jika tombol sudah disabled (sudah diklik sebelumnya)
                         if ($('#submitBtn').prop('disabled')) {
-                            console.log('Button already disabled, preventing duplicate submission');
                             e.preventDefault();
                             return false;
                         }
 
-                        const selected = $('#org-tree').jstree('get_selected', true);
-                        const tujuanNodes = selected
-                            .map(node => node.id);
-
-                        console.log('Form validation - Tujuan Nodes:', tujuanNodes);
-
-                        // Validate at least one recipient is selected
-                        if (tujuanNodes.length === 0) {
-                            $('#tujuanError').text("Minimal pilih satu tujuan!");
-                            $('#tujuanError').show();
-
-                            // Scroll to error
+                        var tujuanInputs = $('#tujuan-container input[name="tujuan[]"]');
+                        if (tujuanInputs.length === 0) {
+                            $('#tujuanError').text("Minimal pilih satu tujuan!").show();
                             $('#tujuanError')[0].scrollIntoView({
                                 behavior: 'smooth',
                                 block: 'center'
                             });
-
                             e.preventDefault();
                             return false;
                         }
 
-                        $('#tembusan-container').empty();
-                        const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
-                        selectedTembusan.forEach(node => {
-                            $('#tembusan-container').append('<input type="hidden" name="tembusan[]" value="' + node.id + '">');
-                        });
-
-                        $('#bcc-container').empty();
-                        const selectedBcc = $('#bcc-tree').jstree('get_selected', true);
-                        selectedBcc.forEach(node => {
-                            $('#bcc-container').append('<input type="hidden" name="bcc[]" value="' + node.id + '">');
-                        });
-
-                        // Jika validasi berhasil, disable tombol dan ubah text dengan loading
                         $('#submitBtn').prop('disabled', true)
                             .html(
                                 '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Mengirim...'
-                            );
+                                );
 
-                        console.log('Form submission allowed, processing...');
-
-                        // Form akan disubmit secara normal
                         return true;
                     });
 
                     // =========================
-                    // LAMPIRAN: pilih satu per satu, tampil sebagai list
+                    // LAMPIRAN
                     // =========================
                     const lampiranInputContainer = document.getElementById('lampiran-input-container');
                     const lampiranInput = document.getElementById('lampiran-input');
                     const lampiranList = document.getElementById('lampiran-list');
 
                     if (lampiranInputContainer && lampiranInput && lampiranList) {
-                        console.log('Lampiran dynamic initialized');
-
                         function createEmptyVisibleInput() {
                             const newInput = document.createElement('input');
                             newInput.type = 'file';
                             newInput.id = 'lampiran-input';
                             newInput.className = 'form-control';
                             newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
-
-                            // Pasang event handler lagi
                             newInput.addEventListener('change', handleLampiranChange);
-
-                            // Bersihkan container dan pasang input baru
                             lampiranInputContainer.innerHTML = '';
                             lampiranInputContainer.appendChild(newInput);
                         }
@@ -597,7 +484,7 @@
                             if (!input.files || input.files.length === 0) return;
 
                             const file = input.files[0];
-                            const maxSize = 2 * 1024 * 1024; // 2MB
+                            const maxSize = 2 * 1024 * 1024;
                             if (file.size > maxSize) {
                                 if (typeof Swal !== 'undefined') {
                                     Swal.fire({
@@ -609,25 +496,20 @@
                                 } else {
                                     alert('Ukuran file tidak boleh lebih dari 2MB');
                                 }
-                                // Reset input tanpa membuat yang baru
                                 input.value = '';
-                                isProcessing = false;
                                 return;
                             }
 
-                            // Wrapper tiap file di list
                             const itemWrapper = document.createElement('div');
                             itemWrapper.className =
-                                'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
+                            'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
 
-                            // Bagian info file + progress
                             const infoWrapper = document.createElement('div');
                             infoWrapper.className = 'flex-grow-1';
 
                             const nameSpan = document.createElement('span');
                             nameSpan.textContent = file.name;
 
-                            // Progress bar simple (indikator "siap diunggah")
                             const progressOuter = document.createElement('div');
                             progressOuter.className = 'progress mt-1';
                             progressOuter.style.height = '4px';
@@ -635,48 +517,32 @@
                             const progressInner = document.createElement('div');
                             progressInner.className = 'progress-bar';
                             progressInner.style.width = '100%';
-                            progressInner.setAttribute('aria-valuenow', '100');
-                            progressInner.setAttribute('aria-valuemin', '0');
-                            progressInner.setAttribute('aria-valuemax', '100');
-                            progressInner.textContent = ''; // biar tipis
-
                             progressOuter.appendChild(progressInner);
                             infoWrapper.appendChild(nameSpan);
                             infoWrapper.appendChild(progressOuter);
 
-                            // Tombol hapus
                             const removeBtn = document.createElement('button');
                             removeBtn.type = 'button';
                             removeBtn.className = 'btn btn-sm btn-outline-danger';
                             removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
 
-                            // Pindahkan input asli ke dalam wrapper, jadikan hidden & beri name
                             input.name = 'lampiran[]';
                             input.classList.add('d-none');
                             input.removeEventListener('change', handleLampiranChange);
 
                             itemWrapper.appendChild(infoWrapper);
                             itemWrapper.appendChild(removeBtn);
-                            itemWrapper.appendChild(input); // input tersembunyi tetap di DOM supaya ikut terkirim
-
+                            itemWrapper.appendChild(input);
                             lampiranList.appendChild(itemWrapper);
 
-                            // Hapus item + input jika tombol hapus diklik
                             removeBtn.addEventListener('click', function() {
                                 itemWrapper.remove();
                             });
-
-                            // Buat input baru yang kosong untuk pilih file berikutnya
                             createEmptyVisibleInput();
                         }
 
-                        // Pasang handler pertama kali
                         lampiranInput.addEventListener('change', handleLampiranChange);
-                    } else {
-                        console.warn('Lampiran elements not found, skip lampiran dynamic init');
                     }
-                    // =========================
-
                 });
 
                 function showNotification(message, type) {
@@ -715,159 +581,159 @@
                     @endif
                 });
 
-// ==========================
-// TinyMCE Initialization - Undangan/Agenda
-// Enter = BR, Shift+Enter = P
-// ==========================
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('DOM loaded, initializing TinyMCE for Agenda...');
+                // ==========================
+                // TinyMCE Initialization - Undangan/Agenda
+                // Enter = BR, Shift+Enter = P
+                // ==========================
+                document.addEventListener('DOMContentLoaded', function() {
+                    console.log('DOM loaded, initializing TinyMCE for Agenda...');
 
-    if (typeof tinymce === 'undefined') {
-        console.error('TinyMCE not loaded! Check if CDN is accessible.');
-        var wrapper = document.getElementById('tinymce-agenda-container');
-        var textarea = document.getElementById('isi_undangan');
-        if (wrapper && textarea) {
-            wrapper.classList.remove('loading');
-            textarea.style.display = 'block';
-            var notice = document.createElement('div');
-            notice.className = 'alert alert-danger mt-2';
-            notice.innerHTML =
-                '<i class="fas fa-exclamation-triangle"></i> TinyMCE tidak dapat dimuat. Pastikan koneksi internet stabil.';
-            textarea.parentNode.insertBefore(notice, textarea.nextSibling);
-        }
-        return;
-    }
-
-    console.log('TinyMCE version:', tinymce.majorVersion + '.' + tinymce.minorVersion);
-
-    var wrapper = document.getElementById('tinymce-agenda-container');
-    if (wrapper) {
-        wrapper.classList.add('loading');
-    }
-
-    var loadingTimeout = setTimeout(function() {
-        if (wrapper && wrapper.classList.contains('loading')) {
-            console.warn('TinyMCE loading timeout - using fallback');
-            wrapper.classList.remove('loading');
-            var textarea = document.getElementById('isi_undangan');
-            if (textarea) {
-                textarea.style.display = 'block';
-                textarea.classList.add('form-control');
-                var notice = document.createElement('div');
-                notice.className = 'alert alert-info mt-2';
-                notice.innerHTML =
-                    '<i class="fas fa-info-circle"></i> Editor loading timeout. Menggunakan editor teks sederhana.';
-                textarea.parentNode.insertBefore(notice, textarea.nextSibling);
-            }
-        }
-    }, 10000);
-
-    try {
-        tinymce.init({
-            selector: '#isi_undangan',
-            height: 500,
-            placeholder: 'Tulis agenda rapat di sini...',
-            menubar: 'edit view insert format tools table',
-            plugins: [
-                'advlist', 'autolink', 'lists', 'link', 'image', 'table', 'code',
-                'wordcount', 'paste', 'searchreplace', 'fullscreen', 'help', 'nonbreaking'
-            ],
-
-            // ========== TOOLBAR DENGAN FONT & VERTICAL ALIGN ==========
-            toolbar: [
-                'undo redo | fontfamily fontsize | bold italic underline | forecolor backcolor',
-                'alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent',
-                'link image table tablecellvalign | tabAlign | nonbreaking | code fullscreen | help'
-            ],
-
-            // Font Family Options
-            font_family_formats: 'Arial=arial,helvetica,sans-serif; Calibri=calibri,sans-serif; Times New Roman=times new roman,times,serif; Courier New=courier new,courier,monospace; Verdana=verdana,geneva,sans-serif; Georgia=georgia,palatino,serif; Tahoma=tahoma,arial,helvetica,sans-serif',
-
-            // Font Size Options
-            font_size_formats: '8pt 9pt 10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt 36pt',
-
-            branding: false,
-            promotion: false,
-            statusbar: false,
-
-            // ========== KONFIGURASI TABLE UNTUK WYSIWYG ==========
-            table_resize_bars: true,
-            table_column_resizing: 'preservetable',
-            table_use_colgroups: true,
-            object_resizing: true,
-            table_advtab: true,
-            table_cell_advtab: true,
-            table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol | tablecellvalign',
-
-            table_default_attributes: {
-                'border': '1'
-            },
-            table_default_styles: {
-                'border-collapse': 'collapse',
-                'width': '100%'
-            },
-            table_cell_default_styles: {
-                'border': '1px solid #000',
-                'padding': '8px',
-                'word-wrap': 'break-word',
-                'vertical-align': 'top'
-            },
-
-            // Preserve width attributes dan colgroup
-            extended_valid_elements: 'table[border|style|class|width],colgroup,col[style|width],td[style|colspan|rowspan|width],th[style|colspan|rowspan|width]',
-            valid_children: '+body[style],+table[colgroup]',
-            // ========== END KONFIGURASI TABLE ==========
-
-            paste_data_images: true,
-            paste_word_valid_elements: "b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ol,ul,li,a[href],span,color,font-size,font-color,font-family,mark,table,tr,td,th,div,colgroup,col",
-            paste_retain_style_properties: "all",
-            entity_encoding: 'raw',
-            keep_styles: true,
-
-            formats: {
-                alignleft: {
-                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                    styles: {
-                        textAlign: 'left'
+                    if (typeof tinymce === 'undefined') {
+                        console.error('TinyMCE not loaded! Check if CDN is accessible.');
+                        var wrapper = document.getElementById('tinymce-agenda-container');
+                        var textarea = document.getElementById('isi_undangan');
+                        if (wrapper && textarea) {
+                            wrapper.classList.remove('loading');
+                            textarea.style.display = 'block';
+                            var notice = document.createElement('div');
+                            notice.className = 'alert alert-danger mt-2';
+                            notice.innerHTML =
+                                '<i class="fas fa-exclamation-triangle"></i> TinyMCE tidak dapat dimuat. Pastikan koneksi internet stabil.';
+                            textarea.parentNode.insertBefore(notice, textarea.nextSibling);
+                        }
+                        return;
                     }
-                },
-                aligncenter: {
-                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                    styles: {
-                        textAlign: 'center'
-                    }
-                },
-                alignright: {
-                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                    styles: {
-                        textAlign: 'right'
-                    }
-                },
-                alignjustify: {
-                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
-                    styles: {
-                        textAlign: 'justify'
-                    }
-                }
-            },
 
-            indent_use_margin: true,
+                    console.log('TinyMCE version:', tinymce.majorVersion + '.' + tinymce.minorVersion);
 
-            // ========== KONFIGURASI ENTER = BR (BUKAN P BARU) ==========
-            forced_root_block: 'p',
-            force_br_newlines: false,
-            force_p_newlines: false,
-            end_container_on_empty_block: false,
-            newline_behavior: 'linebreak',
-            // ========== END KONFIGURASI ENTER ==========
+                    var wrapper = document.getElementById('tinymce-agenda-container');
+                    if (wrapper) {
+                        wrapper.classList.add('loading');
+                    }
 
-            content_style: `
+                    var loadingTimeout = setTimeout(function() {
+                        if (wrapper && wrapper.classList.contains('loading')) {
+                            console.warn('TinyMCE loading timeout - using fallback');
+                            wrapper.classList.remove('loading');
+                            var textarea = document.getElementById('isi_undangan');
+                            if (textarea) {
+                                textarea.style.display = 'block';
+                                textarea.classList.add('form-control');
+                                var notice = document.createElement('div');
+                                notice.className = 'alert alert-info mt-2';
+                                notice.innerHTML =
+                                    '<i class="fas fa-info-circle"></i> Editor loading timeout. Menggunakan editor teks sederhana.';
+                                textarea.parentNode.insertBefore(notice, textarea.nextSibling);
+                            }
+                        }
+                    }, 10000);
+
+                    try {
+                        tinymce.init({
+                            selector: '#isi_undangan',
+                            height: 500,
+                            placeholder: 'Tulis agenda rapat di sini...',
+                            menubar: 'edit view insert format tools table',
+                            plugins: [
+                                'advlist', 'autolink', 'lists', 'link', 'image', 'table', 'code',
+                                'wordcount', 'paste', 'searchreplace', 'fullscreen', 'help', 'nonbreaking'
+                            ],
+
+                            // ========== TOOLBAR DENGAN FONT & VERTICAL ALIGN ==========
+                            toolbar: [
+                                'undo redo | fontfamily fontsize | bold italic underline | forecolor backcolor',
+                                'alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent',
+                                'link image table tablecellvalign | tabAlign | nonbreaking | code fullscreen | help'
+                            ],
+
+                            // Font Family Options
+                            font_family_formats: 'Arial=arial,helvetica,sans-serif; Calibri=calibri,sans-serif; Times New Roman=times new roman,times,serif; Courier New=courier new,courier,monospace; Verdana=verdana,geneva,sans-serif; Georgia=georgia,palatino,serif; Tahoma=tahoma,arial,helvetica,sans-serif',
+
+                            // Font Size Options
+                            font_size_formats: '8pt 9pt 10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt 36pt',
+
+                            branding: false,
+                            promotion: false,
+                            statusbar: false,
+
+                            // ========== KONFIGURASI TABLE UNTUK WYSIWYG ==========
+                            table_resize_bars: true,
+                            table_column_resizing: 'preservetable',
+                            table_use_colgroups: true,
+                            object_resizing: true,
+                            table_advtab: true,
+                            table_cell_advtab: true,
+                            table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol | tablecellvalign',
+
+                            table_default_attributes: {
+                                'border': '1'
+                            },
+                            table_default_styles: {
+                                'border-collapse': 'collapse',
+                                'width': '100%'
+                            },
+                            table_cell_default_styles: {
+                                'border': '1px solid #000',
+                                'padding': '8px',
+                                'word-wrap': 'break-word',
+                                'vertical-align': 'top'
+                            },
+
+                            // Preserve width attributes dan colgroup
+                            extended_valid_elements: 'table[border|style|class|width],colgroup,col[style|width],td[style|colspan|rowspan|width],th[style|colspan|rowspan|width]',
+                            valid_children: '+body[style],+table[colgroup]',
+                            // ========== END KONFIGURASI TABLE ==========
+
+                            paste_data_images: true,
+                            paste_word_valid_elements: "b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ol,ul,li,a[href],span,color,font-size,font-color,font-family,mark,table,tr,td,th,div,colgroup,col",
+                            paste_retain_style_properties: "all",
+                            entity_encoding: 'raw',
+                            keep_styles: true,
+
+                            formats: {
+                                alignleft: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'left'
+                                    }
+                                },
+                                aligncenter: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'center'
+                                    }
+                                },
+                                alignright: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'right'
+                                    }
+                                },
+                                alignjustify: {
+                                    selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
+                                    styles: {
+                                        textAlign: 'justify'
+                                    }
+                                }
+                            },
+
+                            indent_use_margin: true,
+
+                            // ========== KONFIGURASI ENTER = BR (BUKAN P BARU) ==========
+                            forced_root_block: 'p',
+                            force_br_newlines: false,
+                            force_p_newlines: false,
+                            end_container_on_empty_block: false,
+                            newline_behavior: 'linebreak',
+                            // ========== END KONFIGURASI ENTER ==========
+
+                            content_style: `
                 body {
                     font-family: Arial, Helvetica, sans-serif !important;
                     font-size: 12pt;
                 }
             `,
-            content_css: 'data:text/css;charset=UTF-8,' + encodeURIComponent(`
+                            content_css: 'data:text/css;charset=UTF-8,' + encodeURIComponent(`
                 body {
                     line-height: 1.5 !important;
                     margin: 0;
@@ -935,176 +801,176 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             `),
 
-            quickbars_selection_toolbar: 'bold italic underline | tabAlign | alignleft aligncenter alignright',
-            quickbars_insert_toolbar: 'quickimage quicktable | hr pagebreak',
+                            quickbars_selection_toolbar: 'bold italic underline | tabAlign | alignleft aligncenter alignright',
+                            quickbars_insert_toolbar: 'quickimage quicktable | hr pagebreak',
 
-            setup: function(editor) {
-                editor.on('change keyup', function() {
-                    editor.save();
-                    $('#isi_undangan').trigger('input');
-                });
+                            setup: function(editor) {
+                                editor.on('change keyup', function() {
+                                    editor.save();
+                                    $('#isi_undangan').trigger('input');
+                                });
 
-                editor.on('PastePostProcess', function(e) {
-                    var allElements = e.node.querySelectorAll('*');
-                    allElements.forEach(function(el) {
-                        if (el.tagName.toLowerCase() !== 'p') {
-                            el.style.lineHeight = '1.5';
-                        }
-                    });
-                });
+                                editor.on('PastePostProcess', function(e) {
+                                    var allElements = e.node.querySelectorAll('*');
+                                    allElements.forEach(function(el) {
+                                        if (el.tagName.toLowerCase() !== 'p') {
+                                            el.style.lineHeight = '1.5';
+                                        }
+                                    });
+                                });
 
-                // ========== CUSTOM ENTER BEHAVIOR ==========
-                editor.on('keydown', function(e) {
-                    if (e.keyCode === 13) { // Enter key
-                        var node = editor.selection.getNode();
-                        var inList = editor.dom.getParent(node, 'li,ol,ul');
-                        var inTable = editor.dom.getParent(node, 'td,th');
+                                // ========== CUSTOM ENTER BEHAVIOR ==========
+                                editor.on('keydown', function(e) {
+                                    if (e.keyCode === 13) { // Enter key
+                                        var node = editor.selection.getNode();
+                                        var inList = editor.dom.getParent(node, 'li,ol,ul');
+                                        var inTable = editor.dom.getParent(node, 'td,th');
 
-                        if (inList || inTable) {
-                            return;
-                        }
+                                        if (inList || inTable) {
+                                            return;
+                                        }
 
-                        if (e.shiftKey) {
-                            e.preventDefault();
-                            editor.execCommand('InsertParagraph');
-                            return false;
-                        } else {
-                            e.preventDefault();
-                            editor.execCommand('InsertLineBreak');
-                            return false;
-                        }
-                    }
+                                        if (e.shiftKey) {
+                                            e.preventDefault();
+                                            editor.execCommand('InsertParagraph');
+                                            return false;
+                                        } else {
+                                            e.preventDefault();
+                                            editor.execCommand('InsertLineBreak');
+                                            return false;
+                                        }
+                                    }
 
-                    // Tab functionality
-                    if (e.keyCode === 9) {
-                        e.preventDefault();
-                        if (e.shiftKey) {
-                            var content = editor.selection.getContent();
-                            if (content.includes('&nbsp;')) {
-                                var newContent = content.replace(/^(&nbsp;){1,8}/, '');
-                                editor.selection.setContent(newContent);
-                            } else {
-                                editor.execCommand('Outdent');
+                                    // Tab functionality
+                                    if (e.keyCode === 9) {
+                                        e.preventDefault();
+                                        if (e.shiftKey) {
+                                            var content = editor.selection.getContent();
+                                            if (content.includes('&nbsp;')) {
+                                                var newContent = content.replace(/^(&nbsp;){1,8}/, '');
+                                                editor.selection.setContent(newContent);
+                                            } else {
+                                                editor.execCommand('Outdent');
+                                            }
+                                        } else {
+                                            var tabSpaces =
+                                                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                                            editor.insertContent(tabSpaces);
+                                        }
+                                    }
+                                });
+
+                                editor.ui.registry.addButton('tabAlign', {
+                                    text: 'Tab Align',
+                                    tooltip: 'Insert tab spaces for alignment',
+                                    onAction: function() {
+                                        var tabSpaces =
+                                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                                        editor.insertContent(tabSpaces);
+                                    }
+                                });
+
+                                editor.ui.registry.addMenuButton('tablecellvalign', {
+                                    text: 'V-Align',
+                                    tooltip: 'Vertical Alignment',
+                                    fetch: function(callback) {
+                                        var items = [{
+                                                type: 'menuitem',
+                                                text: 'Top',
+                                                onAction: function() {
+                                                    editor.execCommand(
+                                                        'mceTableApplyCellStyle',
+                                                        false, {
+                                                            'vertical-align': 'top'
+                                                        });
+                                                }
+                                            },
+                                            {
+                                                type: 'menuitem',
+                                                text: 'Middle',
+                                                onAction: function() {
+                                                    editor.execCommand(
+                                                        'mceTableApplyCellStyle',
+                                                        false, {
+                                                            'vertical-align': 'middle'
+                                                        });
+                                                }
+                                            },
+                                            {
+                                                type: 'menuitem',
+                                                text: 'Bottom',
+                                                onAction: function() {
+                                                    editor.execCommand(
+                                                        'mceTableApplyCellStyle',
+                                                        false, {
+                                                            'vertical-align': 'bottom'
+                                                        });
+                                                }
+                                            }
+                                        ];
+                                        callback(items);
+                                    }
+                                });
+
+                                editor.on('init', function() {
+                                    console.log('TinyMCE editor initialized successfully');
+
+                                    if (loadingTimeout) {
+                                        clearTimeout(loadingTimeout);
+                                    }
+                                    var wrapper = document.getElementById('tinymce-agenda-container');
+                                    if (wrapper) {
+                                        wrapper.classList.remove('loading');
+                                    }
+                                });
+
+                                editor.on('LoadError', function(e) {
+                                    console.error('TinyMCE load error:', e);
+                                });
+
+                                editor.on('SetupEditor', function(e) {
+                                    console.log('TinyMCE setup completed for editor:', e.editor.id);
+                                });
                             }
-                        } else {
-                            var tabSpaces =
-                                '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-                            editor.insertContent(tabSpaces);
+                        });
+                    } catch (error) {
+                        console.error('Error initializing TinyMCE (full config):', error);
+                        console.log('Attempting simple TinyMCE configuration...');
+
+                        try {
+                            tinymce.init({
+                                selector: '#isi_undangan',
+                                height: 400,
+                                menubar: false,
+                                plugins: ['lists', 'table'],
+                                toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | table',
+                                branding: false,
+                                init_instance_callback: function(editor) {
+                                    console.log('Simple TinyMCE loaded successfully');
+                                    if (loadingTimeout) clearTimeout(loadingTimeout);
+                                    var wrapper = document.getElementById('tinymce-agenda-container');
+                                    if (wrapper) wrapper.classList.remove('loading');
+                                }
+                            });
+                        } catch (simpleError) {
+                            console.error('Even simple TinyMCE failed:', simpleError);
+                            var wrapper = document.getElementById('tinymce-agenda-container');
+                            var textarea = document.getElementById('isi_undangan');
+                            if (wrapper) wrapper.classList.remove('loading');
+                            if (loadingTimeout) clearTimeout(loadingTimeout);
+                            if (textarea) {
+                                textarea.style.display = 'block';
+                                textarea.style.minHeight = '400px';
+                                textarea.style.width = '100%';
+                                textarea.classList.add('form-control');
+                                var notice = document.createElement('div');
+                                notice.className = 'alert alert-warning mt-2';
+                                notice.innerHTML =
+                                    '<i class="fas fa-exclamation-triangle"></i> Editor canggih gagal dimuat. Menggunakan editor teks sederhana.';
+                                textarea.parentNode.insertBefore(notice, textarea.nextSibling);
+                            }
                         }
                     }
                 });
-
-                editor.ui.registry.addButton('tabAlign', {
-                    text: 'Tab Align',
-                    tooltip: 'Insert tab spaces for alignment',
-                    onAction: function() {
-                        var tabSpaces =
-                            '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
-                        editor.insertContent(tabSpaces);
-                    }
-                });
-
-                editor.ui.registry.addMenuButton('tablecellvalign', {
-                    text: 'V-Align',
-                    tooltip: 'Vertical Alignment',
-                    fetch: function(callback) {
-                        var items = [{
-                                type: 'menuitem',
-                                text: 'Top',
-                                onAction: function() {
-                                    editor.execCommand(
-                                        'mceTableApplyCellStyle',
-                                        false, {
-                                            'vertical-align': 'top'
-                                        });
-                                }
-                            },
-                            {
-                                type: 'menuitem',
-                                text: 'Middle',
-                                onAction: function() {
-                                    editor.execCommand(
-                                        'mceTableApplyCellStyle',
-                                        false, {
-                                            'vertical-align': 'middle'
-                                        });
-                                }
-                            },
-                            {
-                                type: 'menuitem',
-                                text: 'Bottom',
-                                onAction: function() {
-                                    editor.execCommand(
-                                        'mceTableApplyCellStyle',
-                                        false, {
-                                            'vertical-align': 'bottom'
-                                        });
-                                }
-                            }
-                        ];
-                        callback(items);
-                    }
-                });
-
-                editor.on('init', function() {
-                    console.log('TinyMCE editor initialized successfully');
-
-                    if (loadingTimeout) {
-                        clearTimeout(loadingTimeout);
-                    }
-                    var wrapper = document.getElementById('tinymce-agenda-container');
-                    if (wrapper) {
-                        wrapper.classList.remove('loading');
-                    }
-                });
-
-                editor.on('LoadError', function(e) {
-                    console.error('TinyMCE load error:', e);
-                });
-
-                editor.on('SetupEditor', function(e) {
-                    console.log('TinyMCE setup completed for editor:', e.editor.id);
-                });
-            }
-        });
-    } catch (error) {
-        console.error('Error initializing TinyMCE (full config):', error);
-        console.log('Attempting simple TinyMCE configuration...');
-
-        try {
-            tinymce.init({
-                selector: '#isi_undangan',
-                height: 400,
-                menubar: false,
-                plugins: ['lists', 'table'],
-                toolbar: 'undo redo | bold italic | alignleft aligncenter alignright | bullist numlist | table',
-                branding: false,
-                init_instance_callback: function(editor) {
-                    console.log('Simple TinyMCE loaded successfully');
-                    if (loadingTimeout) clearTimeout(loadingTimeout);
-                    var wrapper = document.getElementById('tinymce-agenda-container');
-                    if (wrapper) wrapper.classList.remove('loading');
-                }
-            });
-        } catch (simpleError) {
-            console.error('Even simple TinyMCE failed:', simpleError);
-            var wrapper = document.getElementById('tinymce-agenda-container');
-            var textarea = document.getElementById('isi_undangan');
-            if (wrapper) wrapper.classList.remove('loading');
-            if (loadingTimeout) clearTimeout(loadingTimeout);
-            if (textarea) {
-                textarea.style.display = 'block';
-                textarea.style.minHeight = '400px';
-                textarea.style.width = '100%';
-                textarea.classList.add('form-control');
-                var notice = document.createElement('div');
-                notice.className = 'alert alert-warning mt-2';
-                notice.innerHTML =
-                    '<i class="fas fa-exclamation-triangle"></i> Editor canggih gagal dimuat. Menggunakan editor teks sederhana.';
-                textarea.parentNode.insertBefore(notice, textarea.nextSibling);
-            }
-        }
-    }
-});
             </script>
         @endpush
