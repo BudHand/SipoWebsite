@@ -555,7 +555,7 @@
                     'plugins': ["checkbox", "search"],
                     'checkbox': {
                         'three_state': false,
-                        'cascade': 'none'
+                        'cascade': 'down'
                     }
                 }).on('ready.jstree', function(e, data) {
                     $('#tembusan-tree li').each(function() {
@@ -585,7 +585,7 @@
                     'plugins': ["checkbox", "search"],
                     'checkbox': {
                         'three_state': false,
-                        'cascade': 'none'
+                        'cascade': 'down'
                     }
                 }).on('ready.jstree', function(e, data) {
                     $('#bcc-tree li').each(function() {

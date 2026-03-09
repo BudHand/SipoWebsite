@@ -556,7 +556,7 @@
             $('#tembusan-tree').jstree({
                 'core': { 'data': @json(json_decode($jsTreeData)) },
                 'plugins': ["checkbox", "search"],
-                'checkbox': { 'three_state': false, 'cascade': 'none' }
+                'checkbox': { 'three_state': false, 'cascade': 'down' }
             }).on('ready.jstree', function(e, data) {
                 $('#tembusan-tree li').each(function() {
                     var node = data.instance.get_node(this.id);
@@ -587,7 +587,7 @@
             $('#bcc-tree').jstree({
                 'core': { 'data': @json(json_decode($jsTreeData)) },
                 'plugins': ["checkbox", "search"],
-                'checkbox': { 'three_state': false, 'cascade': 'none' }
+                'checkbox': { 'three_state': false, 'cascade': 'down' }
             }).on('ready.jstree', function(e, data) {
                 $('#bcc-tree li').each(function() {
                     var node = data.instance.get_node(this.id);
