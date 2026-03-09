@@ -102,7 +102,7 @@
             padding: 0;
             margin: 0;
             text-align: left;
-            white-space: nowrap;
+            white-space: normal;
         }
 
         .header2 td:first-child {
@@ -456,36 +456,36 @@
 <table style="border-collapse: collapse; font-size: 11px; table-layout: fixed; width: 100%; page-break-inside: always;">
     <thead>
         <tr>
-            <th style="width:6%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center; font-size: 10px;">No</th>
-            <th style="width:14%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Topik</th>
-            <th style="width:30%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Pembahasan</th>
-            <th style="width:30%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Tindak Lanjut</th>
-            <th style="width:10%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Target</th>
-            <th style="width:10%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">PIC</th>
+            <th style="width:5%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center; font-size: 10px;">No</th>
+            <th style="width:15%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Topik</th>
+            <th style="width:25%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Pembahasan</th>
+            <th style="width:25%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Tindak Lanjut</th>
+            <th style="width:15%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Target</th>
+            <th style="width:15%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">PIC</th>
         </tr>
     </thead>
     <tbody>
         @foreach ($risalah->risalahDetails as $index => $detail)
             {{-- ===== BARIS UTAMA ===== --}}
             <tr>
-                <td style="width:3%; border: 1.5px solid black; padding: 6px; text-align: center; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">{{ $index + 1 }}</td>
-                <td style="width:8%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">{{ $detail->topik }}</td>
-                <td style="width:38%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
+                <td style="width:5%; border: 1.5px solid black; padding: 6px; text-align: center; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">{{ $index + 1 }}</td>
+                <td style="width:15%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">{{ $detail->topik }}</td>
+                <td style="width:25%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
                     @foreach (explode(';', $detail->pembahasan) as $poin)
                         {!! nl2br(e(trim($poin))) !!}<br>
                     @endforeach
                 </td>
-                <td style="width:38%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
+                <td style="width:25%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
                     @foreach (explode(';', $detail->tindak_lanjut) as $poin)
                         {!! nl2br(e(trim($poin))) !!}<br>
                     @endforeach
                 </td>
-                <td style="width:7%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
+                <td style="width:15%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
                     @foreach (explode(';', $detail->target) as $poin)
                         {!! nl2br(e(trim($poin))) !!}<br>
                     @endforeach
                 </td>
-                <td style="width:6%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
+                <td style="width:15%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
                     @foreach (explode(';', $detail->pic) as $poin)
                         {!! nl2br(e(trim($poin))) !!}<br>
                     @endforeach
