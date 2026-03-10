@@ -455,31 +455,25 @@ class KirimController extends Controller
     public function undanganDiterima(Request $request)
     {
         $userId = auth()->id();
-        $undanganController = new UndanganController();
-        $userKode = $undanganController->getDivDeptKode(Auth::user());
-        $filterType = $request->get('userid_filter', 'both'); // dipertahankan agar variabel sama persis
         $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
         $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
 
         $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
 
         $allowedSorts = ['kirim_document.id_kirim_document', 'undangan.tgl_dibuat', 'undangan.tgl_disahkan', 'undangan.judul', 'undangan.nomor_undangan', 'tgl_rapat_diff'];
-        if (!in_array($sortBy, $allowedSorts)) {
+        if (!in_array($sortBy, $allowedSorts, true)) {
             $sortBy = 'tgl_rapat_diff';
         }
 
-        // HANYA BERBEDA DI SINI: fix ke id_penerima = user login
-        $subQuery = Kirim_Document::where('jenis_document', 'undangan')->where(function ($q) use ($userId) {
-            $q->where('id_penerima', $userId);
-        });
+        $subQuery = Kirim_Document::where('jenis_document', 'undangan')
+            ->where('id_penerima', $userId)
+            ->whereIn('status', ['pending', 'approve']);
 
         if ($request->filled('status')) {
             $subQuery->where('status', $request->status);
         }
 
-        $subQuery->whereHas('undangan', function ($q) use ($request, $userKode) {
-            // filter by user's div/dept code: only undangan not from same kode (received)
-            $q->where('kode', '!=', $userKode);
+        $subQuery->whereHas('undangan', function ($q) use ($request) {
             if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
                 $q->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
             } elseif ($request->filled('tgl_dibuat_awal')) {
@@ -490,21 +484,31 @@ class KirimController extends Controller
 
             if ($request->filled('search')) {
                 $q->where(function ($q2) use ($request) {
-                    $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
+                    $q2->where('judul', 'like', '%' . $request->search . '%')
+                        ->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
                 });
             }
+
             if ($request->filled('kode')) {
                 $q->where('kode', $request->kode);
             }
         });
 
-        $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')->groupBy('id_document')->pluck('id_kirim_document');
+        $idKirimList = $subQuery
+            ->selectRaw('MIN(id_kirim_document) as id_kirim_document')
+            ->groupBy('id_document')
+            ->pluck('id_kirim_document');
 
-        $undanganDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Undangan')->pluck('document_id')->toArray();
+        $undanganDiarsipkan = Arsip::where('user_id', $userId)
+            ->where('jenis_document', 'App\Models\Undangan')
+            ->pluck('document_id')
+            ->toArray();
 
-        $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)->whereNotIn('id_document', $undanganDiarsipkan)->with('undangan');
+        $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
+            ->whereNotIn('id_document', $undanganDiarsipkan)
+            ->with('undangan');
 
-        if ($sortBy == 'tgl_rapat_diff') {
+        if ($sortBy === 'tgl_rapat_diff') {
             $undangans
                 ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
                 ->orderByRaw('CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC')

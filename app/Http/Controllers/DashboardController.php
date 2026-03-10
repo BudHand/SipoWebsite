@@ -227,13 +227,10 @@ class DashboardController extends Controller
                   ->orWhere('id_penerima', $userId);
             })
             ->whereNotIn('id_document', $arsipIds)
-            ->whereIn('id_kirim_document', function ($sub) {
-                $sub->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->where('jenis_document', 'risalah')
-                    ->groupBy('id_document');
-            })
-            ->count();
+            // Gunakan DISTINCT id_document agar sinkron dengan halaman index risalah
+            // (satu risalah dihitung sekali walau ada banyak record kirim_document).
+            ->distinct('id_document')
+            ->count('id_document');
     }
 
     /**
