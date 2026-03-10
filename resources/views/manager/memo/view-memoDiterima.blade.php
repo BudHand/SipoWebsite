@@ -558,12 +558,12 @@
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">File</div>
                                     <div class="info-value">
-                                        <a href="{{ route('view-memoPDF', $memo->id_memo) }}" target="_blank"
+                                        <a href="{{ route('view-memoPDF', $memo->memo->id_memo) }}" target="_blank"
                                             rel="noopener noreferrer" class="btn btn-sm btn-custom me-2 rounded-2">
                                             <i class="fa fa-eye me-1"></i> Lihat
                                         </a>
 
-                                        <a href="{{ route('cetakmemo', ['id' => $memo->id_memo]) }}"
+                                        <a href="{{ route('cetakmemo', ['id' => $memo->memo->id_memo]) }}"
                                             class="btn btn-sm btn-custom rounded-2">
                                             <i class="fa fa-download me-1"></i> Unduh
                                         </a>
