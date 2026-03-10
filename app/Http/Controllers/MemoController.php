@@ -1208,6 +1208,11 @@ class MemoController extends Controller
         $users = [];
 
         foreach ($rawTujuan as $item) {
+            if (is_numeric($item)) {
+                $users[] = (int) $item;
+                continue;
+            }
+
             if (Str::startsWith($item, 'dept-')) {
                 $departments[] = (int) Str::after($item, 'dept-');
             } elseif (Str::startsWith($item, 'section-')) {
@@ -1219,6 +1224,31 @@ class MemoController extends Controller
             } elseif (Str::startsWith($item, 'user-')) {
                 $users[] = (int) Str::after($item, 'user-');
             }
+        }
+
+        // Expand hierarchy supaya pilih level atas otomatis mencakup seluruh turunan
+        if (!empty($divisions)) {
+            $deptFromDivision = Department::whereIn('divisi_id_divisi', $divisions)
+                ->pluck('id_department')
+                ->map(fn($v) => (int) $v)
+                ->all();
+            $departments = array_values(array_unique(array_merge($departments, $deptFromDivision)));
+        }
+
+        if (!empty($departments)) {
+            $sectionFromDepartment = Section::whereIn('department_id_department', $departments)
+                ->pluck('id_section')
+                ->map(fn($v) => (int) $v)
+                ->all();
+            $sections = array_values(array_unique(array_merge($sections, $sectionFromDepartment)));
+        }
+
+        if (!empty($sections)) {
+            $unitFromSection = Unit::whereIn('section_id_section', $sections)
+                ->pluck('id_unit')
+                ->map(fn($v) => (int) $v)
+                ->all();
+            $units = array_values(array_unique(array_merge($units, $unitFromSection)));
         }
 
         // Now query the users who match any of the IDs
@@ -2840,17 +2870,15 @@ class MemoController extends Controller
             }
         }
 
-        // CC/BCC Memo: samakan dengan tujuan (simpan sebagai id user)
+        // CC/BCC Memo: simpan terpisah dari tujuan
         $tembusanUserIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
             $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
-            $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
         }
 
         $bccUserIds = [];
         if ($request->has('bcc') && is_array($request->bcc)) {
             $bccUserIds = $this->convertTujuanToUserId($request->bcc);
-            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
         }
 
         // ===================================================================
@@ -3082,12 +3110,11 @@ class MemoController extends Controller
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
             ],
         );
-        // CC/BCC Memo: samakan dengan tujuan (simpan id user)
+        // CC/BCC Memo: simpan terpisah dari tujuan
         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
         $tembusanUserIds = [];
         if ($request->has('tembusan') && is_array($request->tembusan)) {
             $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
-            $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
             $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
         } else {
             $memo->tembusan = null;
@@ -3096,7 +3123,6 @@ class MemoController extends Controller
         $bccUserIds = [];
         if ($request->has('bcc') && is_array($request->bcc)) {
             $bccUserIds = $this->convertTujuanToUserId($request->bcc);
-            $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
             $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
         } else {
             $memo->bcc = null;
@@ -3137,14 +3163,13 @@ class MemoController extends Controller
 
         return DB::transaction(function () use ($request, $memo, $notifService) {
             // ============================
-            // CC/BCC: gabungkan ke tujuan (simpan id user)
+            // CC/BCC: simpan terpisah dari tujuan
             // ============================
             $tujuanId = $this->convertTujuanToUserId($request->tujuan);
 
             $tembusanUserIds = [];
             if ($request->has('tembusan') && is_array($request->tembusan)) {
                 $tembusanUserIds = $this->convertTujuanToUserId($request->tembusan);
-                $tujuanId = array_values(array_unique(array_merge($tujuanId, $tembusanUserIds)));
                 $memo->tembusan = !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null;
             } else {
                 $memo->tembusan = null;
@@ -3153,7 +3178,6 @@ class MemoController extends Controller
             $bccUserIds = [];
             if ($request->has('bcc') && is_array($request->bcc)) {
                 $bccUserIds = $this->convertTujuanToUserId($request->bcc);
-                $tujuanId = array_values(array_unique(array_merge($tujuanId, $bccUserIds)));
                 $memo->bcc = !empty($bccUserIds) ? implode(';', $bccUserIds) : null;
             } else {
                 $memo->bcc = null;
