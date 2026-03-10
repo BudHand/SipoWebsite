@@ -106,12 +106,17 @@
                                                 $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
 
                                                 $scopes = [
-                                                    ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
-                                                    ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
-                                                    ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
-                                                    ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
-                                                    ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
+                                                    ['col' => 'director_id_director', 'map' => $directorMap],
+                                                    ['col' => 'divisi_id_divisi', 'map' => $divisionMap],
+                                                    ['col' => 'department_id_department', 'map' => $departmentMap],
+                                                    ['col' => 'section_id_section', 'map' => $sectionMap],
+                                                    ['col' => 'unit_id_unit', 'map' => $unitMap],
                                                 ];
+
+                                                $sectionToDepartmentMap = \App\Models\Section::pluck('department_id_department', 'id_section');
+                                                $unitToSectionMap = \App\Models\Unit::pluck('section_id_section', 'id_unit');
+                                                $groupedDepartmentIds = [];
+                                                $groupedSectionIds = [];
 
                                                 foreach ($scopes as $scope) {
                                                     $groupIds = $selectedUsers
@@ -122,6 +127,27 @@
                                                         ->values();
 
                                                     foreach ($groupIds as $groupId) {
+                                                        if ($scope['col'] === 'section_id_section') {
+                                                            $parentDeptId = $sectionToDepartmentMap[$groupId] ?? null;
+                                                            if (!empty($parentDeptId) && in_array((int) $parentDeptId, $groupedDepartmentIds, true)) {
+                                                                $coveredUserIds = $selectedUsers->where('section_id_section', $groupId)->pluck('id')->all();
+                                                                $remainingIds = array_values(array_diff($remainingIds, $coveredUserIds));
+                                                                continue;
+                                                            }
+                                                        }
+
+                                                        if ($scope['col'] === 'unit_id_unit') {
+                                                            $parentSectionId = $unitToSectionMap[$groupId] ?? null;
+                                                            $parentDeptId = $parentSectionId ? ($sectionToDepartmentMap[$parentSectionId] ?? null) : null;
+
+                                                            if ((!empty($parentSectionId) && in_array((int) $parentSectionId, $groupedSectionIds, true)) ||
+                                                                (!empty($parentDeptId) && in_array((int) $parentDeptId, $groupedDepartmentIds, true))) {
+                                                                $coveredUserIds = $selectedUsers->where('unit_id_unit', $groupId)->pluck('id')->all();
+                                                                $remainingIds = array_values(array_diff($remainingIds, $coveredUserIds));
+                                                                continue;
+                                                            }
+                                                        }
+
                                                         $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
                                                         if ($allMemberIds->isEmpty()) {
                                                             continue;
@@ -130,7 +156,15 @@
                                                         $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
                                                         if ($allSelected) {
                                                             $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
-                                                            $tujuanRingkas[] = $scope['label'] . ': ' . $scopeName;
+                                                            $tujuanRingkas[] = $scopeName;
+
+                                                            if ($scope['col'] === 'department_id_department') {
+                                                                $groupedDepartmentIds[] = (int) $groupId;
+                                                            }
+                                                            if ($scope['col'] === 'section_id_section') {
+                                                                $groupedSectionIds[] = (int) $groupId;
+                                                            }
+
                                                             $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
                                                         }
                                                     }
