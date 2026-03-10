@@ -236,95 +236,109 @@
                                 @push('scripts')
                                     <script>
                                         const tujuanNameArray = @json($tujuanArray);
-$(function() {
-    const treeData = @json(json_decode($jsTreeData));
-    const selectedTujuan = @json($tujuanArray ?? []);
-    const selectedTembusan = @json($selectedTembusan ?? []);
-    const selectedBcc = @json($selectedBcc ?? []);
+                                        $(function() {
+                                            const treeData = @json(json_decode($jsTreeData));
+                                            const selectedTujuan = @json($tujuanArray ?? []);
+                                            const selectedTembusan = @json($selectedTembusan ?? []);
+                                            const selectedBcc = @json($selectedBcc ?? []);
 
-    function initRecipientTree(treeSelector, preSelected, selectedListSelector, sectionSelector, inputContainer, inputName) {
-        $(treeSelector).jstree({
-            'core': { 'data': treeData, 'themes': { 'dots': true } },
-            'plugins': ['checkbox', 'search'],
-            'checkbox': { 'three_state': true, 'cascade': 'down' }
-        }).on('ready.jstree', function(e, data) {
+                                            function initRecipientTree(treeSelector, preSelected, selectedListSelector, sectionSelector,
+                                                inputContainer, inputName) {
+                                                $(treeSelector).jstree({
+                                                    'core': {
+                                                        'data': treeData,
+                                                        'themes': {
+                                                            'dots': true
+                                                        }
+                                                    },
+                                                    'plugins': ['checkbox', 'search'],
+                                                    'checkbox': {
+                                                        'three_state': true,
+                                                        'cascade': 'down'
+                                                    }
+                                                }).on('ready.jstree', function(e, data) {
 
-            // Sembunyikan checkbox root
-            $(treeSelector + ' li').each(function() {
-                var node = data.instance.get_node(this.id);
-                if (node && node.parent === '#') {
-                    $(this).find('.jstree-checkbox').css('display', 'none');
-                }
-            });
+                                                    // Sembunyikan checkbox root
+                                                    $(treeSelector + ' li').each(function() {
+                                                        var node = data.instance.get_node(this.id);
+                                                        if (node && node.parent === '#') {
+                                                            $(this).find('.jstree-checkbox').css('display', 'none');
+                                                        }
+                                                    });
 
-            // Pre-select & buka parent
-            preSelected.forEach(function(id) {
-                var idStr = id.toString();
-                // Coba format user-X dulu, lalu format asli
-                var candidates = [
-                    idStr.startsWith('user-') ? idStr : 'user-' + idStr,
-                    idStr
-                ];
-                var targetId = null;
-                candidates.forEach(function(candidate) {
-                    if (!targetId && data.instance.get_node(candidate)) {
-                        targetId = candidate;
-                    }
-                });
+                                                    // Pre-select & buka parent
+                                                    preSelected.forEach(function(id) {
+                                                        var idStr = id.toString();
+                                                        // Coba format user-X dulu, lalu format asli
+                                                        var candidates = [
+                                                            idStr.startsWith('user-') ? idStr : 'user-' + idStr,
+                                                            idStr
+                                                        ];
+                                                        var targetId = null;
+                                                        candidates.forEach(function(candidate) {
+                                                            if (!targetId && data.instance.get_node(candidate)) {
+                                                                targetId = candidate;
+                                                            }
+                                                        });
 
-                if (targetId) {
-                    data.instance.check_node(targetId);
-                    var parentId = data.instance.get_parent(targetId);
-                    while (parentId && parentId !== '#') {
-                        data.instance.open_node(parentId);
-                        parentId = data.instance.get_parent(parentId);
-                    }
-                }
-            });
+                                                        if (targetId) {
+                                                            data.instance.check_node(targetId);
+                                                            var parentId = data.instance.get_parent(targetId);
+                                                            while (parentId && parentId !== '#') {
+                                                                data.instance.open_node(parentId);
+                                                                parentId = data.instance.get_parent(parentId);
+                                                            }
+                                                        }
+                                                    });
 
-        }).on('changed.jstree', function(e, data) {
-            var selectedNodes = data.instance.get_selected(true);
-            var userNodes = selectedNodes.filter(function(node) {
-                return node.id && node.id.toString().startsWith('user-');
-            });
+                                                }).on('changed.jstree', function(e, data) {
+                                                    var selectedNodes = data.instance.get_selected(true);
+                                                    var userNodes = selectedNodes.filter(function(node) {
+                                                        return node.id && node.id.toString().startsWith('user-');
+                                                    });
 
-            // Update tampilan list
-            var list = $(selectedListSelector);
-            list.empty();
-            if (userNodes.length) {
-                userNodes.forEach(function(node) {
-                    list.append('<li>' + node.text + '</li>');
-                });
-                $(sectionSelector).show();
-            } else {
-                $(sectionSelector).hide();
-            }
+                                                    // Update tampilan list
+                                                    var list = $(selectedListSelector);
+                                                    list.empty();
+                                                    if (userNodes.length) {
+                                                        userNodes.forEach(function(node) {
+                                                            list.append('<li>' + node.text + '</li>');
+                                                        });
+                                                        $(sectionSelector).show();
+                                                    } else {
+                                                        $(sectionSelector).hide();
+                                                    }
 
-            // Isi hidden input
-            if (inputContainer) {
-                $(inputContainer).empty();
-                selectedNodes.forEach(function(node) {
-                    $(inputContainer).append(
-                        '<input type="hidden" name="' + inputName + '" value="' + node.id + '">'
-                    );
-                    if (inputName === 'tujuan[]') {
-                        $(inputContainer).append(
-                            '<input type="hidden" name="tujuanString[]" value="' + node.text + '">'
-                        );
-                    }
-                });
-            }
+                                                    // Isi hidden input
+                                                    if (inputContainer) {
+                                                        $(inputContainer).empty();
+                                                        selectedNodes.forEach(function(node) {
+                                                            $(inputContainer).append(
+                                                                '<input type="hidden" name="' + inputName + '" value="' + node
+                                                                .id + '">'
+                                                            );
+                                                            if (inputName === 'tujuan[]') {
+                                                                $(inputContainer).append(
+                                                                    '<input type="hidden" name="tujuanString[]" value="' + node
+                                                                    .text + '">'
+                                                                );
+                                                            }
+                                                        });
+                                                    }
 
-            if (inputName === 'tujuan[]' && userNodes.length > 0) {
-                $('#errorTujuan').hide();
-            }
-        });
-    }
+                                                    if (inputName === 'tujuan[]' && userNodes.length > 0) {
+                                                        $('#errorTujuan').hide();
+                                                    }
+                                                });
+                                            }
 
-    initRecipientTree('#org-tree',      selectedTujuan,   '#selected-recipients', '#selected-section',         '#tujuan-container',   'tujuan[]');
-    initRecipientTree('#tembusan-tree', selectedTembusan, '#selected-tembusan',   '#selected-tembusan-section', '#tembusan-container', 'tembusan[]');
-    initRecipientTree('#bcc-tree',      selectedBcc,      '#selected-bcc',        '#selected-bcc-section',      '#bcc-container',      'bcc[]');
-});
+                                            initRecipientTree('#org-tree', selectedTujuan, '#selected-recipients', '#selected-section',
+                                                '#tujuan-container', 'tujuan[]');
+                                            initRecipientTree('#tembusan-tree', selectedTembusan, '#selected-tembusan',
+                                                '#selected-tembusan-section', '#tembusan-container', 'tembusan[]');
+                                            initRecipientTree('#bcc-tree', selectedBcc, '#selected-bcc', '#selected-bcc-section', '#bcc-container',
+                                                'bcc[]');
+                                        });
                                     </script>
                                 @endpush
                                 <div id="orgTreeError" class="form-control text-danger" style="display:none;"></div>
@@ -357,7 +371,7 @@ $(function() {
                             <div class="col-md-12">
                                 <label for="tembusan-tree" class="form-label">
                                     <i class="fas fa-user text-primary me-1"></i>
-                                    Tembusan <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
+                                    CC (Tembusan / Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
                                         jika tidak ada.)</span>
                                 </label>
                                 <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
@@ -376,7 +390,7 @@ $(function() {
                             <div class="col-md-12">
                                 <label for="bcc-tree" class="form-label">
                                     <i class="fas fa-user-secret text-primary me-1"></i>
-                                    BCC <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika
+                                    BCC (Blind Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika
                                         tidak ada.)</span>
                                 </label>
                                 <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">

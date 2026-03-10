@@ -100,16 +100,17 @@
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">File</div>
                                     <div class="info-value">
-                                        <a onclick="window.location.href='{{ route('view-risalahPDF', $risalah->id_risalah) }}'"
-                                            class="btn btn-sm btn-custom me-2 rounded-2">
+                                        <a href="{{ route('view-risalahPDF', $risalah->id_risalah) }}" target="_blank"
+                                            rel="noopener noreferrer" class="btn btn-sm btn-custom me-2 rounded-2"
+                                            title="Lihat surat dan lampiran dalam format PDF">
                                             <i class="fa fa-eye me-1"></i> Lihat
                                         </a>
-                                        @if ($risalah->status == 'approve')
-                                            <a onclick="window.location.href='{{ route('cetakrisalah', ['id' => $risalah->id_risalah]) }}'"
-                                                class="btn btn-sm btn-custom rounded-2">
-                                                <i class="fa fa-download me-1"></i> Unduh
-                                            </a>
-                                        @endif
+
+                                        <a href="{{ route('cetakrisalah', ['id' => $risalah->id_risalah]) }}"
+                                            class="btn btn-sm btn-custom rounded-2"
+                                            title="Unduh surat dan lampiran dalam format PDF">
+                                            <i class="fa fa-download me-1"></i> Unduh
+                                        </a>
                                     </div>
                                 </div>
                                 @if ($lampiranData)

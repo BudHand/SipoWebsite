@@ -99,9 +99,15 @@
                                                 $selectedIdSet = $selectedUsers->pluck('id')->flip();
                                                 $remainingIds = $selectedUsers->pluck('id')->all();
 
-                                                $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
+                                                $directorMap = \App\Models\Director::pluck(
+                                                    'name_director',
+                                                    'id_director',
+                                                );
                                                 $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
-                                                $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                                                $departmentMap = \App\Models\Department::pluck(
+                                                    'name_department',
+                                                    'id_department',
+                                                );
                                                 $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
                                                 $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
 
@@ -113,8 +119,14 @@
                                                     ['col' => 'unit_id_unit', 'map' => $unitMap],
                                                 ];
 
-                                                $sectionToDepartmentMap = \App\Models\Section::pluck('department_id_department', 'id_section');
-                                                $unitToSectionMap = \App\Models\Unit::pluck('section_id_section', 'id_unit');
+                                                $sectionToDepartmentMap = \App\Models\Section::pluck(
+                                                    'department_id_department',
+                                                    'id_section',
+                                                );
+                                                $unitToSectionMap = \App\Models\Unit::pluck(
+                                                    'section_id_section',
+                                                    'id_unit',
+                                                );
                                                 $groupedDepartmentIds = [];
                                                 $groupedSectionIds = [];
 
@@ -129,33 +141,69 @@
                                                     foreach ($groupIds as $groupId) {
                                                         if ($scope['col'] === 'section_id_section') {
                                                             $parentDeptId = $sectionToDepartmentMap[$groupId] ?? null;
-                                                            if (!empty($parentDeptId) && in_array((int) $parentDeptId, $groupedDepartmentIds, true)) {
-                                                                $coveredUserIds = $selectedUsers->where('section_id_section', $groupId)->pluck('id')->all();
-                                                                $remainingIds = array_values(array_diff($remainingIds, $coveredUserIds));
+                                                            if (
+                                                                !empty($parentDeptId) &&
+                                                                in_array(
+                                                                    (int) $parentDeptId,
+                                                                    $groupedDepartmentIds,
+                                                                    true,
+                                                                )
+                                                            ) {
+                                                                $coveredUserIds = $selectedUsers
+                                                                    ->where('section_id_section', $groupId)
+                                                                    ->pluck('id')
+                                                                    ->all();
+                                                                $remainingIds = array_values(
+                                                                    array_diff($remainingIds, $coveredUserIds),
+                                                                );
                                                                 continue;
                                                             }
                                                         }
 
                                                         if ($scope['col'] === 'unit_id_unit') {
                                                             $parentSectionId = $unitToSectionMap[$groupId] ?? null;
-                                                            $parentDeptId = $parentSectionId ? ($sectionToDepartmentMap[$parentSectionId] ?? null) : null;
+                                                            $parentDeptId = $parentSectionId
+                                                                ? $sectionToDepartmentMap[$parentSectionId] ?? null
+                                                                : null;
 
-                                                            if ((!empty($parentSectionId) && in_array((int) $parentSectionId, $groupedSectionIds, true)) ||
-                                                                (!empty($parentDeptId) && in_array((int) $parentDeptId, $groupedDepartmentIds, true))) {
-                                                                $coveredUserIds = $selectedUsers->where('unit_id_unit', $groupId)->pluck('id')->all();
-                                                                $remainingIds = array_values(array_diff($remainingIds, $coveredUserIds));
+                                                            if (
+                                                                (!empty($parentSectionId) &&
+                                                                    in_array(
+                                                                        (int) $parentSectionId,
+                                                                        $groupedSectionIds,
+                                                                        true,
+                                                                    )) ||
+                                                                (!empty($parentDeptId) &&
+                                                                    in_array(
+                                                                        (int) $parentDeptId,
+                                                                        $groupedDepartmentIds,
+                                                                        true,
+                                                                    ))
+                                                            ) {
+                                                                $coveredUserIds = $selectedUsers
+                                                                    ->where('unit_id_unit', $groupId)
+                                                                    ->pluck('id')
+                                                                    ->all();
+                                                                $remainingIds = array_values(
+                                                                    array_diff($remainingIds, $coveredUserIds),
+                                                                );
                                                                 continue;
                                                             }
                                                         }
 
-                                                        $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+                                                        $allMemberIds = \App\Models\User::where(
+                                                            $scope['col'],
+                                                            $groupId,
+                                                        )->pluck('id');
                                                         if ($allMemberIds->isEmpty()) {
                                                             continue;
                                                         }
 
-                                                        $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                                                        $allSelected = $allMemberIds->every(
+                                                            fn($memberId) => $selectedIdSet->has($memberId),
+                                                        );
                                                         if ($allSelected) {
-                                                            $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                                            $scopeName = $scope['map'][$groupId] ?? 'ID ' . $groupId;
                                                             $tujuanRingkas[] = $scopeName;
 
                                                             if ($scope['col'] === 'department_id_department') {
@@ -165,7 +213,9 @@
                                                                 $groupedSectionIds[] = (int) $groupId;
                                                             }
 
-                                                            $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                                            $remainingIds = array_values(
+                                                                array_diff($remainingIds, $allMemberIds->all()),
+                                                            );
                                                         }
                                                     }
                                                 }
@@ -178,37 +228,74 @@
                                                     $fullName = trim($user->firstname . ' ' . $user->lastname);
                                                     $positionName = $user->position->nm_position ?? '-';
                                                     $positionLower = strtolower($positionName);
-                                                    $isStaff = str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+                                                    $isStaff =
+                                                        str_contains($positionLower, 'staff') ||
+                                                        str_contains($positionLower, 'staf');
 
                                                     $bagianKerja = '-';
                                                     if ($isStaff) {
-                                                        if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                                        if (
+                                                            !empty($user->unit_id_unit) &&
+                                                            isset($unitMap[$user->unit_id_unit])
+                                                        ) {
                                                             $bagianKerja = $unitMap[$user->unit_id_unit];
-                                                        } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                                        } elseif (
+                                                            !empty($user->section_id_section) &&
+                                                            isset($sectionMap[$user->section_id_section])
+                                                        ) {
                                                             $bagianKerja = $sectionMap[$user->section_id_section];
-                                                        } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
-                                                            $bagianKerja = $departmentMap[$user->department_id_department];
-                                                        } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                                        } elseif (
+                                                            !empty($user->department_id_department) &&
+                                                            isset($departmentMap[$user->department_id_department])
+                                                        ) {
+                                                            $bagianKerja =
+                                                                $departmentMap[$user->department_id_department];
+                                                        } elseif (
+                                                            !empty($user->divisi_id_divisi) &&
+                                                            isset($divisionMap[$user->divisi_id_divisi])
+                                                        ) {
                                                             $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                                        } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                                        } elseif (
+                                                            !empty($user->director_id_director) &&
+                                                            isset($directorMap[$user->director_id_director])
+                                                        ) {
                                                             $bagianKerja = $directorMap[$user->director_id_director];
                                                         }
                                                     } else {
-                                                        if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
-                                                            $bagianKerja = $departmentMap[$user->department_id_department];
-                                                        } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                                        if (
+                                                            !empty($user->department_id_department) &&
+                                                            isset($departmentMap[$user->department_id_department])
+                                                        ) {
+                                                            $bagianKerja =
+                                                                $departmentMap[$user->department_id_department];
+                                                        } elseif (
+                                                            !empty($user->divisi_id_divisi) &&
+                                                            isset($divisionMap[$user->divisi_id_divisi])
+                                                        ) {
                                                             $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                                        } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                                        } elseif (
+                                                            !empty($user->section_id_section) &&
+                                                            isset($sectionMap[$user->section_id_section])
+                                                        ) {
                                                             $bagianKerja = $sectionMap[$user->section_id_section];
-                                                        } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                                        } elseif (
+                                                            !empty($user->unit_id_unit) &&
+                                                            isset($unitMap[$user->unit_id_unit])
+                                                        ) {
                                                             $bagianKerja = $unitMap[$user->unit_id_unit];
-                                                        } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                                        } elseif (
+                                                            !empty($user->director_id_director) &&
+                                                            isset($directorMap[$user->director_id_director])
+                                                        ) {
                                                             $bagianKerja = $directorMap[$user->director_id_director];
                                                         }
                                                     }
 
-                                                    $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
-                                                    $tujuanRingkas[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
+                                                    $positionClean =
+                                                        preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?:
+                                                        $positionName;
+                                                    $tujuanRingkas[] =
+                                                        $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
                                                 }
                                             }
 
@@ -227,7 +314,9 @@
                                     </div>
                                 </div>
                                 @php
-                                    $rawTembusan = array_values(array_filter(explode(';', $memo->tembusan ?? ''), fn($t) => trim($t) !== ''));
+                                    $rawTembusan = array_values(
+                                        array_filter(explode(';', $memo->tembusan ?? ''), fn($t) => trim($t) !== ''),
+                                    );
 
                                     $tembusanUserIds = collect($rawTembusan)
                                         ->filter(fn($t) => is_numeric($t))
@@ -243,7 +332,10 @@
                                     $tembusanRingkas = [];
 
                                     if ($tembusanUserIds->isNotEmpty()) {
-                                        $selectedUsers = \App\Models\User::with(['position:id_position,nm_position', 'department:id_department,name_department'])
+                                        $selectedUsers = \App\Models\User::with([
+                                            'position:id_position,nm_position',
+                                            'department:id_department,name_department',
+                                        ])
                                             ->whereIn('id', $tembusanUserIds)
                                             ->get([
                                                 'id',
@@ -262,14 +354,25 @@
 
                                         $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
                                         $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
-                                        $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                                        $departmentMap = \App\Models\Department::pluck(
+                                            'name_department',
+                                            'id_department',
+                                        );
                                         $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
                                         $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
 
                                         $scopes = [
-                                            ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
+                                            [
+                                                'col' => 'director_id_director',
+                                                'label' => 'Direktur',
+                                                'map' => $directorMap,
+                                            ],
                                             ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
-                                            ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
+                                            [
+                                                'col' => 'department_id_department',
+                                                'label' => 'Departemen',
+                                                'map' => $departmentMap,
+                                            ],
                                             ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
                                             ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
                                         ];
@@ -283,16 +386,22 @@
                                                 ->values();
 
                                             foreach ($groupIds as $groupId) {
-                                                $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+                                                $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck(
+                                                    'id',
+                                                );
                                                 if ($allMemberIds->isEmpty()) {
                                                     continue;
                                                 }
 
-                                                $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                                                $allSelected = $allMemberIds->every(
+                                                    fn($memberId) => $selectedIdSet->has($memberId),
+                                                );
                                                 if ($allSelected) {
-                                                    $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                                    $scopeName = $scope['map'][$groupId] ?? 'ID ' . $groupId;
                                                     $tembusanRingkas[] = $scope['label'] . ': ' . $scopeName;
-                                                    $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                                    $remainingIds = array_values(
+                                                        array_diff($remainingIds, $allMemberIds->all()),
+                                                    );
                                                 }
                                             }
                                         }
@@ -305,41 +414,77 @@
                                             $fullName = trim($user->firstname . ' ' . $user->lastname);
                                             $positionName = $user->position->nm_position ?? '-';
                                             $positionLower = strtolower($positionName);
-                                            $isStaff = str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+                                            $isStaff =
+                                                str_contains($positionLower, 'staff') ||
+                                                str_contains($positionLower, 'staf');
 
                                             $bagianKerja = '-';
                                             if ($isStaff) {
-                                                if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                                if (
+                                                    !empty($user->unit_id_unit) &&
+                                                    isset($unitMap[$user->unit_id_unit])
+                                                ) {
                                                     $bagianKerja = $unitMap[$user->unit_id_unit];
-                                                } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                                } elseif (
+                                                    !empty($user->section_id_section) &&
+                                                    isset($sectionMap[$user->section_id_section])
+                                                ) {
                                                     $bagianKerja = $sectionMap[$user->section_id_section];
-                                                } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                                } elseif (
+                                                    !empty($user->department_id_department) &&
+                                                    isset($departmentMap[$user->department_id_department])
+                                                ) {
                                                     $bagianKerja = $departmentMap[$user->department_id_department];
-                                                } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                                } elseif (
+                                                    !empty($user->divisi_id_divisi) &&
+                                                    isset($divisionMap[$user->divisi_id_divisi])
+                                                ) {
                                                     $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                                } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                                } elseif (
+                                                    !empty($user->director_id_director) &&
+                                                    isset($directorMap[$user->director_id_director])
+                                                ) {
                                                     $bagianKerja = $directorMap[$user->director_id_director];
                                                 }
                                             } else {
-                                                if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                                if (
+                                                    !empty($user->department_id_department) &&
+                                                    isset($departmentMap[$user->department_id_department])
+                                                ) {
                                                     $bagianKerja = $departmentMap[$user->department_id_department];
-                                                } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                                } elseif (
+                                                    !empty($user->divisi_id_divisi) &&
+                                                    isset($divisionMap[$user->divisi_id_divisi])
+                                                ) {
                                                     $bagianKerja = $divisionMap[$user->divisi_id_divisi];
-                                                } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                                } elseif (
+                                                    !empty($user->section_id_section) &&
+                                                    isset($sectionMap[$user->section_id_section])
+                                                ) {
                                                     $bagianKerja = $sectionMap[$user->section_id_section];
-                                                } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                                } elseif (
+                                                    !empty($user->unit_id_unit) &&
+                                                    isset($unitMap[$user->unit_id_unit])
+                                                ) {
                                                     $bagianKerja = $unitMap[$user->unit_id_unit];
-                                                } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                                } elseif (
+                                                    !empty($user->director_id_director) &&
+                                                    isset($directorMap[$user->director_id_director])
+                                                ) {
                                                     $bagianKerja = $directorMap[$user->director_id_director];
                                                 }
                                             }
 
-                                            $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
-                                            $tembusanRingkas[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
+                                            $positionClean =
+                                                preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
+                                            $tembusanRingkas[] =
+                                                $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
                                         }
                                     }
 
-                                    $tembusanList = array_values(array_filter(array_merge($tembusanRingkas, $legacyTembusan)));
+                                    $tembusanList = array_values(
+                                        array_filter(array_merge($tembusanRingkas, $legacyTembusan)),
+                                    );
                                 @endphp
                                 @if (!empty($tembusanList))
                                     <div class="info-row d-flex flex-column flex-sm-row">
@@ -415,11 +560,12 @@
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">File</div>
                                     <div class="info-value">
-                                        <a onclick="window.location.href='{{ route('view-memoPDF', $memo->id_memo) }}'"
-                                            class="btn btn-sm btn-custom me-2 rounded-2">
+                                        <a href="{{ route('view-memoPDF', $memo->id_memo) }}" target="_blank"
+                                            rel="noopener noreferrer" class="btn btn-sm btn-custom me-2 rounded-2">
                                             <i class="fa fa-eye me-1"></i> Lihat
                                         </a>
-                                        <a onclick="window.location.href='{{ route('cetakmemo', ['id' => $memo->id_memo]) }}'"
+
+                                        <a href="{{ route('cetakmemo', ['id' => $memo->id_memo]) }}"
                                             class="btn btn-sm btn-custom rounded-2">
                                             <i class="fa fa-download me-1"></i> Unduh
                                         </a>
@@ -525,8 +671,7 @@
                         </div>
                     </div>
                 @elseif ($memo->status === 'pending' && $memo->nama_bertandatangan == Auth::user()->fullname)
-                    <form id="approvalForm" method="POST"
-                        action="{{ route('memo.updateStatus', $memo->id_memo) }}">
+                    <form id="approvalForm" method="POST" action="{{ route('memo.updateStatus', $memo->id_memo) }}">
                         @csrf
                         @method('PUT')
 

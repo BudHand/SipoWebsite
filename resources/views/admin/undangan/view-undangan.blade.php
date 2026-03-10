@@ -95,12 +95,13 @@
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">File</div>
                                     <div class="info-value">
-                                        <a onclick="window.location.href='{{ route('view-undanganPDF', $undangan->id_undangan) }}'"
-                                            class="btn btn-sm btn-custom me-2 rounded-2">
+                                        <a href="{{ route('view-undanganPDF', $undangan->id_undangan) }}" target="_blank"
+                                            rel="noopener noreferrer" class="btn btn-sm btn-custom me-2 rounded-2">
                                             <i class="fa fa-eye me-1"></i> Lihat
                                         </a>
+
                                         @if ($undangan->status == 'approve')
-                                            <a onclick="window.location.href='{{ route('cetakundangan', ['id' => $undangan->id_undangan]) }}'"
+                                            <a href="{{ route('cetakundangan', ['id' => $undangan->id_undangan]) }}"
                                                 class="btn btn-sm btn-custom rounded-2">
                                                 <i class="fa fa-download me-1"></i> Unduh
                                             </a>

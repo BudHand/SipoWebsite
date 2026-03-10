@@ -173,7 +173,7 @@
                                         <div class="row g-3 mt-1">
                                             <div class="col-md-6">
                                                 <label class="form-label mb-1"><i
-                                                        class="fas fa-user text-primary me-1"></i>Tembusan</label>
+                                                        class="fas fa-user text-primary me-1"></i>CC (Tembusan / Carbon Copy)</label>
                                                 <div class="border rounded p-2" style="max-height:250px;overflow-y:auto;">
                                                     <div id="tembusan-tree" style="font-size:small;"></div>
                                                 </div>
@@ -185,7 +185,7 @@
                                             </div>
                                             <div class="col-md-6">
                                                 <label class="form-label mb-1"><i
-                                                        class="fas fa-user-secret text-primary me-1"></i>BCC</label>
+                                                        class="fas fa-user-secret text-primary me-1"></i>BCC (Blind Carbon Copy)</label>
                                                 <div class="border rounded p-2" style="max-height:250px;overflow-y:auto;">
                                                     <div id="bcc-tree" style="font-size:small;"></div>
                                                 </div>

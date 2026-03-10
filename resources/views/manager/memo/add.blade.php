@@ -331,7 +331,7 @@
                                 <div class="col-md-12">
                                     <label for="tembusan-tree" class="form-label">
                                         <i class="fas fa-user text-primary me-1"></i>
-                                        Tembusan <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
+                                        CC (Tembusan / Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
                                             jika tidak ada.)</span>
                                     </label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
@@ -349,7 +349,7 @@
                                 <div class="col-md-12">
                                     <label for="bcc-tree" class="form-label">
                                         <i class="fas fa-user-secret text-primary me-1"></i>
-                                        BCC <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
+                                        BCC (Blind Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                     </label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                         <div style="font-size: small;" id="bcc-tree"></div>
