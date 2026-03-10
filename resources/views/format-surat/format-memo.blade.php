@@ -441,7 +441,9 @@
                                         }
                                     }
 
-                                    $tujuanList = array_values(array_filter(array_merge($tujuanRingkas, $legacyTujuanNames)));
+                                    $tujuanList = $rawTujuanIds->isNotEmpty()
+                                                ? array_values(array_filter($tujuanRingkas))
+                                                : array_values(array_filter($legacyTujuanNames));
                                 @endphp
 
                                 @if (!empty($tujuanList))
