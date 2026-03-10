@@ -1208,6 +1208,11 @@ class MemoController extends Controller
         $users = [];
 
         foreach ($rawTujuan as $item) {
+            if (is_numeric($item)) {
+                $users[] = (int) $item;
+                continue;
+            }
+
             if (Str::startsWith($item, 'dept-')) {
                 $departments[] = (int) Str::after($item, 'dept-');
             } elseif (Str::startsWith($item, 'section-')) {
@@ -1219,6 +1224,31 @@ class MemoController extends Controller
             } elseif (Str::startsWith($item, 'user-')) {
                 $users[] = (int) Str::after($item, 'user-');
             }
+        }
+
+        // Expand hierarchy supaya pilih level atas otomatis mencakup seluruh turunan
+        if (!empty($divisions)) {
+            $deptFromDivision = Department::whereIn('divisi_id_divisi', $divisions)
+                ->pluck('id_department')
+                ->map(fn($v) => (int) $v)
+                ->all();
+            $departments = array_values(array_unique(array_merge($departments, $deptFromDivision)));
+        }
+
+        if (!empty($departments)) {
+            $sectionFromDepartment = Section::whereIn('department_id_department', $departments)
+                ->pluck('id_section')
+                ->map(fn($v) => (int) $v)
+                ->all();
+            $sections = array_values(array_unique(array_merge($sections, $sectionFromDepartment)));
+        }
+
+        if (!empty($sections)) {
+            $unitFromSection = Unit::whereIn('section_id_section', $sections)
+                ->pluck('id_unit')
+                ->map(fn($v) => (int) $v)
+                ->all();
+            $units = array_values(array_unique(array_merge($units, $unitFromSection)));
         }
 
         // Now query the users who match any of the IDs
