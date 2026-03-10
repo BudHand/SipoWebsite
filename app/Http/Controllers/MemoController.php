@@ -183,8 +183,7 @@ class MemoController extends Controller
                 $q->where('jenis_document', 'memo')
                     ->where('id_pengirim', Auth::user()->id)
                     ->whereHas('memo', function ($qq) use ($userKode) {
-                        $qq->where('kode', $userKode)
-                            ->orWhere('nama_bertandatangan', Auth::user()->fullname);
+                        $qq->where('kode', $userKode)->orWhere('nama_bertandatangan', Auth::user()->fullname);
                     });
             });
 
@@ -215,8 +214,7 @@ class MemoController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')
-                    ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -248,7 +246,8 @@ class MemoController extends Controller
         $kirimDocuments = Kirim_Document::where('jenis_document', 'memo')
             ->whereHas('memo', function ($qq) use ($userKode) {
                 $qq->where('kode', $userKode);
-            })->get();
+            })
+            ->get();
 
         return view(Auth::user()->role->nm_role . '.memo.memo-terkirim', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
@@ -310,8 +309,7 @@ class MemoController extends Controller
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')
-                    ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -323,7 +321,6 @@ class MemoController extends Controller
 
         $perPage = $request->get('per_page', 10);
         $memos = $query->paginate($perPage);
-
 
         $memos->getCollection()->transform(function ($memo) use ($userKode) {
             // Ambil status kirim pertama untuk dokumen ini yang berasal dari kode selain user
@@ -344,7 +341,8 @@ class MemoController extends Controller
             ->where('status', 'approve')
             ->whereHas('memo', function ($qq) use ($userKode) {
                 $qq->where('kode', '!=', $userKode);
-            })->get();
+            })
+            ->get();
 
         return view(Auth::user()->role->nm_role . '.memo.memo-diterima', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
@@ -432,7 +430,6 @@ class MemoController extends Controller
             }
         }
 
-
         // dd($memo, $memo2, $lampiranData);
         return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'pembuat'));
     }
@@ -443,13 +440,7 @@ class MemoController extends Controller
             return [];
         }
 
-        return collect(explode(';', $raw))
-            ->map(fn($v) => trim($v))
-            ->filter(fn($v) => $v !== '' && is_numeric($v))
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->values()
-            ->all();
+        return collect(explode(';', $raw))->map(fn($v) => trim($v))->filter(fn($v) => $v !== '' && is_numeric($v))->map(fn($v) => (int) $v)->unique()->values()->all();
     }
 
     private function buildGroupedRecipientDisplayList(array $selectedUserIds): array
@@ -460,17 +451,7 @@ class MemoController extends Controller
 
         $selectedUsers = User::with(['position:id_position,nm_position'])
             ->whereIn('id', $selectedUserIds)
-            ->get([
-                'id',
-                'firstname',
-                'lastname',
-                'position_id_position',
-                'director_id_director',
-                'divisi_id_divisi',
-                'department_id_department',
-                'section_id_section',
-                'unit_id_unit',
-            ]);
+            ->get(['id', 'firstname', 'lastname', 'position_id_position', 'director_id_director', 'divisi_id_divisi', 'department_id_department', 'section_id_section', 'unit_id_unit']);
 
         if ($selectedUsers->isEmpty()) {
             return [];
@@ -486,21 +467,10 @@ class MemoController extends Controller
         $unitMap = Unit::pluck('name_unit', 'id_unit');
 
         $result = [];
-        $scopes = [
-            ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
-            ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
-            ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
-            ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
-            ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
-        ];
+        $scopes = [['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap], ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap], ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap], ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap], ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap]];
 
         foreach ($scopes as $scope) {
-            $groupIds = $selectedUsers
-                ->whereIn('id', $remainingIds)
-                ->pluck($scope['col'])
-                ->filter()
-                ->unique()
-                ->values();
+            $groupIds = $selectedUsers->whereIn('id', $remainingIds)->pluck($scope['col'])->filter()->unique()->values();
 
             foreach ($groupIds as $groupId) {
                 $allMemberIds = User::where($scope['col'], $groupId)->pluck('id');
@@ -510,7 +480,7 @@ class MemoController extends Controller
 
                 $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
                 if ($allSelected) {
-                    $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                    $scopeName = $scope['map'][$groupId] ?? 'ID ' . $groupId;
                     $result[] = $scope['label'] . ': ' . $scopeName;
                     $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
                 }
@@ -569,13 +539,16 @@ class MemoController extends Controller
     public function nextSeri(Request $request)
     {
         // Validasi input seri dan nomor surat manual
-        $request->validate([
-            'seri_surat' => 'required|string|max:50',
-            'nomor_surat' => 'required|string|max:100',
-        ], [
-            'seri_surat.required' => 'Seri surat wajib diisi.',
-            'nomor_surat.required' => 'Nomor surat wajib diisi.',
-        ]);
+        $request->validate(
+            [
+                'seri_surat' => 'required|string|max:50',
+                'nomor_surat' => 'required|string|max:100',
+            ],
+            [
+                'seri_surat.required' => 'Seri surat wajib diisi.',
+                'nomor_surat.required' => 'Nomor surat wajib diisi.',
+            ],
+        );
 
         // Ambil input dari user
         $seriSurat = $request->input('seri_surat');
@@ -715,8 +688,8 @@ class MemoController extends Controller
 
         $hierarki =
             collect([$context['unit'] ?? null, $context['section'] ?? null, $context['department'] ?? null, $context['divisi'] ?? null, $context['director'] ?? null])
-            ->filter()
-            ->first() ?? '-';
+                ->filter()
+                ->first() ?? '-';
 
         $firstname = $user['firstname'] ?? ($user['nm_user'] ?? '-');
         $lastname = $user['lastname'] ?? '';
@@ -727,7 +700,6 @@ class MemoController extends Controller
     private function convertToJsTree($tree)
     {
         $result = [];
-
 
         foreach ($tree as $director) {
             $dirNode = [
@@ -744,7 +716,7 @@ class MemoController extends Controller
                 $dirNode['children'][] = [
                     'id' => 'user-' . $user['id'],
                     'text' => $this->getUserText($user, ['director' => $dirNode['text']]),
-                    'icon' => 'fa fa-user'
+                    'icon' => 'fa fa-user',
                 ];
             }
             $addedDepartments = [];
@@ -754,7 +726,7 @@ class MemoController extends Controller
                 $divNode = [
                     'id' => 'divisi-' . ($divisi['id_divisi'] ?? ''),
                     'text' => $divName,
-                    'children' => []
+                    'children' => [],
                 ];
 
                 // divisi users
@@ -764,9 +736,9 @@ class MemoController extends Controller
                         'id' => 'user-' . $user['id'],
                         'text' => $this->getUserText($user, [
                             'director' => $dirNode['text'],
-                            'divisi' => $divName
+                            'divisi' => $divName,
                         ]),
-                        'icon' => 'fa fa-user'
+                        'icon' => 'fa fa-user',
                     ];
                 }
 
@@ -779,7 +751,7 @@ class MemoController extends Controller
 
                     $divNode['children'][] = $this->buildDeptNode($dept, [
                         'director' => $dirNode['text'],
-                        'divisi' => $divName
+                        'divisi' => $divName,
                     ]);
                     $addedDepartments[] = $deptId;
                 }
@@ -794,13 +766,12 @@ class MemoController extends Controller
                     continue; // skip duplicates
                 }
                 $dirNode['children'][] = $this->buildDeptNode($dept, [
-                    'director' => $dirNode['text']
+                    'director' => $dirNode['text'],
                 ]);
                 $addedDepartments[] = $deptId;
             }
 
             // 2) Then add divisions (if any) and their departments
-
 
             $result[] = $dirNode;
         }
@@ -818,7 +789,7 @@ class MemoController extends Controller
         $deptNode = [
             'id' => 'dept-' . ($dept['id_department'] ?? ''),
             'text' => $deptName,
-            'children' => []
+            'children' => [],
         ];
 
         // users at department
@@ -827,7 +798,7 @@ class MemoController extends Controller
             $deptNode['children'][] = [
                 'id' => 'user-' . $user['id'],
                 'text' => $this->getUserText($user, array_merge($ctx, ['department' => $deptName])),
-                'icon' => 'fa fa-user'
+                'icon' => 'fa fa-user',
             ];
         }
 
@@ -837,18 +808,21 @@ class MemoController extends Controller
             $sectionNode = [
                 'id' => 'section-' . ($section['id_section'] ?? ''),
                 'text' => $sectionName,
-                'children' => []
+                'children' => [],
             ];
 
             $usersAtSection = $this->filterUsersAtLevel($section['users'] ?? [], 'section');
             foreach ($usersAtSection as $user) {
                 $sectionNode['children'][] = [
                     'id' => 'user-' . $user['id'],
-                    'text' => $this->getUserText($user, array_merge($ctx, [
-                        'department' => $deptName,
-                        'section' => $sectionName
-                    ])),
-                    'icon' => 'fa fa-user'
+                    'text' => $this->getUserText(
+                        $user,
+                        array_merge($ctx, [
+                            'department' => $deptName,
+                            'section' => $sectionName,
+                        ]),
+                    ),
+                    'icon' => 'fa fa-user',
                 ];
             }
 
@@ -857,19 +831,22 @@ class MemoController extends Controller
                 $unitNode = [
                     'id' => 'unit-' . ($unit['id_unit'] ?? ''),
                     'text' => $unitName,
-                    'children' => []
+                    'children' => [],
                 ];
 
                 $usersAtUnit = $this->filterUsersAtLevel($unit['users'] ?? [], 'unit');
                 foreach ($usersAtUnit as $user) {
                     $unitNode['children'][] = [
                         'id' => 'user-' . $user['id'],
-                        'text' => $this->getUserText($user, array_merge($ctx, [
-                            'department' => $deptName,
-                            'section' => $sectionName,
-                            'unit' => $unitName
-                        ])),
-                        'icon' => 'fa fa-user'
+                        'text' => $this->getUserText(
+                            $user,
+                            array_merge($ctx, [
+                                'department' => $deptName,
+                                'section' => $sectionName,
+                                'unit' => $unitName,
+                            ]),
+                        ),
+                        'icon' => 'fa fa-user',
                     ];
                 }
 
@@ -881,7 +858,6 @@ class MemoController extends Controller
 
         return $deptNode;
     }
-
 
     public function getDivDeptKode($user)
     {
@@ -1133,11 +1109,7 @@ class MemoController extends Controller
                 'id_user' => $memo->pembuat,
                 'updated_at' => now(),
             ]);
-            $push->sendToUser(
-                $manager->id,
-                'Memo Menunggu Persetujuan',
-                $memo->judul
-            );
+            $push->sendToUser($manager->id, 'Memo Menunggu Persetujuan', $memo->judul);
             Notifikasi::create([
                 'judul' => 'Memo Menunggu Persetujuan',
                 'judul_document' => $memo->judul,
@@ -1556,17 +1528,17 @@ class MemoController extends Controller
         $requestStatus = $request->status;
 
         $authUser = Auth::user();
-        $authId   = (int) $authUser->id;
+        $authId = (int) $authUser->id;
 
         // Validasi input
         if ($requestStatus == 'approve') {
             $request->validate([
-                'status'  => 'required|in:approve,reject,pending,correction',
+                'status' => 'required|in:approve,reject,pending,correction',
                 'catatan' => 'nullable|string',
             ]);
         } else {
             $request->validate([
-                'status'  => 'required|in:approve,reject,pending,correction',
+                'status' => 'required|in:approve,reject,pending,correction',
                 'catatan' => 'required|string',
             ]);
         }
@@ -1574,7 +1546,6 @@ class MemoController extends Controller
         $push = new NotifApiController();
 
         return DB::transaction(function () use ($id, $request, $requestStatus, $authUser, $authId, $push) {
-
             // LOCK memo row untuk cegah double-approve paralel
             $memo = Memo::where('id_memo', $id)->lockForUpdate()->firstOrFail();
 
@@ -1587,17 +1558,13 @@ class MemoController extends Controller
             $userDivDeptKode = $this->getDivDeptKode($authUser);
 
             // Lock current kirim row (kalau ada) biar aman dari race
-            $currentKirim = Kirim_document::where('id_document', $id)
-                ->where('jenis_document', 'memo')
-                ->where('id_penerima', $authId)
-                ->lockForUpdate()
-                ->first();
+            $currentKirim = Kirim_document::where('id_document', $id)->where('jenis_document', 'memo')->where('id_penerima', $authId)->lockForUpdate()->first();
 
             // Update memo + current kirim
             $memo->status = $requestStatus;
 
             if ($currentKirim) {
-                $currentKirim->status     = $requestStatus;
+                $currentKirim->status = $requestStatus;
                 $currentKirim->updated_at = now();
                 $currentKirim->save();
             }
@@ -1606,7 +1573,7 @@ class MemoController extends Controller
             // APPROVE
             // ============================
             if ($requestStatus == 'approve') {
-                $tglDisahkan        = now();
+                $tglDisahkan = now();
                 $memo->tgl_disahkan = $tglDisahkan;
 
                 // Generate nomor memo bila perlu
@@ -1616,14 +1583,14 @@ class MemoController extends Controller
                     try {
                         $counter = CounterNomorSurat::createNomorSurat([
                             'tanggal_permintaan' => $tglDisahkan,
-                            'perusahaan'         => 'REKA',
-                            'kode_tipe_surat'     => 'GEN',
-                            'divisi'             => $memo->kode_bagian ?? $userDivDeptKode,
-                            'bulan'              => $bulanRomawi,
-                            'tahun'              => $tglDisahkan->year,
-                            'pic_peminta'        => $authUser->fullname,
-                            'jenis'              => 'Memo',
-                            'perihal'            => $memo->judul,
+                            'perusahaan' => 'REKA',
+                            'kode_tipe_surat' => 'GEN',
+                            'divisi' => $memo->kode_bagian ?? $userDivDeptKode,
+                            'bulan' => $bulanRomawi,
+                            'tahun' => $tglDisahkan->year,
+                            'pic_peminta' => $authUser->fullname,
+                            'jenis' => 'Memo',
+                            'perihal' => $memo->judul,
                         ]);
 
                         $memo->nomor_memo = $counter->nomor_surat_generated;
@@ -1631,27 +1598,17 @@ class MemoController extends Controller
                         Log::error('Generate nomor surat gagal: ' . $e->getMessage());
 
                         $divDeptKode = $this->getDivDeptKode($authUser);
-                        $nextSeri    = \App\Models\Seri::getNextSeri(false);
+                        $nextSeri = \App\Models\Seri::getNextSeri(false);
 
-                        $memo->nomor_memo = sprintf(
-                            '%02d.%02d/REKA/GEN/%s/%s/%d',
-                            $nextSeri['seri_tahunan'],
-                            $nextSeri['seri_bulanan'],
-                            strtoupper($divDeptKode),
-                            CounterNomorSurat::getBulanRomawi(now()->month),
-                            now()->year
-                        );
+                        $memo->nomor_memo = sprintf('%02d.%02d/REKA/GEN/%s/%s/%d', $nextSeri['seri_tahunan'], $nextSeri['seri_bulanan'], strtoupper($divDeptKode), CounterNomorSurat::getBulanRomawi(now()->month), now()->year);
                     }
                 }
 
                 // Generate QR (kalau mau lebih hemat, bisa generate hanya jika qr_approved_by masih null)
-                $qrText = 'Disetujui oleh: ' . $authUser->firstname . ' ' . $authUser->lastname
-                    . "\nNomor Memo: " . ($memo->nomor_memo ?? '-')
-                    . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s')
-                    . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+                $qrText = 'Disetujui oleh: ' . $authUser->firstname . ' ' . $authUser->lastname . "\nNomor Memo: " . ($memo->nomor_memo ?? '-') . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
 
                 try {
-                    $memo->qr_approved_by = (new QrCodeService())->generateWithLogo($qrText);
+                    $memo->qr_approved_by = new QrCodeService()->generateWithLogo($qrText);
                 } catch (\Exception $e) {
                     Log::error('Generate QR Code gagal: ' . $e->getMessage());
                 }
@@ -1660,11 +1617,7 @@ class MemoController extends Controller
                 // Kirim ke penerima (Memo Masuk) - idempotent
                 // ----------------------------
                 $tujuanUserIds = is_array($memo->tujuan) ? $memo->tujuan : explode(';', (string) $memo->tujuan);
-                $tujuanUserIds = collect($tujuanUserIds)
-                    ->map(fn($v) => (int) trim($v))
-                    ->filter(fn($v) => $v > 0)
-                    ->unique()
-                    ->values();
+                $tujuanUserIds = collect($tujuanUserIds)->map(fn($v) => (int) trim($v))->filter(fn($v) => $v > 0)->unique()->values();
 
                 foreach ($tujuanUserIds as $tujuanId) {
                     if ($tujuanId === $authId) {
@@ -1679,27 +1632,27 @@ class MemoController extends Controller
                     // kirim_document approve ke penerima: tidak dobel
                     \App\Models\Kirim_Document::firstOrCreate(
                         [
-                            'id_document'    => $memo->id_memo,
+                            'id_document' => $memo->id_memo,
                             'jenis_document' => 'memo',
-                            'id_penerima'    => $penerima->id,
-                            'status'         => 'approve',
+                            'id_penerima' => $penerima->id,
+                            'status' => 'approve',
                         ],
                         [
                             'id_pengirim' => $currentKirim ? $currentKirim->id_pengirim : $authId,
-                            'updated_at'  => now(),
-                        ]
+                            'updated_at' => now(),
+                        ],
                     );
 
                     // Notif Memo Masuk: tidak dobel
                     $notifMasuk = Notifikasi::firstOrCreate(
                         [
-                            'judul'          => 'Memo Masuk',
+                            'judul' => 'Memo Masuk',
                             'judul_document' => $memo->judul,
-                            'id_user'        => $penerima->id,
+                            'id_user' => $penerima->id,
                         ],
                         [
                             'updated_at' => now(),
-                        ]
+                        ],
                     );
 
                     // Push hanya kalau notif baru dibuat (biar gak spam kalau double approve)
@@ -1713,13 +1666,13 @@ class MemoController extends Controller
                 // ----------------------------
                 $notifDisetujui = Notifikasi::firstOrCreate(
                     [
-                        'judul'          => 'Memo Disetujui',
+                        'judul' => 'Memo Disetujui',
                         'judul_document' => $memo->judul,
-                        'id_user'        => (int) $memo->pembuat,
+                        'id_user' => (int) $memo->pembuat,
                     ],
                     [
                         'updated_at' => now(),
-                    ]
+                    ],
                 );
 
                 if ($notifDisetujui->wasRecentlyCreated) {
@@ -1736,13 +1689,13 @@ class MemoController extends Controller
                 foreach ($targetsTerkirim as $targetId) {
                     Notifikasi::firstOrCreate(
                         [
-                            'judul'          => 'Memo Terkirim',
+                            'judul' => 'Memo Terkirim',
                             'judul_document' => $memo->judul,
-                            'id_user'        => (int) $targetId,
+                            'id_user' => (int) $targetId,
                         ],
                         [
                             'updated_at' => now(),
-                        ]
+                        ],
                     );
                 }
 
@@ -1750,57 +1703,57 @@ class MemoController extends Controller
                 if ($authId !== (int) $memo->pembuat) {
                     \App\Models\Kirim_Document::firstOrCreate(
                         [
-                            'id_document'    => $memo->id_memo,
+                            'id_document' => $memo->id_memo,
                             'jenis_document' => 'memo',
-                            'id_pengirim'    => $authId,
-                            'id_penerima'    => $authId,
-                            'status'         => 'approve',
+                            'id_pengirim' => $authId,
+                            'id_penerima' => $authId,
+                            'status' => 'approve',
                         ],
                         [
                             'updated_at' => now(),
-                        ]
+                        ],
                     );
                 }
 
-            // ============================
-            // REJECT
-            // ============================
+                // ============================
+                // REJECT
+                // ============================
             } elseif ($requestStatus == 'reject') {
                 $memo->tgl_disahkan = now();
 
                 $notif = Notifikasi::firstOrCreate(
                     [
-                        'judul'          => 'Memo Ditolak',
+                        'judul' => 'Memo Ditolak',
                         'judul_document' => $memo->judul,
-                        'id_user'        => (int) $memo->pembuat,
+                        'id_user' => (int) $memo->pembuat,
                     ],
-                    ['updated_at' => now()]
+                    ['updated_at' => now()],
                 );
 
                 if ($notif->wasRecentlyCreated) {
                     $push->sendToUser((int) $memo->pembuat, 'Memo Ditolak', $memo->judul);
                 }
 
-            // ============================
-            // CORRECTION
-            // ============================
+                // ============================
+                // CORRECTION
+                // ============================
             } elseif ($requestStatus == 'correction') {
                 $notif = Notifikasi::firstOrCreate(
                     [
-                        'judul'          => 'Memo Perlu Revisi',
+                        'judul' => 'Memo Perlu Revisi',
                         'judul_document' => $memo->judul,
-                        'id_user'        => (int) $memo->pembuat,
+                        'id_user' => (int) $memo->pembuat,
                     ],
-                    ['updated_at' => now()]
+                    ['updated_at' => now()],
                 );
 
                 if ($notif->wasRecentlyCreated) {
                     $push->sendToUser((int) $memo->pembuat, 'Memo Perlu Revisi', $memo->judul);
                 }
 
-            // ============================
-            // PENDING
-            // ============================
+                // ============================
+                // PENDING
+                // ============================
             } else {
                 $memo->tgl_disahkan = null;
             }
@@ -1809,7 +1762,9 @@ class MemoController extends Controller
             $memo->catatan = $request->catatan;
             $memo->save();
 
-            return redirect()->route('memo.terkirim')->with('success', 'Memo berhasil di-' . $requestStatus);
+            return redirect()
+                ->route('memo.terkirim')
+                ->with('success', 'Memo berhasil di-' . $requestStatus);
         });
     }
 
@@ -1868,7 +1823,7 @@ class MemoController extends Controller
                 'kategori_barang.*.barang.required' => 'Nama barang harus diisi.',
                 'kategori_barang.*.qty.required' => 'Qty barang harus diisi.',
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
-            ]
+            ],
         );
 
         if ($request->filled('judul')) {
@@ -1920,53 +1875,42 @@ class MemoController extends Controller
         // ============================
         $notifService = app(NotifService::class);
 
-        $approverIds = Kirim_Document::where('id_document', $memo->id_memo)
-            ->where('jenis_document', 'memo')
-            ->pluck('id_penerima')
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->filter(fn($v) => $v > 0)
-            ->values();
+        $approverIds = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->pluck('id_penerima')->map(fn($v) => (int) $v)->unique()->filter(fn($v) => $v > 0)->values();
 
         foreach ($approverIds as $approverId) {
             // DB notif selalu update (unread)
             Notifikasi::updateOrCreate(
                 [
-                    'id_user'        => $approverId,
-                    'judul'          => 'Memo Telah Diupdate',
+                    'id_user' => $approverId,
+                    'judul' => 'Memo Telah Diupdate',
                     'judul_document' => $memo->judul,
-                    'id_document'    => (int) $memo->id_memo,
+                    'id_document' => (int) $memo->id_memo,
                 ],
                 [
-                    'dibaca'     => 0,
+                    'dibaca' => 0,
                     'updated_at' => now(), // penting karena timestamps=false
-                ]
+                ],
             );
 
             // anti spam push: 30 detik per memo-user
             $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$approverId}";
             if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
-                $notifService->createAndPush(
-                    $approverId,
-                    'Memo Telah Diupdate',
-                    $memo->judul,
-                    (int) $memo->id_memo
-                );
+                $notifService->createAndPush($approverId, 'Memo Telah Diupdate', $memo->judul, (int) $memo->id_memo);
             }
         }
 
         // notif ke pembuat (DB saja)
         Notifikasi::updateOrCreate(
             [
-                'id_user'        => (int) $memo->pembuat,
-                'judul'          => 'Memo Telah Diupdate',
+                'id_user' => (int) $memo->pembuat,
+                'judul' => 'Memo Telah Diupdate',
                 'judul_document' => $memo->judul,
-                'id_document'    => (int) $memo->id_memo,
+                'id_document' => (int) $memo->id_memo,
             ],
             [
-                'dibaca'     => 0,
+                'dibaca' => 0,
                 'updated_at' => now(),
-            ]
+            ],
         );
         // ============================
 
@@ -2108,7 +2052,6 @@ class MemoController extends Controller
             return $memo;
         });
 
-
         // Karena hanya satu memo, kita bisa mengambil dari collection lagi
         $memo = $memoCollection->first();
         $memo2 = Memo::where('id_memo', $id)->firstOrFail();
@@ -2143,9 +2086,9 @@ class MemoController extends Controller
                 $replyCreatorId = $reply->pembuat;
 
                 // boleh lihat jika:
-                return in_array($userId, $tujuanArray)   // 1. ia adalah tujuan memo balasan
-                    || $userId == $parentCreatorId       // 2. ia pembuat memo lama
-                    || $userId == $replyCreatorId;       // 3. ia pembuat memo balasan
+                return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
+                    $userId == $parentCreatorId || // 2. ia pembuat memo lama
+                    $userId == $replyCreatorId; // 3. ia pembuat memo balasan
             })
             ->values();
 
@@ -2254,9 +2197,9 @@ class MemoController extends Controller
                 $replyCreatorId = $reply->pembuat;
 
                 // boleh lihat jika:
-                return in_array($userId, $tujuanArray)   // 1. ia adalah tujuan memo balasan
-                    || $userId == $parentCreatorId       // 2. ia pembuat memo lama
-                    || $userId == $replyCreatorId;       // 3. ia pembuat memo balasan
+                return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
+                    $userId == $parentCreatorId || // 2. ia pembuat memo lama
+                    $userId == $replyCreatorId; // 3. ia pembuat memo balasan
             })
             ->values();
 
@@ -2267,10 +2210,7 @@ class MemoController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
-        return view(
-            'manager.memo.view-memoDiterima',
-            compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList')
-        );
+        return view('manager.memo.view-memoDiterima', compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList'));
     }
 
     public function view($id)
@@ -2293,7 +2233,6 @@ class MemoController extends Controller
             }
             return $memo;
         });
-
 
         // Karena hanya satu memo, kita bisa mengambil dari collection lagi
         $memo = $memoCollection->first();
@@ -2329,9 +2268,9 @@ class MemoController extends Controller
                 $replyCreatorId = $reply->pembuat;
 
                 // boleh lihat jika:
-                return in_array($userId, $tujuanArray)   // 1. ia adalah tujuan memo balasan
-                    || $userId == $parentCreatorId       // 2. ia pembuat memo lama
-                    || $userId == $replyCreatorId;       // 3. ia pembuat memo balasan
+                return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
+                    $userId == $parentCreatorId || // 2. ia pembuat memo lama
+                    $userId == $replyCreatorId; // 3. ia pembuat memo balasan
             })
             ->values();
 
@@ -2689,15 +2628,7 @@ class MemoController extends Controller
         $bulanRomawi = $this->convertToRoman(now()->month);
 
         // Format nomor dokumen baru
-        $nomorDokumen = sprintf(
-            '%02d.%02d/REKA%s/GEN/%s/%s/%d',
-            $nextSeri['seri_tahunan'],
-            $nextSeri['seri_bulanan'],
-            strtoupper($kodeDirektur),
-            strtoupper($divDeptKode),
-            $bulanRomawi,
-            now()->year
-        );
+        $nomorDokumen = sprintf('%02d.%02d/REKA%s/GEN/%s/%s/%d', $nextSeri['seri_tahunan'], $nextSeri['seri_bulanan'], strtoupper($kodeDirektur), strtoupper($divDeptKode), $bulanRomawi, now()->year);
 
         // Daftar bagian kerja
         $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
@@ -2772,21 +2703,25 @@ class MemoController extends Controller
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
 
-        return view(Auth::user()->role->nm_role . '.memo.add', [
-            'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
-            'nomorDokumen'     => $nomorDokumen,
-            'managers'         => $managers,
-            'divisiList'       => $divisiList,
-            'users'            => $users,
-            'orgTree'          => $orgTree,
-            'jsTreeData'       => $jsTreeData,
-            'mainDirector'     => $mainDirector,
-            //feat tembusan
-            'tembusan'          => $tembusan,
-            // tambahan untuk fitur balasan memo
-            'parentMemo'       => $parentMemo,
-            'replyToId'        => $replyToId,
-        ], compact('divDeptKode', 'bagianKerja'));
+        return view(
+            Auth::user()->role->nm_role . '.memo.add',
+            [
+                'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
+                'nomorDokumen' => $nomorDokumen,
+                'managers' => $managers,
+                'divisiList' => $divisiList,
+                'users' => $users,
+                'orgTree' => $orgTree,
+                'jsTreeData' => $jsTreeData,
+                'mainDirector' => $mainDirector,
+                //feat tembusan
+                'tembusan' => $tembusan,
+                // tambahan untuk fitur balasan memo
+                'parentMemo' => $parentMemo,
+                'replyToId' => $replyToId,
+            ],
+            compact('divDeptKode', 'bagianKerja'),
+        );
     }
 
     public function storeCoba(Request $request)
@@ -2798,8 +2733,7 @@ class MemoController extends Controller
 
         if (!$request->nama_bertandatangan) {
             $request->merge([
-                'nama_bertandatangan' => User::where('id', $request->manager_user_id)->first()->firstname . ' ' .
-                    User::where('id', $request->manager_user_id)->first()->lastname
+                'nama_bertandatangan' => User::where('id', $request->manager_user_id)->first()->firstname . ' ' . User::where('id', $request->manager_user_id)->first()->lastname,
             ]);
         }
 
@@ -2884,7 +2818,7 @@ class MemoController extends Controller
                         'name' => $file->getClientOriginalName(),
                         'path' => $filePath,
                         'size' => $file->getSize(),
-                        'uploaded_at' => now()->toDateTimeString()
+                        'uploaded_at' => now()->toDateTimeString(),
                     ];
                 }
             }
@@ -2980,11 +2914,7 @@ class MemoController extends Controller
                 'updated_at' => now(),
             ]);
 
-            $push->sendToUser(
-                $manager->id,
-                'Memo Menunggu Persetujuan',
-                $memo->judul
-            );
+            $push->sendToUser($manager->id, 'Memo Menunggu Persetujuan', $memo->judul);
 
             Notifikasi::create([
                 'judul' => 'Memo Menunggu Persetujuan',
@@ -3003,12 +2933,9 @@ class MemoController extends Controller
                 ->route(Auth::user()->role->nm_role . '.memo.terkirim')
                 ->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
         } else {
-            return redirect()
-                ->route('memo.terkirim')
-                ->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
+            return redirect()->route('memo.terkirim')->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
         }
     }
-
 
     public function editBaru($id)
     {
@@ -3030,7 +2957,19 @@ class MemoController extends Controller
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null;
 
+        // $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
+        // Ganti baris ini:
         $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
+
+        // Menjadi ini:
+        $tujuanArray = [];
+        if ($memo->tujuan) {
+            $tujuanArray = collect(array_values(array_filter(explode(';', $memo->tujuan), fn($v) => trim($v) !== '')))
+                ->filter(fn($v) => is_numeric($v))
+                ->map(fn($v) => 'user-' . (int) $v)
+                ->values()
+                ->all();
+        }
 
         // Parse lampiran data jika ada
         $lampiranData = [];
@@ -3078,7 +3017,7 @@ class MemoController extends Controller
                 'name' => $sect->name_section,
             ];
         }
-        foreach ($unit as $u){
+        foreach ($unit as $u) {
             $tembusan[] = [
                 'id' => 'unit_' . $u->id_unit,
                 'name' => $u->name_unit,
@@ -3088,42 +3027,16 @@ class MemoController extends Controller
         $selectedTembusan = [];
         if ($memo->tembusan) {
             $cc = array_values(array_filter(explode(';', $memo->tembusan), fn($v) => trim($v) !== ''));
-            $selectedTembusan = collect($cc)
-                ->filter(fn($v) => is_numeric($v))
-                ->map(fn($v) => 'user-' . (int) $v)
-                ->values()
-                ->all();
+            $selectedTembusan = collect($cc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
         }
 
         $selectedBcc = [];
         if ($memo->bcc) {
             $bcc = array_values(array_filter(explode(';', $memo->bcc), fn($v) => trim($v) !== ''));
-            $selectedBcc = collect($bcc)
-                ->filter(fn($v) => is_numeric($v))
-                ->map(fn($v) => 'user-' . (int) $v)
-                ->values()
-                ->all();
+            $selectedBcc = collect($bcc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
         }
 
-        return view(
-            Auth::user()->role->nm_role . '.memo.edit-baru',
-            compact(
-                'memo',
-                'divisi',
-                'seri',
-                'managers',
-                'orgTree',
-                'jsTreeData',
-                'mainDirector',
-                'tujuanArray',
-                'lampiranData',
-                'parentMemo',
-                'tembusan',
-                'selectedTembusan',
-                'selectedBcc',
-                'bagianKerja'
-            )
-        );
+        return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja'));
     }
 
     public function updateBaru(Request $request, $id)
@@ -3167,7 +3080,7 @@ class MemoController extends Controller
                 'kategori_barang.*.barang.required' => 'Nama barang harus diisi.',
                 'kategori_barang.*.qty.required' => 'Qty barang harus diisi.',
                 'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
-            ]
+            ],
         );
         // CC/BCC Memo: samakan dengan tujuan (simpan id user)
         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
@@ -3223,7 +3136,6 @@ class MemoController extends Controller
         $notifService = app(NotifService::class);
 
         return DB::transaction(function () use ($request, $memo, $notifService) {
-
             // ============================
             // CC/BCC: gabungkan ke tujuan (simpan id user)
             // ============================
@@ -3250,16 +3162,36 @@ class MemoController extends Controller
             // ============================
             // Update field memo
             // ============================
-            if ($request->filled('kode_bagian')) $memo->kode_bagian = $request->kode_bagian;
-            if ($request->filled('judul')) $memo->judul = $request->judul;
-            if ($request->filled('isi_memo')) $memo->isi_memo = $request->isi_memo;
-            if ($request->filled('tujuan')) $memo->tujuan = implode(';', $tujuanId);
-            if ($request->filled('tujuanString')) $memo->tujuan_string = implode(';', $request->tujuanString);
-            if ($request->filled('nomor_memo')) $memo->nomor_memo = $request->nomor_memo;
-            if ($request->filled('nama_bertandatangan')) $memo->nama_bertandatangan = $request->nama_bertandatangan;
-            if ($request->filled('tgl_dibuat')) $memo->tgl_dibuat = $request->tgl_dibuat;
-            if ($request->filled('seri_surat')) $memo->seri_surat = $request->seri_surat;
-            if ($request->filled('tgl_disahkan')) $memo->tgl_disahkan = $request->tgl_disahkan;
+            if ($request->filled('kode_bagian')) {
+                $memo->kode_bagian = $request->kode_bagian;
+            }
+            if ($request->filled('judul')) {
+                $memo->judul = $request->judul;
+            }
+            if ($request->filled('isi_memo')) {
+                $memo->isi_memo = $request->isi_memo;
+            }
+            if ($request->filled('tujuan')) {
+                $memo->tujuan = implode(';', $tujuanId);
+            }
+            if ($request->filled('tujuanString')) {
+                $memo->tujuan_string = implode(';', $request->tujuanString);
+            }
+            if ($request->filled('nomor_memo')) {
+                $memo->nomor_memo = $request->nomor_memo;
+            }
+            if ($request->filled('nama_bertandatangan')) {
+                $memo->nama_bertandatangan = $request->nama_bertandatangan;
+            }
+            if ($request->filled('tgl_dibuat')) {
+                $memo->tgl_dibuat = $request->tgl_dibuat;
+            }
+            if ($request->filled('seri_surat')) {
+                $memo->seri_surat = $request->seri_surat;
+            }
+            if ($request->filled('tgl_disahkan')) {
+                $memo->tgl_disahkan = $request->tgl_disahkan;
+            }
 
             // ============================
             // Lampiran JSON list
@@ -3314,61 +3246,45 @@ class MemoController extends Controller
             // ============================
 
             // ambil semua approver dari kirim_document memo ini
-            $approverIds = Kirim_Document::where('id_document', $memo->id_memo)
-                ->where('jenis_document', 'memo')
-                ->pluck('id_penerima')
-                ->map(fn ($v) => (int) $v)
-                ->unique()
-                ->filter(fn ($v) => $v > 0)
-                ->values();
+            $approverIds = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->pluck('id_penerima')->map(fn($v) => (int) $v)->unique()->filter(fn($v) => $v > 0)->values();
 
             foreach ($approverIds as $approverId) {
-
                 // Simpan notif DB (biar list notif muncul)
                 Notifikasi::updateOrCreate(
                     [
-                        'id_user'        => $approverId,
-                        'judul'          => 'Memo Diupdate, Menunggu Persetujuan',
+                        'id_user' => $approverId,
+                        'judul' => 'Memo Diupdate, Menunggu Persetujuan',
                         'judul_document' => $memo->judul,
                     ],
                     [
-                        'dibaca'     => 0,
+                        'dibaca' => 0,
                         'updated_at' => now(),
-                    ]
+                    ],
                 );
 
                 // anti spam push: kunci 30 detik per memo+approver
                 $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$approverId}";
                 if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
-                    $notifService->createAndPush(
-                        $approverId,
-                        'Memo Diupdate, Menunggu Persetujuan',
-                        $memo->judul
-                    );
+                    $notifService->createAndPush($approverId, 'Memo Diupdate, Menunggu Persetujuan', $memo->judul);
                 }
             }
 
             // notif ke pembuat (tanpa push juga boleh, tapi aku samakan)
             Notifikasi::updateOrCreate(
                 [
-                    'id_user'        => (int) $memo->pembuat,
-                    'judul'          => 'Memo Diupdate, Menunggu Persetujuan',
+                    'id_user' => (int) $memo->pembuat,
+                    'judul' => 'Memo Diupdate, Menunggu Persetujuan',
                     'judul_document' => $memo->judul,
                 ],
                 [
-                    'dibaca'     => 0,
+                    'dibaca' => 0,
                     'updated_at' => now(),
-                ]
+                ],
             );
 
             $lockCreator = "push:memo_resubmit:{$memo->id_memo}:creator";
             if (Cache::add($lockCreator, 1, now()->addSeconds(30))) {
-                $notifService->createAndPush(
-                    (int) $memo->pembuat,
-                    'Memo Diupdate, Menunggu Persetujuan',
-                    $memo->judul,
-                    (int) $memo->id_memo
-                );
+                $notifService->createAndPush((int) $memo->pembuat, 'Memo Diupdate, Menunggu Persetujuan', $memo->judul, (int) $memo->id_memo);
             }
 
             // ============================

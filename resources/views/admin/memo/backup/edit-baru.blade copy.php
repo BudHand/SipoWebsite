@@ -48,7 +48,7 @@
                         <div class="card-body">
                             <div id="tujuan-container"></div>
                             <div id="tembusan-container"></div>
-                            <div id="bcc-container"></div>
+                                    <div id="bcc-container"></div>
                             {{-- Row 1: Tanggal Surat & Seri Tahunan Surat --}}
                             <div class="row mb-3">
                                 @if ($parentMemo)
@@ -91,6 +91,16 @@
                                 @enderror
 
                             </div>
+                            {{-- <div class="col-md-6">
+                                    <label for="seri_surat" class="form-label">
+                                        <i class="fas fa-hashtag text-primary me-1"></i>
+                                        Seri Tahunan Surat <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="seri_surat" id="seri_surat" class="form-control"
+                                        value="{{ $memo->seri_surat }}">
+                                    <input type="hidden" name="divisi_id_divisi" value="1">
+                                    <input type="hidden" name="pembuat" value="Admin Sistem">
+                                </div> --}}
                         </div>
 
                         {{-- Row 2: Nomor Surat & Perihal --}}
@@ -112,6 +122,15 @@
                                 @enderror
                                 {{-- </div> --}}
                             </div>
+
+                            {{-- <div class="col-md-6">
+                                    <label for="nomor_surat" class="form-label">
+                                        <i class="fas fa-file-alt text-primary me-1"></i>
+                                        Nomor Surat <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="nomor_memo" id="nomor_memo" class="form-control"
+                                        value="{{ $memo->nomor_memo }}">
+                                </div> --}}
                             <div class="col-md-6">
                                 <label for="perihal" class="form-label">
                                     <i class="fas fa-tag text-primary me-1"></i>
@@ -236,95 +255,75 @@
                                 @push('scripts')
                                     <script>
                                         const tujuanNameArray = @json($tujuanArray);
-$(function() {
-    const treeData = @json(json_decode($jsTreeData));
-    const selectedTujuan = @json($tujuanArray ?? []);
-    const selectedTembusan = @json($selectedTembusan ?? []);
-    const selectedBcc = @json($selectedBcc ?? []);
 
-    function initRecipientTree(treeSelector, preSelected, selectedListSelector, sectionSelector, inputContainer, inputName) {
-        $(treeSelector).jstree({
-            'core': { 'data': treeData, 'themes': { 'dots': true } },
-            'plugins': ['checkbox', 'search'],
-            'checkbox': { 'three_state': true, 'cascade': 'down' }
-        }).on('ready.jstree', function(e, data) {
+                                        $(function() {
+                                            $('#org-tree')
+                                                .jstree({
+                                                    core: {
+                                                        data: @json(json_decode($jsTreeData))
+                                                    },
+                                                    plugins: ["checkbox", "search"],
+                                                    checkbox: {
+                                                        keep_selected_style: false,
+                                                        three_state: false,
+                                                        cascade: "none",
+                                                    },
+                                                })
+                                                // hide checkboxes for top-level nodes
+                                                .on('ready.jstree', function(e, data) {
+                                                    $('#org-tree li').each(function() {
+                                                        const node = data.instance.get_node(this.id);
+                                                        if (node && node.parent === "#") {
+                                                            $(this).find('.jstree-checkbox').hide();
+                                                        }
+                                                    });
 
-            // Sembunyikan checkbox root
-            $(treeSelector + ' li').each(function() {
-                var node = data.instance.get_node(this.id);
-                if (node && node.parent === '#') {
-                    $(this).find('.jstree-checkbox').css('display', 'none');
-                }
-            });
+                                                    // ✅ Auto-select tujuan nodes
+                                                    const treeInstance = data.instance;
+                                                    const allNodes = treeInstance.get_json('#', {
+                                                        flat: true
+                                                    });
 
-            // Pre-select & buka parent
-            preSelected.forEach(function(id) {
-                var idStr = id.toString();
-                // Coba format user-X dulu, lalu format asli
-                var candidates = [
-                    idStr.startsWith('user-') ? idStr : 'user-' + idStr,
-                    idStr
-                ];
-                var targetId = null;
-                candidates.forEach(function(candidate) {
-                    if (!targetId && data.instance.get_node(candidate)) {
-                        targetId = candidate;
-                    }
-                });
+                                                    tujuanNameArray.forEach(name => {
+                                                        const foundNode = allNodes.find(node => node.text === name);
+                                                        if (foundNode) {
+                                                            treeInstance.check_node(foundNode.id);
+                                                        }
+                                                    });
 
-                if (targetId) {
-                    data.instance.check_node(targetId);
-                    var parentId = data.instance.get_parent(targetId);
-                    while (parentId && parentId !== '#') {
-                        data.instance.open_node(parentId);
-                        parentId = data.instance.get_parent(parentId);
-                    }
-                }
-            });
+                                                    // ✅ Open parents of all selected nodes
+                                                    treeInstance.get_selected(true).forEach(node => {
+                                                        let parentId = treeInstance.get_parent(node.id);
+                                                        while (parentId && parentId !== "#") {
+                                                            treeInstance.open_node(parentId);
+                                                            parentId = treeInstance.get_parent(parentId);
+                                                        }
+                                                    });
+                                                })
+                                                .on('changed.jstree', function(e, data) {
+                                                    document.getElementById("errorTujuan").style.display = "none";
 
-        }).on('changed.jstree', function(e, data) {
-            var selectedNodes = data.instance.get_selected(true);
-            var userNodes = selectedNodes.filter(function(node) {
-                return node.id && node.id.toString().startsWith('user-');
-            });
+                                                    const sortOrder = ["div", "dept", "section", "unit", "user"];
+                                                    const selectedNodes = data.instance.get_selected(true).sort((a, b) => {
+                                                        const aType = a.id.split("-")[0];
+                                                        const bType = b.id.split("-")[0];
+                                                        return sortOrder.indexOf(aType) - sortOrder.indexOf(bType);
+                                                    });
 
-            // Update tampilan list
-            var list = $(selectedListSelector);
-            list.empty();
-            if (userNodes.length) {
-                userNodes.forEach(function(node) {
-                    list.append('<li>' + node.text + '</li>');
-                });
-                $(sectionSelector).show();
-            } else {
-                $(sectionSelector).hide();
-            }
+                                                    const list = $("#selected-recipients");
+                                                    const section = $("#selected-section");
+                                                    list.empty();
 
-            // Isi hidden input
-            if (inputContainer) {
-                $(inputContainer).empty();
-                selectedNodes.forEach(function(node) {
-                    $(inputContainer).append(
-                        '<input type="hidden" name="' + inputName + '" value="' + node.id + '">'
-                    );
-                    if (inputName === 'tujuan[]') {
-                        $(inputContainer).append(
-                            '<input type="hidden" name="tujuanString[]" value="' + node.text + '">'
-                        );
-                    }
-                });
-            }
-
-            if (inputName === 'tujuan[]' && userNodes.length > 0) {
-                $('#errorTujuan').hide();
-            }
-        });
-    }
-
-    initRecipientTree('#org-tree',      selectedTujuan,   '#selected-recipients', '#selected-section',         '#tujuan-container',   'tujuan[]');
-    initRecipientTree('#tembusan-tree', selectedTembusan, '#selected-tembusan',   '#selected-tembusan-section', '#tembusan-container', 'tembusan[]');
-    initRecipientTree('#bcc-tree',      selectedBcc,      '#selected-bcc',        '#selected-bcc-section',      '#bcc-container',      'bcc[]');
-});
+                                                    if (selectedNodes.length) {
+                                                        selectedNodes.forEach(node => {
+                                                            list.append(`<li>${node.text}</li>`);
+                                                        });
+                                                        section.show();
+                                                    } else {
+                                                        section.hide();
+                                                    }
+                                                });
+                                        });
                                     </script>
                                 @endpush
                                 <div id="orgTreeError" class="form-control text-danger" style="display:none;"></div>
@@ -357,8 +356,7 @@ $(function() {
                             <div class="col-md-12">
                                 <label for="tembusan-tree" class="form-label">
                                     <i class="fas fa-user text-primary me-1"></i>
-                                    Tembusan <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
-                                        jika tidak ada.)</span>
+                                    Tembusan <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                 </label>
                                 <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                     <div style="font-size: small;" id="tembusan-tree"></div>
@@ -366,8 +364,7 @@ $(function() {
                                 <div style="display: none;" id="selected-tembusan-section" class="mt-2">
                                     <label style="font-size: small;" class="form-label">Tembusan Terpilih:</label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                        <ul id="selected-tembusan"
-                                            style="font-size: small; padding-left: 15px; margin: 0;"></ul>
+                                        <ul id="selected-tembusan" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
                                     </div>
                                 </div>
                             </div>
@@ -376,8 +373,7 @@ $(function() {
                             <div class="col-md-12">
                                 <label for="bcc-tree" class="form-label">
                                     <i class="fas fa-user-secret text-primary me-1"></i>
-                                    BCC <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika
-                                        tidak ada.)</span>
+                                    BCC <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                 </label>
                                 <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                     <div style="font-size: small;" id="bcc-tree"></div>
@@ -385,8 +381,7 @@ $(function() {
                                 <div style="display: none;" id="selected-bcc-section" class="mt-2">
                                     <label style="font-size: small;" class="form-label">BCC Terpilih:</label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                        <ul id="selected-bcc" style="font-size: small; padding-left: 15px; margin: 0;">
-                                        </ul>
+                                        <ul id="selected-bcc" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
                                     </div>
                                 </div>
                             </div>
@@ -422,7 +417,114 @@ $(function() {
                                 @enderror
                             </div>
                         </div>
+
+
+
+
+
+
+
                     </div>
+
+                    {{-- Section: Keperluan Barang (Disabled) --}}
+                    {{-- @php
+                            // Susun data prefill: prioritas old() (ketika validasi gagal), lalu dari DB ($memo->keperluanBarang)
+                            $prefillItems = [];
+
+                            if (old('barang_nama')) {
+                                foreach (old('barang_nama') as $i => $nama) {
+                                    $prefillItems[] = [
+                                        'id' => old("detail_id.$i"),
+                                        'nama' => $nama,
+                                        'qty' => old("barang_qty.$i"),
+                                        'satuan' => old("barang_satuan.$i"),
+                                    ];
+                                }
+                            } elseif (!empty($memo) && ($memo->kategoriBarang ?? collect())->isNotEmpty()) {
+                                foreach ($memo->kategoriBarang as $it) {
+                                    $prefillItems[] = [
+                                        'id' => $it->id, // sesuaikan nama PK detail
+                                        'nama' => $it->nama_barang, // sesuaikan kolom DB
+                                        'qty' => $it->qty, // sesuaikan kolom DB
+                                        'satuan' => $it->satuan, // sesuaikan kolom DB
+                                    ];
+                                }
+                            }
+
+                            // Tentukan jumlah awal baris (min 1). Default 2 jika kosong.
+                            $initialCount = max(1, count($prefillItems) ?: 2);
+                        @endphp
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="p-3 rounded-3 border" style="background:#e9f4ff;border-color:#cfe2ff;">
+
+                                    @if ($memo->kategoriBarang && $memo->kategoriBarang->isNotEmpty())
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="fw-semibold" style="color:#1E4178;">Keperluan Barang</div>
+                                            <small class="text-muted">*Isi keperluan barang jika dibutuhkan</small>
+                                        </div>
+                                        @foreach ($memo->kategoriBarang as $index => $barang)
+                                            <div class="row g-3 align-items-end kb-row">
+                                                <input type="hidden"
+                                                    name="kategori_barang[{{ $index }}][id_kategori_barang]"
+                                                    value="{{ $barang->id_kategori_barang }}">
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Nomor</label>
+                                                    <input type="text"
+                                                        id="kategori_barang_{{ $index }}_nomor"
+                                                        name="kategori_barang[{{ $index }}][nomor]"
+                                                        class="form-control" value="{{ $barang->nomor }}" readonly>
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Barang</label>
+                                                    <input type="text"
+                                                        id="kategori_barang_{{ $index }}_nama_barang"
+                                                        name="kategori_barang[{{ $index }}][barang]"
+                                                        class="form-control" value="{{ $barang->barang }}" required
+                                                        oninvalid="this.setCustomValidity('Kolom ini wajib diisi.');"
+                                                        oninput="this.setCustomValidity('');">
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Qty</label>
+                                                    <input type="number"
+                                                        id="kategori_barang_{{ $index }}_qty"
+                                                        name="kategori_barang[{{ $index }}][qty]"
+                                                        class="form-control" value="{{ $barang->qty }}" required
+                                                        oninvalid="this.setCustomValidity('Kolom ini wajib diisi.');"
+                                                        oninput="this.setCustomValidity('');">
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Satuan</label>
+                                                    <input type="text"
+                                                        id="kategori_barang_{{ $index }}_satuan"
+                                                        name="kategori_barang[{{ $index }}][satuan]"
+                                                        class="form-control" value="{{ $barang->satuan }}" required
+                                                        oninvalid="this.setCustomValidity('Kolom ini wajib diisi.');"
+                                                        oninput="this.setCustomValidity('');">
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                    Grid Baris Barang
+                                    <div id="kb_fields">
+                                        <div id="barangContainer" class="d-grid gap-3">
+                                            baris dibuat via JS (prefill dari PHP/DB)
+                                        </div>
+                                    </div>
+
+                                    tampung id detail untuk update (sejajar dengan baris)
+                                    <input type="hidden" name="deleted_detail_ids" id="deleted_detail_ids">
+                                </div>
+                            </div>
+                        </div>
+
+                        kirim data prefill dari PHP ke JS
+                        <script>
+                            window.kbPrefill = @json($prefillItems); // [{id, nama, qty, satuan}, ...]
+                        </script>
+                        =================== /Section: Keperluan Barang ===================
+                        --}}
 
                     <!-- Action Buttons -->
                     <div class="form-group">
@@ -445,88 +547,78 @@ $(function() {
 
 @push('scripts')
     <script>
-        // document.addEventListener('DOMContentLoaded', function() {
-        //     console.log('DOM Content Loaded - Script dimulai');
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Script dimulai');
 
-        //     const selectedTembusanNodes = @json($selectedTembusan);
-        //     const selectedBccNodes = @json($selectedBcc ?? []);
+            const selectedTembusanNodes = @json($selectedTembusan);
+            const selectedBccNodes = @json($selectedBcc ?? []);
 
-        //     $('#tembusan-tree').jstree({
-        //         'core': {
-        //             'data': @json(json_decode($jsTreeData))
-        //         },
-        //         'plugins': ["checkbox", "search"],
-        //         'checkbox': {
-        //             'three_state': false,
-        //             'cascade': 'down'
-        //         }
-        //     }).on('ready.jstree', function(e, data) {
-        //         $('#tembusan-tree li').each(function() {
-        //             var node = data.instance.get_node(this.id);
-        //             if (node && node.parent === "#") {
-        //                 $(this).find('.jstree-checkbox').css('display', 'none');
-        //             }
-        //         });
+            $('#tembusan-tree').jstree({
+                'core': { 'data': @json(json_decode($jsTreeData)) },
+                'plugins': ["checkbox", "search"],
+                'checkbox': { 'three_state': false, 'cascade': 'down' }
+            }).on('ready.jstree', function(e, data) {
+                $('#tembusan-tree li').each(function() {
+                    var node = data.instance.get_node(this.id);
+                    if (node && node.parent === "#") {
+                        $(this).find('.jstree-checkbox').css('display', 'none');
+                    }
+                });
 
-        //         selectedTembusanNodes.forEach(function(nodeId) {
-        //             if (data.instance.get_node(nodeId)) {
-        //                 data.instance.check_node(nodeId);
-        //             }
-        //         });
-        //     }).on('changed.jstree', function(e, data) {
-        //         let selectedNodes = data.instance.get_selected(true);
-        //         let list = $('#selected-tembusan');
-        //         let section = $('#selected-tembusan-section');
-        //         list.empty();
+                selectedTembusanNodes.forEach(function(nodeId) {
+                    if (data.instance.get_node(nodeId)) {
+                        data.instance.check_node(nodeId);
+                    }
+                });
+            }).on('changed.jstree', function(e, data) {
+                let selectedNodes = data.instance.get_selected(true);
+                let list = $('#selected-tembusan');
+                let section = $('#selected-tembusan-section');
+                list.empty();
 
-        //         if (selectedNodes.length) {
-        //             selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
-        //             section.show();
-        //         } else {
-        //             section.hide();
-        //         }
-        //     });
+                if (selectedNodes.length) {
+                    selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
+                    section.show();
+                } else {
+                    section.hide();
+                }
+            });
 
-        //     $('#bcc-tree').jstree({
-        //         'core': {
-        //             'data': @json(json_decode($jsTreeData))
-        //         },
-        //         'plugins': ["checkbox", "search"],
-        //         'checkbox': {
-        //             'three_state': false,
-        //             'cascade': 'down'
-        //         }
-        //     }).on('ready.jstree', function(e, data) {
-        //         $('#bcc-tree li').each(function() {
-        //             var node = data.instance.get_node(this.id);
-        //             if (node && node.parent === "#") {
-        //                 $(this).find('.jstree-checkbox').css('display', 'none');
-        //             }
-        //         });
+            $('#bcc-tree').jstree({
+                'core': { 'data': @json(json_decode($jsTreeData)) },
+                'plugins': ["checkbox", "search"],
+                'checkbox': { 'three_state': false, 'cascade': 'down' }
+            }).on('ready.jstree', function(e, data) {
+                $('#bcc-tree li').each(function() {
+                    var node = data.instance.get_node(this.id);
+                    if (node && node.parent === "#") {
+                        $(this).find('.jstree-checkbox').css('display', 'none');
+                    }
+                });
 
-        //         selectedBccNodes.forEach(function(nodeId) {
-        //             if (data.instance.get_node(nodeId)) {
-        //                 data.instance.check_node(nodeId);
-        //             }
-        //         });
-        //     }).on('changed.jstree', function(e, data) {
-        //         let selectedNodes = data.instance.get_selected(true);
-        //         let list = $('#selected-bcc');
-        //         let section = $('#selected-bcc-section');
-        //         list.empty();
+                selectedBccNodes.forEach(function(nodeId) {
+                    if (data.instance.get_node(nodeId)) {
+                        data.instance.check_node(nodeId);
+                    }
+                });
+            }).on('changed.jstree', function(e, data) {
+                let selectedNodes = data.instance.get_selected(true);
+                let list = $('#selected-bcc');
+                let section = $('#selected-bcc-section');
+                list.empty();
 
-        //         if (selectedNodes.length) {
-        //             selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
-        //             section.show();
-        //         } else {
-        //             section.hide();
-        //         }
-        //     });
+                if (selectedNodes.length) {
+                    selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
+                    section.show();
+                } else {
+                    section.hide();
+                }
+            });
 
-        //     $(document).ready(function() {
-        //         console.log("Select2 loaded?", typeof $.fn.select2);
-        //     });
-        // });
+            $(document).ready(function() {
+                console.log("Select2 loaded?", typeof $.fn.select2);
+            });
+        });
 
         // =========================
         // LAMPIRAN: pilih satu per satu, tampil sebagai list
@@ -1217,22 +1309,60 @@ $(function() {
                 submitHandler: function(form) {
                     if (tinymce.get('isi_surat')) {
                         tinymce.get('isi_surat').save();
+                        var content = tinymce.get('isi_surat').getContent();
                     }
 
-                    // Validasi tujuan
+                    $('#tujuan-container').empty();
                     const selectedNodes = $('#org-tree').jstree('get_selected', true);
+                    const tujuan = selectedNodes;
+
                     if (selectedNodes.length === 0) {
                         document.getElementById('errorTujuan').style.display = 'block';
                         document.getElementById('errorTujuan').scrollIntoView({
                             behavior: 'smooth',
                             block: 'center'
                         });
+                        e.preventDefault();
+                        submitBtn.prop('disabled', false).text('Simpan');
                         return false;
                     }
 
+                    let sortOrder = ['div', 'dept', 'section', 'unit', 'user'];
+                    selectedNodes.sort((a, b) => {
+                        let aType = a.id.split('-')[0];
+                        let bType = b.id.split('-')[0];
+                        return sortOrder.indexOf(aType) - sortOrder.indexOf(bType);
+                    });
+
+                    tujuan.forEach(node => {
+                        const nodeId = node.id
+                        const nodeText = node.text;
+                        $('#tujuan-container').append(
+                            `<input type="hidden" name="tujuan[]" value="${node.id}">` +
+                            `<input type="hidden" name="tujuanString[]" value="${node.text}">`
+                        );
+                    });
+
+                    $('#tembusan-container').empty();
+                    const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
+                    selectedTembusan.forEach(node => {
+                        $('#tembusan-container').append(
+                            `<input type="hidden" name="tembusan[]" value="${node.id}">`
+                        );
+                    });
+
+                    $('#bcc-container').empty();
+                    const selectedBccNodes = $('#bcc-tree').jstree('get_selected', true);
+                    selectedBccNodes.forEach(node => {
+                        $('#bcc-container').append(
+                            `<input type="hidden" name="bcc[]" value="${node.id}">`
+                        );
+                    });
+
                     const submitBtn = $(form).find('button[type="submit"]');
-                    submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...').prop(
-                        'disabled', true);
+                    const originalText = submitBtn.html();
+                    submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...');
+                    submitBtn.prop('disabled', true);
                     form.submit();
                 }
             });
