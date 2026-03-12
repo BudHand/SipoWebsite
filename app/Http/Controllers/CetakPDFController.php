@@ -23,6 +23,17 @@ use setasign\Fpdi\Fpdi;
 
 class CetakPDFController extends Controller
 {
+
+    private function loadPdfView(string $view, array $data = [])
+    {
+        return PDF::loadView($view, $data)->setOptions([
+            'defaultFont' => 'DejaVu Sans',
+            'isHtml5ParserEnabled' => true,
+            'isRemoteEnabled' => true,
+            'isFontSubsettingEnabled' => true,
+        ]);
+    }
+
     /**
      * Merge main PDF with multiple attachments using best available method
      */
@@ -338,7 +349,7 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $formatMemoPdf = PDF::loadView('format-surat.format-memo', [
+            $formatMemoPdf = $this->loadPdfView('format-surat.format-memo', [
                 'memo' => $memo,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
@@ -390,7 +401,7 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $formatMemoPdf = PDF::loadView('format-surat.format-memo', [
+            $formatMemoPdf = $this->loadPdfView('format-surat.format-memo', [
                 'memo' => $memo,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
@@ -444,7 +455,7 @@ class CetakPDFController extends Controller
             $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-            $formatMemoPdf = PDF::loadView('format-surat.format-memo', [
+            $formatMemoPdf = $this->loadPdfView('format-surat.format-memo', [
                 'memo' => $memo,
                 'headerImage' => $headerBase64,
                 'footerImage' => $footerBase64,
@@ -542,7 +553,7 @@ class CetakPDFController extends Controller
 
             $cleanTag = html_entity_decode(strip_tags((string) $undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatUndanganPdf = PDF::loadView('format-surat.format-undangan', [
+            $formatUndanganPdf = $this->loadPdfView('format-surat.format-undangan', [
                 'undangan' => $undangan,
                 'tujuanUsers' => $tujuanUsers,
                 'cleanTag' => $cleanTag,
@@ -670,7 +681,7 @@ class CetakPDFController extends Controller
 
             $cleanTag = html_entity_decode(strip_tags((string) $undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatUndanganPdf = PDF::loadView('format-surat.format-undangan', [
+            $formatUndanganPdf = $this->loadPdfView('format-surat.format-undangan', [
                 'undangan' => $undangan,
                 'tujuanUsers' => $tujuanUsers,
                 'cleanTag' => $cleanTag,
@@ -757,7 +768,7 @@ class CetakPDFController extends Controller
             $manager->level_kerja = $level;
             $manager->bagian_text = $this->getBagianText($manager, $level);
         }
-        $formatUndanganPdf = PDF::loadView('format-surat.format-undangan', [
+        $formatUndanganPdf = $this->loadPdfView('format-surat.format-undangan', [
             'undangan' => $undangan,
             'tujuanUsers' => $tujuanUsers,
             'cleanTag' => $cleanTag,
@@ -822,7 +833,7 @@ class CetakPDFController extends Controller
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
             // Generate PDF dari view
-            $pdf = PDF::loadView('format-surat.format-cetakLaporan-memo', [
+            $pdf = $this->loadPdfView('format-surat.format-cetakLaporan-memo', [
                 'memos' => $memos,
                 'tgl_awal' => $request->tgl_awal,
                 'tgl_akhir' => $request->tgl_akhir,
@@ -880,7 +891,7 @@ class CetakPDFController extends Controller
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
             // Generate PDF dari view
-            $pdf = PDF::loadView('format-surat.format-cetakLaporan-undangan', [
+            $pdf = $this->loadPdfView('format-surat.format-cetakLaporan-undangan', [
                 'undangans' => $undangans,
                 'tgl_awal' => $request->tgl_awal,
                 'tgl_akhir' => $request->tgl_akhir,
@@ -933,7 +944,7 @@ class CetakPDFController extends Controller
 
             $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
+            $formatRisalahPdf = $this->loadPdfView('format-surat.format-risalah', [
                 'risalah' => $risalah,
                 'undangan' => $undangan,
                 'cleanIsi' => $cleanIsi,
@@ -1018,7 +1029,7 @@ class CetakPDFController extends Controller
 
             $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
+            $formatRisalahPdf = $this->loadPdfView('format-surat.format-risalah', [
                 'risalah' => $risalah,
                 'undangan' => $undangan,
                 'cleanIsi' => $cleanIsi,
@@ -1099,7 +1110,7 @@ class CetakPDFController extends Controller
 
             $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-            $formatRisalahPdf = PDF::loadView('format-surat.format-risalah', [
+            $formatRisalahPdf = $this->loadPdfView('format-surat.format-risalah', [
                 'risalah' => $risalah,
                 'undangan' => $undangan,
                 'cleanIsi' => $cleanIsi,
@@ -1189,7 +1200,7 @@ class CetakPDFController extends Controller
             $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
             // Generate PDF dari view
-            $pdf = PDF::loadView('format-surat.format-cetakLaporan-risalah', [
+            $pdf = $this->loadPdfView('format-surat.format-cetakLaporan-risalah', [
                 'risalahs' => $risalahs,
                 'tgl_awal' => $request->tgl_awal,
                 'tgl_akhir' => $request->tgl_akhir,

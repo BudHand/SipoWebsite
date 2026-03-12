@@ -15,10 +15,15 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'DejaVu Sans', sans-serif;
             font-size: 12;
             padding: 0;
             line-height: 1.5;
+        }
+
+        .pdf-mode,
+        .pdf-mode * {
+            font-family: 'DejaVu Sans', sans-serif !important;
         }
 
         header {
