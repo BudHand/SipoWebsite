@@ -1,61 +1,226 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# SIPO Website
 
 <p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
+  <strong>Sistem Informasi Persuratan Online</strong><br/>
+  Aplikasi manajemen dokumen internal (Memo, Undangan, Risalah) berbasis Laravel.
 </p>
 
-## About Laravel
+<p align="center">
+  <img src="https://img.shields.io/badge/Laravel-12.x-FF2D20?logo=laravel&logoColor=white" alt="Laravel 12" />
+  <img src="https://img.shields.io/badge/PHP-8.2+-777BB4?logo=php&logoColor=white" alt="PHP 8.2+" />
+  <img src="https://img.shields.io/badge/License-MIT-blue" alt="MIT License" />
+</p>
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+---
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## 📌 Ringkasan
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+**SIPO Website** adalah aplikasi web untuk mengelola alur dokumen perusahaan secara terstruktur, mulai dari pembuatan, distribusi, arsip, hingga monitoring status dokumen.
 
-## Learning Laravel
+Dokumen utama yang dikelola:
+- **Memo**
+- **Undangan**
+- **Risalah**
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+---
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## ✅ Prasyarat
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+Pastikan environment lokal sudah memiliki:
 
-## Laravel Sponsors
+- **PHP 8.2+**
+- **Composer 2+**
+- **MySQL/MariaDB**
+- **Node.js 18+** dan **npm**
+- Git
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+Opsional (jika diperlukan project):
+- Ekstensi PHP umum Laravel (`mbstring`, `openssl`, `pdo`, `tokenizer`, `xml`, `ctype`, `json`, `bcmath`, `fileinfo`)
 
-### Premium Partners
+---
 
-- **[Vehikl](https://vehikl.com)**
-- **[Tighten Co.](https://tighten.co)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Redberry](https://redberry.international/laravel-development)**
-- **[Active Logic](https://activelogic.com)**
+## 🚀 Quick Start (setelah pull terbaru)
 
-## Contributing
+Ikuti langkah berikut dari root project.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 1) Clone / Pull repository
 
-## Code of Conduct
+```bash
+git clone <url-repository>
+cd SipoWebsite
+# atau jika repo sudah ada
+# git pull origin <branch>
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+### 2) Install dependency backend (PHP)
 
-## Security Vulnerabilities
+```bash
+composer install
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+### 3) Install dependency frontend
 
-## License
+```bash
+npm install
+```
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+### 4) Siapkan file environment
+
+```bash
+cp .env.example .env
+```
+
+Lalu sesuaikan konfigurasi utama di `.env`:
+
+```env
+APP_NAME="SIPO Website"
+APP_ENV=local
+APP_DEBUG=true
+APP_URL=http://127.0.0.1:8000
+
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=sipo_website
+DB_USERNAME=root
+DB_PASSWORD=
+```
+
+> Pastikan database (`sipo_website`) sudah dibuat di MySQL sebelum migrasi.
+
+### 5) Generate app key
+
+```bash
+php artisan key:generate
+```
+
+### 6) Jalankan migration (dan seeder bila diperlukan)
+
+```bash
+php artisan migrate
+```
+
+Jika ingin mengisi data awal:
+
+```bash
+php artisan db:seed
+```
+
+Atau reset total + seed:
+
+```bash
+php artisan migrate:fresh --seed
+```
+
+### 7) Build asset frontend
+
+Untuk development:
+
+```bash
+npm run dev
+```
+
+Untuk production build:
+
+```bash
+npm run build
+```
+
+### 8) Jalankan aplikasi
+
+Di terminal terpisah:
+
+```bash
+php artisan serve
+```
+
+Aplikasi dapat diakses di:
+
+- `http://127.0.0.1:8000`
+
+---
+
+## 🧭 Alur Menjalankan Project (Rekomendasi Dev)
+
+Gunakan 3 terminal agar nyaman:
+
+1. **Terminal A** → `php artisan serve`
+2. **Terminal B** → `npm run dev`
+3. **Terminal C (opsional)** → `php artisan queue:listen`
+
+Jika ingin menjalankan workflow dev dari Composer script:
+
+```bash
+composer run dev
+```
+
+---
+
+## 🧪 Menjalankan Testing
+
+```bash
+php artisan test
+```
+
+Jika ada test terkait database, pastikan koneksi DB test sudah benar.
+
+---
+
+## 🛠️ Troubleshooting Umum
+
+### 1) Error `vendor/autoload.php` tidak ditemukan
+Jalankan:
+
+```bash
+composer install
+```
+
+### 2) Error koneksi database
+- Cek host/port/user/password di `.env`
+- Pastikan service MySQL aktif
+- Pastikan nama database sudah dibuat
+
+### 3) Perubahan `.env` tidak terbaca
+Jalankan:
+
+```bash
+php artisan config:clear
+php artisan cache:clear
+```
+
+### 4) Asset tidak muncul/styling berantakan
+Jalankan ulang:
+
+```bash
+npm install
+npm run dev
+```
+
+---
+
+## 📦 Struktur Perintah Setup (Ringkas)
+
+```bash
+composer install
+npm install
+cp .env.example .env
+php artisan key:generate
+php artisan migrate
+npm run dev
+php artisan serve
+```
+
+---
+
+## 🤝 Kontribusi
+
+Jika ingin kontribusi:
+1. Buat branch baru dari branch aktif.
+2. Commit dengan pesan yang jelas.
+3. Buat pull request dengan deskripsi perubahan.
+
+---
+
+## 📄 Lisensi
+
+Project ini menggunakan lisensi **MIT**.
