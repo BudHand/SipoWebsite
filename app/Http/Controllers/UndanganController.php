@@ -830,7 +830,7 @@ class UndanganController extends Controller
     // Method helper untuk validasi emoji pada field tertentu
     private function validateNoEmoji($request)
     {
-        $fieldsToCheck = ['judul', 'isi_undangan', 'waktu_mulai', 'waktu_selesai', 'tempat'];
+        $fieldsToCheck = ['judul', 'waktu_mulai', 'waktu_selesai', 'tempat'];
         $errors = [];
 
         foreach ($fieldsToCheck as $field) {
@@ -848,7 +848,6 @@ class UndanganController extends Controller
     {
         $names = [
             'judul' => 'Judul',
-            'isi_undangan' => 'Agenda',  // Sesuai label yang user lihat
             'waktu_mulai' => 'Waktu Mulai',
             'waktu_selesai' => 'Waktu Selesai',
             'tempat' => 'Tempat'
@@ -1463,12 +1462,6 @@ class UndanganController extends Controller
         // VALIDASI EMOJI
         // =============================
         $rawIsiUndangan = $request->isi_undangan;
-        $isiUndanganBersih = trim(strip_tags($rawIsiUndangan));
-
-        $requestForEmoji = clone $request;
-        $requestForEmoji->merge([
-            'isi_undangan' => $isiUndanganBersih,
-        ]);
 
         $emojiErrors = $this->validateNoEmoji($request);
         if (!empty($emojiErrors)) {
