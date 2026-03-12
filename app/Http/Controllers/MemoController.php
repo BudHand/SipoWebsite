@@ -909,7 +909,7 @@ class MemoController extends Controller
     private function validateNoEmoji($request)
     {
         // Fields you want to check
-        $fieldsToCheck = ['judul', 'isi_memo', 'barang', 'satuan', 'barang*', 'satuan*'];
+        $fieldsToCheck = ['judul', 'barang', 'satuan', 'barang*', 'satuan*'];
         $errors = [];
 
         foreach ($fieldsToCheck as $field) {
@@ -942,7 +942,6 @@ class MemoController extends Controller
     {
         $names = [
             'judul' => 'perihal',
-            'isi_memo' => 'isi memo', // Sesuai label yang user lihat
             'barang' => 'barang',
             'satuan' => 'satuan',
             'barang*' => 'barang',
