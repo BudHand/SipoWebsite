@@ -586,12 +586,23 @@ class RisalahController extends Controller
             'tujuan' => 'required_without:with_undangan',
             'judul' => 'required|string',
             'pembuat' => 'required|string',
+
+            //detail baru
             'nomor' => 'nullable|array',
+            'project_event' => 'nullable|array',
             'topik' => 'nullable|array',
-            'pembahasan' => 'nullable|array',
-            'tindak_lanjut' => 'nullable|array',
+            'uraian_permasalahan' => 'nullable|array',
+            'pembahasan_tindak_lanjut' => 'nullable|array',
             'target' => 'nullable|array',
             'pic' => 'nullable|array',
+
+            'project_event.*' => 'nullable|string',
+            'topik.*' => 'nullable|string',
+            'uraian_permasalahan.*' => 'nullable|string',
+            'pembahasan_tindak_lanjut.*' => 'nullable|string',
+            'target.*' => 'nullable|string',
+            'pic.*' => 'nullable|string',
+
             'lampiran' => 'nullable',
             'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
             //SUB
@@ -706,14 +717,33 @@ class RisalahController extends Controller
         // Create details
         if ($request->has('nomor') && is_array($request->nomor)) {
             foreach ($request->nomor as $index => $no) {
+                $projectEvent = $request->project_event[$index] ?? '';
+                $topik = $request->topik[$index] ?? '';
+                $uraianPermasalahan = $request->uraian_permasalahan[$index] ?? '';
+                $pembahasanTindakLanjut = $request->pembahasan_tindak_lanjut[$index] ?? '';
+                $target = $request->target[$index] ?? '';
+                $pic = $request->pic[$index] ?? '';
+
+                if (
+                    empty($projectEvent) &&
+                    empty($topik) &&
+                    empty($uraianPermasalahan) &&
+                    empty($pembahasanTindakLanjut) &&
+                    empty($target) &&
+                    empty($pic)
+                ) {
+                    continue;
+                }
+
                 $detail = RisalahDetail::create([
                     'risalah_id_risalah' => $risalah->id_risalah,
                     'nomor' => $no,
-                    'topik' => $request->topik[$index] ?? '',
-                    'pembahasan' => $request->pembahasan[$index] ?? '',
-                    'tindak_lanjut' => $request->tindak_lanjut[$index] ?? '',
-                    'target' => $request->target[$index] ?? '',
-                    'pic' => $request->pic[$index] ?? '',
+                    'project_event' => $projectEvent,
+                    'topik' => $topik,
+                    'uraian_permasalahan' => $uraianPermasalahan,
+                    'pembahasan_tindak_lanjut' => $pembahasanTindakLanjut,
+                    'target' => $target,
+                    'pic' => $pic,
                 ]);
 
                 if (isset($request->sub_topik[$index]) && is_array($request->sub_topik[$index])) {
@@ -922,13 +952,15 @@ class RisalahController extends Controller
             'kode_bagian' => 'required|string|exists:bagian_kerja,kode_bagian',
             'waktu_mulai' => 'required',
             'waktu_selesai' => 'required',
-            'nomor.*' => 'required',
-            'topik.*' => 'required',
-            'pembahasan.*' => 'required',
-            'tindak_lanjut.*' => 'required',
-            'tujuan' => 'required_without:with_undangan',
-            'target.*' => 'required',
-            'pic.*' => 'required',
+
+            'nomor' => 'nullable|array',
+            'project_event' => 'nullable|array',
+            'topik' => 'nullable|array',
+            'uraian_permasalahan' => 'nullable|array',
+            'pembahasan_tindak_lanjut' => 'nullable|array',
+            'target' => 'nullable|array',
+            'pic' => 'nullable|array',
+
             'lampiran' => 'nullable',
             'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
             'sub_topik' => 'nullable|array',
@@ -1059,13 +1091,32 @@ class RisalahController extends Controller
                 $risalah->risalahDetails()->delete();
 
                 foreach ($request->nomor as $index => $nomor) {
+                    $projectEvent = $request->project_event[$index] ?? '';
+                    $topik = $request->topik[$index] ?? '';
+                    $uraianPermasalahan = $request->uraian_permasalahan[$index] ?? '';
+                    $pembahasanTindakLanjut = $request->pembahasan_tindak_lanjut[$index] ?? '';
+                    $target = $request->target[$index] ?? '';
+                    $pic = $request->pic[$index] ?? '';
+
+                    if (
+                        empty($projectEvent) &&
+                        empty($topik) &&
+                        empty($uraianPermasalahan) &&
+                        empty($pembahasanTindakLanjut) &&
+                        empty($target) &&
+                        empty($pic)
+                    ) {
+                        continue;
+                    }
+
                     $detail = $risalah->risalahDetails()->create([
                         'nomor' => $nomor,
-                        'topik' => $request->topik[$index] ?? '',
-                        'pembahasan' => $request->pembahasan[$index] ?? '',
-                        'tindak_lanjut' => $request->tindak_lanjut[$index] ?? '',
-                        'target' => $request->target[$index] ?? '',
-                        'pic' => $request->pic[$index] ?? '',
+                        'project_event' => $projectEvent,
+                        'topik' => $topik,
+                        'uraian_permasalahan' => $uraianPermasalahan,
+                        'pembahasan_tindak_lanjut' => $pembahasanTindakLanjut,
+                        'target' => $target,
+                        'pic' => $pic,
                     ]);
 
                     if (isset($request->sub_topik[$index]) && is_array($request->sub_topik[$index])) {

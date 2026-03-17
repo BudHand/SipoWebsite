@@ -11,25 +11,23 @@ class RisalahDetail extends Model
 {
     use HasFactory;
 
-    protected $table = 'risalah_details'; // Nama tabel di database
+    protected $table = 'risalah_details';
 
-    protected $primaryKey = 'id_risalah_detail'; // Primary Key
+    protected $primaryKey = 'id_risalah_detail';
 
-    public $timestamps = true; // Mengaktifkan timestamps (created_at & updated_at)
+    public $timestamps = true;
 
     protected $fillable = [
         'risalah_id_risalah',
         'nomor',
+        'project_event',
         'topik',
-        'pembahasan',
-        'tindak_lanjut',
+        'uraian_permasalahan',
+        'pembahasan_tindak_lanjut',
         'target',
         'pic'
     ];
 
-    /**
-     * Relasi ke tabel `risalah`
-     */
     public function risalah()
     {
         return $this->belongsTo(Risalah::class, 'risalah_id_risalah', 'id_risalah');
@@ -44,4 +42,3 @@ class RisalahDetail extends Model
         );
     }
 }
-

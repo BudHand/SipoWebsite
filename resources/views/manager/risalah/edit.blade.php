@@ -331,24 +331,33 @@
                                                 <textarea class="form-control no-auto" name="nomor[]" rows="2" readonly>{{ $detail->nomor }}</textarea>
                                             </div>
                                             <div class="col-md-2">
+                                                <label>Proyek/Event</label>
+                                                <textarea class="form-control" name="project_event[]" rows="2">{{ $detail->project_event }}</textarea>
+                                            </div>
+                                            <div class="col-md-2">
                                                 <label>Topik</label>
                                                 <textarea class="form-control" name="topik[]" rows="2">{{ $detail->topik }}</textarea>
                                             </div>
-                                            <div class="col-md-3">
-                                                <label>Pembahasan</label>
-                                                <textarea class="form-control" name="pembahasan[]" rows="2">{{ $detail->pembahasan }}</textarea>
+                                            <div class="col-md-2">
+                                                <label>Uraian Permasalahan</label>
+                                                <textarea class="form-control" name="uraian_permasalahan[]" rows="2">{{ $detail->uraian_permasalahan }}</textarea>
                                             </div>
                                             <div class="col-md-2">
-                                                <label>Tindak Lanjut</label>
-                                                <textarea class="form-control" name="tindak_lanjut[]" rows="2">{{ $detail->tindak_lanjut }}</textarea>
+                                                <label>Pembahasan / Tindak Lanjut</label>
+                                                <textarea class="form-control" name="pembahasan_tindak_lanjut[]" rows="2">{{ $detail->pembahasan_tindak_lanjut }}</textarea>
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-1">
                                                 <label>Target</label>
                                                 <textarea class="form-control" name="target[]" rows="2">{{ $detail->target }}</textarea>
                                             </div>
-                                            <div class="col-md-2">
+                                            <div class="col-md-1">
                                                 <label>PIC</label>
                                                 <textarea class="form-control" name="pic[]" rows="2">{{ $detail->pic }}</textarea>
+                                            </div>
+                                            <div class="col-md-1 d-flex align-items-end">
+                                                <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn w-100">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
                                             </div>
                                         </div>
                                     @endforeach
@@ -424,22 +433,37 @@
 
             newRow.innerHTML = `
                 <div class="col-md-1">
+                    <label>No</label>
                     <input type="text" class="form-control no-auto" name="nomor[]" readonly>
                 </div>
                 <div class="col-md-2">
+                    <label>Proyek/Event</label>
+                    <textarea class="form-control" name="project_event[]" placeholder="Proyek/Event" rows="2"></textarea>
+                </div>
+                <div class="col-md-2">
+                    <label>Topik</label>
                     <textarea class="form-control" name="topik[]" placeholder="Topik" rows="2"></textarea>
                 </div>
-                <div class="col-md-3">
-                    <textarea class="form-control" name="pembahasan[]" placeholder="Pembahasan" rows="2"></textarea>
+                <div class="col-md-2">
+                    <label>Uraian Permasalahan</label>
+                    <textarea class="form-control" name="uraian_permasalahan[]" placeholder="Uraian Permasalahan" rows="2"></textarea>
                 </div>
                 <div class="col-md-2">
-                    <textarea class="form-control" name="tindak_lanjut[]" placeholder="Tindak Lanjut" rows="2"></textarea>
+                    <label>Pembahasan / Tindak Lanjut</label>
+                    <textarea class="form-control" name="pembahasan_tindak_lanjut[]" placeholder="Pembahasan / Tindak Lanjut" rows="2"></textarea>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
+                    <label>Target</label>
                     <textarea class="form-control" name="target[]" placeholder="Target" rows="2"></textarea>
                 </div>
-                <div class="col-md-2 position-relative">
+                <div class="col-md-1">
+                    <label>PIC</label>
                     <textarea class="form-control" name="pic[]" placeholder="PIC" rows="2"></textarea>
+                </div>
+                <div class="col-md-1 d-flex align-items-end">
+                    <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn w-100">
+                        <i class="fas fa-trash"></i>
+                    </button>
                 </div>
             `;
 

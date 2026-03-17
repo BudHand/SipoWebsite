@@ -23,8 +23,7 @@
                 </div>
 
                 {{-- Form --}}
-                <form action="{{ route('risalah.update', $risalah->id_risalah) }}" method="POST"
-                    enctype="multipart/form-data">
+                <form action="{{ route('risalah.update', $risalah->id_risalah) }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
 
@@ -40,14 +39,13 @@
                         @endif
 
                         <div class="card-header py-2 rounded-top-3"
-                            style="background:#e3f2fd;border-bottom:1px solid #bbdefb;">
+                            style="background:#e3f2fd; border-bottom:1px solid #bbdefb;">
                             <i class="fa fa-edit me-2 text-primary"></i>
                             <span class="fw-semibold">Formulir Edit Risalah</span>
                         </div>
 
                         <div class="card-body">
-
-                            <div class="row mb-3">
+                            <div class="row g-3 mb-3">
                                 {{-- Kode Bagian Kerja --}}
                                 <div class="col-md-6">
                                     <label for="kode_bagian" class="form-label">
@@ -79,7 +77,7 @@
                                     <input type="hidden" name="tgl_disahkan">
                                 </div>
 
-                                <div class="col-md-6 mt-3">
+                                <div class="col-md-6">
                                     <label for="perihal" class="form-label">
                                         <i class="fas fa-tag text-primary me-1"></i>
                                         Judul <span class="text-danger">*</span>
@@ -94,9 +92,7 @@
                                             value="{{ $risalah->judul }}">
                                     @endif
                                 </div>
-                            </div>
 
-                            <div class="row mb-3">
                                 <div class="col-md-6">
                                     <label for="agenda" class="form-label">
                                         <i class="fas fa-edit text-primary me-1"></i>
@@ -105,6 +101,7 @@
                                     <input type="text" name="agenda" id="agenda" class="form-control"
                                         value="{{ $risalah->agenda }}" required>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label for="tempat" class="form-label">
                                         <i class="fas fa-map-marker-alt text-primary me-1"></i>
@@ -113,21 +110,19 @@
                                     <input type="text" name="tempat" id="tempat" class="form-control"
                                         value="{{ $risalah->tempat }}" required>
                                 </div>
-                            </div>
 
-                            <div class="row mb-3">
                                 <div class="col-md-6">
-                                    <label for="waktu" class="form-label">
+                                    <label class="form-label">
                                         <i class="fas fa-clock text-primary me-1"></i>
                                         Waktu Rapat <span class="text-danger">*</span>
                                     </label>
-                                    <div class="d-flex align-items-center">
+                                    <div class="input-group">
                                         <input type="text" name="waktu_mulai" id="waktu_mulai"
-                                            class="form-control me-2" placeholder="Mulai"
+                                            class="form-control" placeholder="Mulai"
                                             value="{{ $risalah->waktu_mulai }}" required>
-                                        <span class="fw-bold">s/d</span>
+                                        <span class="input-group-text">s/d</span>
                                         <input type="text" name="waktu_selesai" id="waktu_selesai"
-                                            class="form-control ms-2" placeholder="Selesai"
+                                            class="form-control" placeholder="Selesai"
                                             value="{{ $risalah->waktu_selesai }}" required>
                                     </div>
                                 </div>
@@ -146,7 +141,6 @@
                                     <div id="lampiran-list" class="mt-2"></div>
                                     <small class="form-text text-muted">
                                         Format yang diizinkan: PDF, JPG, JPEG, PNG (Max: 2MB).
-                                        File akan dikirim saat Anda klik tombol <b>Simpan</b>.
                                     </small>
                                     @error('lampiran')
                                         <div class="invalid-feedback">{{ $message }}</div>
@@ -199,11 +193,9 @@
                                         </div>
                                     @endif
                                 </div>
-                            </div>
 
-                            {{-- Peserta Acara (hanya jika bukan dari undangan) --}}
-                            @if (!$risalah->with_undangan)
-                                <div class="row mb-3">
+                                {{-- Peserta Acara (hanya jika bukan dari undangan) --}}
+                                @if (!$risalah->with_undangan)
                                     <div class="col-12">
                                         <div class="form-group">
                                             <label for="kepada" class="form-label">
@@ -215,9 +207,7 @@
                                             </small>
                                             <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                                 <div style="font-size: small" class="form-label" id="org-tree"></div>
-                                                <style>
-                                                    #org-tree .jstree-anchor { color: #1f4178; font-weight: 500; }
-                                                </style>
+                                                <style>#org-tree .jstree-anchor { color: #1f4178; font-weight: 500; }</style>
                                                 <small id="tujuanError" class="text-danger" style="display:none;">
                                                     Minimal pilih satu tujuan!
                                                 </small>
@@ -228,8 +218,6 @@
                                             @enderror
                                         </div>
                                     </div>
-                                </div>
-                                <div class="row mb-3">
                                     <div class="col-12">
                                         <div style="display: none;" id="selected-section">
                                             <label style="font-size: small;" class="form-label">Daftar Penerima:</label>
@@ -244,13 +232,11 @@
                                             </div>
                                         </div>
                                     </div>
-                                </div>
-                            @else
-                                <input type="hidden" name="with_undangan" value="{{ $risalah->with_undangan }}">
-                            @endif
+                                @else
+                                    <input type="hidden" name="with_undangan" value="{{ $risalah->with_undangan }}">
+                                @endif
 
-                            {{-- Pemimpin & Notulis --}}
-                            <div class="row mb-3">
+                                {{-- Pemimpin & Notulis --}}
                                 <div class="col-md-6">
                                     <label for="pemimpin_acara" class="form-label">
                                         <i class="fas fa-signature text-primary me-1"></i>
@@ -265,13 +251,12 @@
                                             </option>
                                         @endif
                                         @foreach ($users as $user)
-                                            @if ($risalah->pemimpin && $user->id == $risalah->pemimpin->id)
-                                                @continue
-                                            @endif
+                                            @if ($risalah->pemimpin && $user->id == $risalah->pemimpin->id) @continue @endif
                                             <option value="{{ $user->id }}">{{ $user->fullname }}</option>
                                         @endforeach
                                     </select>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label for="notulis_acara" class="form-label">
                                         <i class="fas fa-signature text-primary me-1"></i>
@@ -286,152 +271,224 @@
                                             </option>
                                         @endif
                                         @foreach ($users as $user)
-                                            @if ($risalah->notulis && $user->id == $risalah->notulis->id)
-                                                @continue
-                                            @endif
+                                            @if ($risalah->notulis && $user->id == $risalah->notulis->id) @continue @endif
                                             <option value="{{ $user->id }}">{{ $user->fullname }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                             </div>
 
-                            {{-- ===== DETAIL RISALAH ===== --}}
-                            <div id="risalahContainer">
-                                @foreach ($risalah->risalahDetails as $detailIndex => $detail)
-                                    <div class="risalah-item card mb-3 shadow-sm" data-index="{{ $detailIndex }}">
-                                        <div class="card-body">
+                            {{-- ===================== ISI RISALAH SECTION ===================== --}}
+                            <div class="mt-2">
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <h5 class="fw-bold mb-0" style="font-size:1rem; color:#1e3a8a;">
+                                        <i class="fas fa-clipboard-list me-2 text-primary"></i>
+                                        Isi Risalah Rapat
+                                    </h5>
+                                </div>
+                                <p class="text-muted mb-3" style="font-size:.82rem;">
+                                    Tambahkan satu atau lebih topik pembahasan beserta tindak lanjut dan PIC-nya.
+                                </p>
 
-                                            {{-- Baris utama --}}
-                                            <div class="row g-2 align-items-stretch isi-surat-row">
-                                                <div class="col-md-1" style="display:flex;flex-direction:column;">
-                                                    <label class="form-label">No.</label>
-                                                    <input type="text" class="form-control no-auto" name="nomor[]"
-                                                        value="{{ $detail->nomor }}" readonly style="flex:1;">
+                                <div id="risalahContainer">
+                                    @foreach ($risalah->risalahDetails as $detailIndex => $detail)
+                                        <div class="risalah-item card mb-4 border-0 shadow-sm"
+                                            data-index="{{ $detailIndex }}"
+                                            style="border-radius:10px; overflow:hidden;">
+
+                                            {{-- Card Header --}}
+                                            <div class="card-header d-flex align-items-center justify-content-between py-2 px-3"
+                                                style="background:linear-gradient(90deg,#1e3a8a,#2563eb); border:none;">
+                                                <div class="d-flex align-items-center gap-2">
+                                                    <span class="badge bg-white text-primary fw-bold"
+                                                        style="font-size:.85rem; min-width:36px; border-radius:6px; padding:4px 8px;">
+                                                        <span class="no-display">{{ $detailIndex + 1 }}</span>
+                                                    </span>
+                                                    <span class="text-white fw-semibold" style="font-size:.9rem; letter-spacing:.02em;">Isi Risalah</span>
                                                 </div>
-                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
-                                                    <label class="form-label">Topik <span class="text-danger">*</span></label>
-                                                    <textarea class="form-control" name="topik[]" rows="2" required
-                                                        style="flex:1;resize:vertical;">{{ $detail->topik }}</textarea>
-                                                </div>
-                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
-                                                    <label class="form-label">Pembahasan <span class="text-danger">*</span></label>
-                                                    <textarea class="form-control" name="pembahasan[]" rows="2" required
-                                                        style="flex:1;resize:vertical;">{{ $detail->pembahasan }}</textarea>
-                                                </div>
-                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
-                                                    <label class="form-label">Tindak Lanjut <span class="text-danger">*</span></label>
-                                                    <textarea class="form-control" name="tindak_lanjut[]" rows="2" required
-                                                        style="flex:1;resize:vertical;">{{ $detail->tindak_lanjut }}</textarea>
-                                                </div>
-                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
-                                                    <label class="form-label">Target <span class="text-danger">*</span></label>
-                                                    <textarea class="form-control" name="target[]" rows="2" required
-                                                        style="flex:1;resize:vertical;">{{ $detail->target }}</textarea>
-                                                </div>
-                                                <div class="col-md-2" style="display:flex;flex-direction:column;">
-                                                    <label class="form-label">PIC <span class="text-danger">*</span></label>
-                                                    <textarea class="form-control" name="pic[]" rows="2" required
-                                                        style="flex:1;resize:vertical;">{{ $detail->pic }}</textarea>
-                                                </div>
-                                                <div class="col-md-1 d-flex align-items-center justify-content-center">
-                                                    <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn">
-                                                        <i class="fas fa-trash"></i>
-                                                    </button>
-                                                </div>
+                                                <button type="button" class="btn btn-sm hapus-risalah-btn"
+                                                    style="background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:6px; padding:2px 12px; font-size:.8rem;">
+                                                    <i class="fas fa-trash me-1"></i> Hapus
+                                                </button>
                                             </div>
 
-                                            {{-- Sub Risalah --}}
-                                            <div class="sub-risalah-wrapper mt-3 border-top pt-3">
-                                                <div class="d-flex align-items-center justify-content-between mb-2">
-                                                    <span class="text-muted small fw-semibold">
-                                                        <i class="fas fa-sitemap me-1 text-primary"></i> Sub Risalah
-                                                    </span>
-                                                    <button type="button"
-                                                        class="btn btn-outline-primary btn-sm tambah-sub-risalah-btn">
-                                                        <i class="fas fa-plus-circle me-1"></i> Tambah Sub Isi
-                                                    </button>
+                                            <div class="card-body p-4">
+                                                <input type="hidden" class="no-auto" name="nomor[]" value="{{ $detail->nomor }}">
+
+                                                {{-- Baris 1: Proyek/Event + Topik --}}
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-4">
+                                                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                                                            <i class="fas fa-project-diagram text-primary me-1"></i> Proyek / Event
+                                                        </label>
+                                                        <input type="text" class="form-control form-control-sm"
+                                                            name="project_event[]"
+                                                            value="{{ $detail->project_event }}"
+                                                            placeholder="Nama proyek atau event..."
+                                                            style="border-radius:6px; font-size:.87rem;">
+                                                    </div>
+                                                    <div class="col-md-8">
+                                                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                                                            <i class="fas fa-tag text-primary me-1"></i> Topik <span class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="text" class="form-control form-control-sm"
+                                                            name="topik[]"
+                                                            value="{{ $detail->topik }}"
+                                                            placeholder="Topik pembahasan..."
+                                                            required
+                                                            style="border-radius:6px; font-size:.87rem;">
+                                                    </div>
                                                 </div>
-                                                <div class="sub-risalah-container">
-                                                    @if ($detail->subDetails && $detail->subDetails->count() > 0)
-                                                        @foreach ($detail->subDetails as $subDetail)
-                                                            <div class="sub-risalah-row border border-primary border-opacity-25 rounded-2 p-3 mt-2 position-relative"
-                                                                style="background:#f8f9ff;">
-                                                                <span class="sub-badge position-absolute badge bg-primary"
-                                                                    style="top:-10px;left:12px;font-size:.7rem;">
-                                                                    Sub {{ $loop->iteration }}
-                                                                </span>
-                                                                <div class="row g-2 align-items-end">
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Topik</label>
-                                                                        <textarea class="form-control form-control-sm"
-                                                                            data-sub-name="sub_topik"
-                                                                            name="sub_topik[{{ $detailIndex }}][]"
-                                                                            placeholder="Sub Topik" rows="2"
-                                                                            style="resize:vertical;">{{ $subDetail->topik }}</textarea>
-                                                                    </div>
-                                                                    <div class="col-md-3">
-                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Pembahasan</label>
-                                                                        <textarea class="form-control form-control-sm"
-                                                                            data-sub-name="sub_pembahasan"
-                                                                            name="sub_pembahasan[{{ $detailIndex }}][]"
-                                                                            placeholder="Sub Pembahasan" rows="2"
-                                                                            style="resize:vertical;">{{ $subDetail->pembahasan }}</textarea>
-                                                                    </div>
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Tindak Lanjut</label>
-                                                                        <textarea class="form-control form-control-sm"
-                                                                            data-sub-name="sub_tindak_lanjut"
-                                                                            name="sub_tindak_lanjut[{{ $detailIndex }}][]"
-                                                                            placeholder="Sub Tindak Lanjut" rows="2"
-                                                                            style="resize:vertical;">{{ $subDetail->tindak_lanjut }}</textarea>
-                                                                    </div>
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub Target</label>
-                                                                        <textarea class="form-control form-control-sm"
-                                                                            data-sub-name="sub_target"
-                                                                            name="sub_target[{{ $detailIndex }}][]"
-                                                                            placeholder="Sub Target" rows="2"
-                                                                            style="resize:vertical;">{{ $subDetail->target }}</textarea>
-                                                                    </div>
-                                                                    <div class="col-md-2">
-                                                                        <label class="form-label form-label-sm text-muted mb-1">Sub PIC</label>
-                                                                        <textarea class="form-control form-control-sm"
-                                                                            data-sub-name="sub_pic"
-                                                                            name="sub_pic[{{ $detailIndex }}][]"
-                                                                            placeholder="Sub PIC" rows="2"
-                                                                            style="resize:vertical;">{{ $subDetail->pic }}</textarea>
-                                                                    </div>
-                                                                    <div class="col-md-1 d-flex align-items-end justify-content-center">
-                                                                        <button type="button"
-                                                                            class="btn btn-outline-danger btn-sm hapus-sub-risalah-btn w-100">
-                                                                            <i class="fas fa-trash"></i>
-                                                                        </button>
+
+                                                {{-- Baris 2: Pembahasan + Tindak Lanjut --}}
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                                                            <i class="fas fa-comments text-primary me-1"></i> Uraian Permasalahan <span class="text-danger">*</span>
+                                                        </label>
+                                                        <textarea class="form-control form-control-sm"
+                                                            name="pembahasan[]"
+                                                            rows="3"
+                                                            required
+                                                            style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->uraian_permasalahan }}</textarea>
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                                                            <i class="fas fa-tasks text-primary me-1"></i> Pembahasan / Tindak Lanjut <span class="text-danger">*</span>
+                                                        </label>
+                                                        <textarea class="form-control form-control-sm"
+                                                            name="tindak_lanjut[]"
+                                                            rows="3"
+                                                            required
+                                                            style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->pembahasan_tindak_lanjut }}</textarea>
+                                                    </div>
+                                                </div>
+
+                                                {{-- Baris 3: Target + PIC --}}
+                                                <div class="row g-3">
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                                                            <i class="fas fa-calendar-check text-primary me-1"></i> Target <span class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="text" class="form-control form-control-sm"
+                                                            name="target[]"
+                                                            value="{{ $detail->target }}"
+                                                            placeholder="Target penyelesaian..."
+                                                            required
+                                                            style="border-radius:6px; font-size:.87rem;">
+                                                    </div>
+                                                    <div class="col-md-6">
+                                                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                                                            <i class="fas fa-user-check text-primary me-1"></i> PIC <span class="text-danger">*</span>
+                                                        </label>
+                                                        <input type="text" class="form-control form-control-sm"
+                                                            name="pic[]"
+                                                            value="{{ $detail->pic }}"
+                                                            placeholder="Person in charge..."
+                                                            required
+                                                            style="border-radius:6px; font-size:.87rem;">
+                                                    </div>
+                                                </div>
+
+                                                {{-- Sub Risalah --}}
+                                                <div class="sub-risalah-wrapper mt-4 pt-3" style="border-top:1.5px dashed #cbd5e1;">
+                                                    <div class="d-flex align-items-center justify-content-between mb-2">
+                                                        <span class="fw-semibold text-muted" style="font-size:.82rem;">
+                                                            <i class="fas fa-sitemap text-primary me-1"></i> Sub Isi Risalah
+                                                        </span>
+                                                        <button type="button" class="btn btn-sm tambah-sub-risalah-btn"
+                                                            style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; font-size:.8rem; padding:3px 12px;">
+                                                            <i class="fas fa-plus-circle me-1"></i> Tambah Sub Isi
+                                                        </button>
+                                                    </div>
+                                                    <div class="sub-risalah-container">
+                                                        @if ($detail->subDetails && $detail->subDetails->count() > 0)
+                                                            @foreach ($detail->subDetails as $subDetail)
+                                                                <div class="sub-risalah-row position-relative mt-3">
+                                                                    <div class="card border-0 shadow-sm" style="background:#f0f4ff; border-left:3px solid #4f6ef7 !important; border-radius:8px;">
+                                                                        <div class="card-body py-3 px-3">
+                                                                            <div class="d-flex align-items-center justify-content-between mb-3">
+                                                                                <span class="sub-badge badge fw-semibold" style="background:#4f6ef7; font-size:.72rem; letter-spacing:.03em;">
+                                                                                    <i class="fas fa-code-branch me-1"></i> Sub {{ $loop->iteration }}
+                                                                                </span>
+                                                                                <button type="button" class="btn btn-sm hapus-sub-risalah-btn"
+                                                                                    style="background:#fff0f0; color:#e53935; border:1px solid #fccaca; border-radius:6px; padding:2px 10px; font-size:.8rem;">
+                                                                                    <i class="fas fa-trash me-1"></i> Hapus Sub
+                                                                                </button>
+                                                                            </div>
+                                                                            <div class="row g-3">
+                                                                                <div class="col-md-4">
+                                                                                    <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Topik</label>
+                                                                                    <textarea class="form-control form-control-sm"
+                                                                                        data-sub-name="sub_topik"
+                                                                                        name="sub_topik[{{ $detailIndex }}][]"
+                                                                                        rows="2"
+                                                                                        style="resize:vertical; border-radius:6px; font-size:.85rem;">{{ $subDetail->topik }}</textarea>
+                                                                                </div>
+                                                                                <div class="col-md-4">
+                                                                                    <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Pembahasan</label>
+                                                                                    <textarea class="form-control form-control-sm"
+                                                                                        data-sub-name="sub_pembahasan"
+                                                                                        name="sub_pembahasan[{{ $detailIndex }}][]"
+                                                                                        rows="2"
+                                                                                        style="resize:vertical; border-radius:6px; font-size:.85rem;">{{ $subDetail->pembahasan }}</textarea>
+                                                                                </div>
+                                                                                <div class="col-md-4">
+                                                                                    <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Tindak Lanjut</label>
+                                                                                    <textarea class="form-control form-control-sm"
+                                                                                        data-sub-name="sub_tindak_lanjut"
+                                                                                        name="sub_tindak_lanjut[{{ $detailIndex }}][]"
+                                                                                        rows="2"
+                                                                                        style="resize:vertical; border-radius:6px; font-size:.85rem;">{{ $subDetail->tindak_lanjut }}</textarea>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Target</label>
+                                                                                    <textarea class="form-control form-control-sm"
+                                                                                        data-sub-name="sub_target"
+                                                                                        name="sub_target[{{ $detailIndex }}][]"
+                                                                                        rows="2"
+                                                                                        style="resize:vertical; border-radius:6px; font-size:.85rem;">{{ $subDetail->target }}</textarea>
+                                                                                </div>
+                                                                                <div class="col-md-6">
+                                                                                    <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub PIC</label>
+                                                                                    <textarea class="form-control form-control-sm"
+                                                                                        data-sub-name="sub_pic"
+                                                                                        name="sub_pic[{{ $detailIndex }}][]"
+                                                                                        rows="2"
+                                                                                        style="resize:vertical; border-radius:6px; font-size:.85rem;">{{ $subDetail->pic }}</textarea>
+                                                                                </div>
+                                                                            </div>
+                                                                        </div>
                                                                     </div>
                                                                 </div>
+                                                            @endforeach
+                                                        @else
+                                                            <div class="sub-empty-state text-center py-3 rounded-2"
+                                                                style="background:#f8fafc; border:1.5px dashed #e2e8f0; color:#94a3b8; font-size:.82rem;">
+                                                                <i class="fas fa-layer-group me-1"></i> Belum ada sub isi risalah.
                                                             </div>
-                                                        @endforeach
-                                                    @else
-                                                        <div class="sub-empty-state text-center text-muted small py-2">
-                                                            <i class="fas fa-layer-group me-1"></i> Belum ada sub risalah.
-                                                        </div>
-                                                    @endif
+                                                        @endif
+                                                    </div>
                                                 </div>
                                             </div>
-
                                         </div>
-                                    </div>
-                                @endforeach
+                                    @endforeach
+                                </div>
+
+                                {{-- Tombol Tambah --}}
+                                <button type="button" class="btn w-100 mt-2" id="tambahRisalahBtn"
+                                    style="background:#eff6ff; color:#2563eb; border:1.5px dashed #93c5fd; border-radius:8px; font-weight:600; font-size:.9rem; padding:10px;">
+                                    <i class="fas fa-plus-circle me-2"></i> Tambah Isi Risalah
+                                </button>
+
+                                <div id="risalahAlert" class="mt-2 text-danger small" style="display:none;"></div>
                             </div>
+                            {{-- ===================== END ISI RISALAH ===================== --}}
 
-                            <button type="button" class="btn btn-primary mt-3 w-100" id="tambahRisalahBtn">
-                                <i class="bi bi-plus-circle me-1"></i> Tambah Isi Risalah
-                            </button>
-
-                            <div id="risalahAlert" class="mt-2 text-danger" style="display:none;"></div>
                         </div>
 
                         <div class="card-footer text-end">
-                            <a href="{{ route('admin.risalah.index') }}" class="btn btn-outline-primary">Batal</a>
+                            <a href="{{ route('admin.risalah.index') }}" class="btn btn-outline-primary me-2">Batal</a>
                             <button type="submit" id="submitBtn" class="btn btn-primary">Simpan</button>
                         </div>
                     </div>
@@ -465,12 +522,14 @@ document.addEventListener('DOMContentLoaded', function () {
         items.forEach((item, index) => {
             item.dataset.index = index;
 
-            const noInput = item.querySelector('.no-auto');
-            if (noInput) noInput.value = index + 1;
+            const noInput   = item.querySelector('.no-auto');
+            const noDisplay = item.querySelector('.no-display');
+            if (noInput)   noInput.value        = index + 1;
+            if (noDisplay) noDisplay.textContent = index + 1;
 
             item.querySelectorAll('.sub-risalah-row').forEach((subRow, subIndex) => {
                 const badge = subRow.querySelector('.sub-badge');
-                if (badge) badge.textContent = `Sub ${subIndex + 1}`;
+                if (badge) badge.innerHTML = `<i class="fas fa-code-branch me-1"></i> Sub ${subIndex + 1}`;
 
                 subRow.querySelectorAll('[data-sub-name]').forEach(el => {
                     el.name = `${el.dataset.subName}[${index}][]`;
@@ -487,60 +546,191 @@ document.addEventListener('DOMContentLoaded', function () {
     // =========================
     function createSubRisalahRow(parentIndex) {
         const subRow = document.createElement('div');
-        subRow.className = 'sub-risalah-row border border-primary border-opacity-25 rounded-2 p-3 mt-2 position-relative';
-        subRow.style.background = '#f8f9ff';
+        subRow.className = 'sub-risalah-row position-relative mt-3';
 
         subRow.innerHTML = `
-            <span class="sub-badge position-absolute badge bg-primary" style="top:-10px;left:12px;font-size:.7rem;">Sub</span>
-            <div class="row g-2 align-items-end">
-                <div class="col-md-2">
-                    <label class="form-label form-label-sm text-muted mb-1">Sub Topik</label>
-                    <textarea class="form-control form-control-sm"
-                        data-sub-name="sub_topik"
-                        name="sub_topik[${parentIndex}][]"
-                        placeholder="Sub Topik" rows="2"
-                        style="resize:vertical;"></textarea>
-                </div>
-                <div class="col-md-3">
-                    <label class="form-label form-label-sm text-muted mb-1">Sub Pembahasan</label>
-                    <textarea class="form-control form-control-sm"
-                        data-sub-name="sub_pembahasan"
-                        name="sub_pembahasan[${parentIndex}][]"
-                        placeholder="Sub Pembahasan" rows="2"
-                        style="resize:vertical;"></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label form-label-sm text-muted mb-1">Sub Tindak Lanjut</label>
-                    <textarea class="form-control form-control-sm"
-                        data-sub-name="sub_tindak_lanjut"
-                        name="sub_tindak_lanjut[${parentIndex}][]"
-                        placeholder="Sub Tindak Lanjut" rows="2"
-                        style="resize:vertical;"></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label form-label-sm text-muted mb-1">Sub Target</label>
-                    <textarea class="form-control form-control-sm"
-                        data-sub-name="sub_target"
-                        name="sub_target[${parentIndex}][]"
-                        placeholder="Sub Target" rows="2"
-                        style="resize:vertical;"></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label form-label-sm text-muted mb-1">Sub PIC</label>
-                    <textarea class="form-control form-control-sm"
-                        data-sub-name="sub_pic"
-                        name="sub_pic[${parentIndex}][]"
-                        placeholder="Sub PIC" rows="2"
-                        style="resize:vertical;"></textarea>
-                </div>
-                <div class="col-md-1 d-flex align-items-end justify-content-center">
-                    <button type="button" class="btn btn-outline-danger btn-sm hapus-sub-risalah-btn w-100">
-                        <i class="fas fa-trash"></i>
-                    </button>
+            <div class="card border-0 shadow-sm" style="background:#f0f4ff; border-left:3px solid #4f6ef7 !important; border-radius:8px;">
+                <div class="card-body py-3 px-3">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <span class="sub-badge badge fw-semibold" style="background:#4f6ef7; font-size:.72rem; letter-spacing:.03em;">
+                            <i class="fas fa-code-branch me-1"></i> Sub
+                        </span>
+                        <button type="button" class="btn btn-sm hapus-sub-risalah-btn"
+                            style="background:#fff0f0; color:#e53935; border:1px solid #fccaca; border-radius:6px; padding:2px 10px; font-size:.8rem;">
+                            <i class="fas fa-trash me-1"></i> Hapus Sub
+                        </button>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Topik</label>
+                            <textarea class="form-control form-control-sm"
+                                data-sub-name="sub_topik"
+                                name="sub_topik[${parentIndex}][]"
+                                placeholder="Masukkan sub topik..."
+                                rows="2"
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Pembahasan</label>
+                            <textarea class="form-control form-control-sm"
+                                data-sub-name="sub_pembahasan"
+                                name="sub_pembahasan[${parentIndex}][]"
+                                placeholder="Masukkan sub pembahasan..."
+                                rows="2"
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Tindak Lanjut</label>
+                            <textarea class="form-control form-control-sm"
+                                data-sub-name="sub_tindak_lanjut"
+                                name="sub_tindak_lanjut[${parentIndex}][]"
+                                placeholder="Masukkan sub tindak lanjut..."
+                                rows="2"
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Target</label>
+                            <textarea class="form-control form-control-sm"
+                                data-sub-name="sub_target"
+                                name="sub_target[${parentIndex}][]"
+                                placeholder="Masukkan sub target..."
+                                rows="2"
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub PIC</label>
+                            <textarea class="form-control form-control-sm"
+                                data-sub-name="sub_pic"
+                                name="sub_pic[${parentIndex}][]"
+                                placeholder="Masukkan sub PIC..."
+                                rows="2"
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
+                        </div>
+                    </div>
                 </div>
             </div>
         `;
         return subRow;
+    }
+
+    // =========================
+    // TEMPLATE: Main Risalah Item baru
+    // =========================
+    function createMainRisalahItem(itemIndex) {
+        const itemWrapper = document.createElement('div');
+        itemWrapper.className = 'risalah-item card mb-4 border-0 shadow-sm';
+        itemWrapper.dataset.index = itemIndex;
+        itemWrapper.style.cssText = 'border-radius:10px; overflow:hidden;';
+
+        itemWrapper.innerHTML = `
+            <div class="card-header d-flex align-items-center justify-content-between py-2 px-3"
+                style="background:linear-gradient(90deg,#1e3a8a,#2563eb); border:none;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-white text-primary fw-bold"
+                        style="font-size:.85rem; min-width:36px; border-radius:6px; padding:4px 8px;">
+                        <span class="no-display">${itemIndex + 1}</span>
+                    </span>
+                    <span class="text-white fw-semibold" style="font-size:.9rem; letter-spacing:.02em;">Isi Risalah</span>
+                </div>
+                <button type="button" class="btn btn-sm hapus-risalah-btn"
+                    style="background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.3); border-radius:6px; padding:2px 12px; font-size:.8rem;">
+                    <i class="fas fa-trash me-1"></i> Hapus
+                </button>
+            </div>
+
+            <div class="card-body p-4">
+                <input type="hidden" class="no-auto" name="nomor[]" value="${itemIndex + 1}">
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                            <i class="fas fa-project-diagram text-primary me-1"></i> Proyek / Event
+                        </label>
+                        <input type="text" class="form-control form-control-sm"
+                            name="project_event[]"
+                            placeholder="Nama proyek atau event..."
+                            style="border-radius:6px; font-size:.87rem;">
+                    </div>
+                    <div class="col-md-8">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                            <i class="fas fa-tag text-primary me-1"></i> Topik <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-sm"
+                            name="topik[]"
+                            placeholder="Topik pembahasan..."
+                            required
+                            style="border-radius:6px; font-size:.87rem;">
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                            <i class="fas fa-comments text-primary me-1"></i> Pembahasan <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control form-control-sm"
+                            name="pembahasan[]"
+                            placeholder="Uraikan hasil pembahasan rapat..."
+                            rows="3"
+                            required
+                            style="resize:vertical; border-radius:6px; font-size:.87rem;"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                            <i class="fas fa-tasks text-primary me-1"></i> Tindak Lanjut <span class="text-danger">*</span>
+                        </label>
+                        <textarea class="form-control form-control-sm"
+                            name="tindak_lanjut[]"
+                            placeholder="Tindakan yang perlu dilakukan..."
+                            rows="3"
+                            required
+                            style="resize:vertical; border-radius:6px; font-size:.87rem;"></textarea>
+                    </div>
+                </div>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                            <i class="fas fa-calendar-check text-primary me-1"></i> Target <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-sm"
+                            name="target[]"
+                            placeholder="Target penyelesaian (tanggal / deskripsi)..."
+                            required
+                            style="border-radius:6px; font-size:.87rem;">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
+                            <i class="fas fa-user-check text-primary me-1"></i> PIC <span class="text-danger">*</span>
+                        </label>
+                        <input type="text" class="form-control form-control-sm"
+                            name="pic[]"
+                            placeholder="Person in charge..."
+                            required
+                            style="border-radius:6px; font-size:.87rem;">
+                    </div>
+                </div>
+
+                <div class="sub-risalah-wrapper mt-4 pt-3" style="border-top:1.5px dashed #cbd5e1;">
+                    <div class="d-flex align-items-center justify-content-between mb-2">
+                        <span class="fw-semibold text-muted" style="font-size:.82rem;">
+                            <i class="fas fa-sitemap text-primary me-1"></i> Sub Isi Risalah
+                        </span>
+                        <button type="button" class="btn btn-sm tambah-sub-risalah-btn"
+                            style="background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe; border-radius:6px; font-size:.8rem; padding:3px 12px;">
+                            <i class="fas fa-plus-circle me-1"></i> Tambah Sub Isi
+                        </button>
+                    </div>
+                    <div class="sub-risalah-container">
+                        <div class="sub-empty-state text-center py-3 rounded-2"
+                            style="background:#f8fafc; border:1.5px dashed #e2e8f0; color:#94a3b8; font-size:.82rem;">
+                            <i class="fas fa-layer-group me-1"></i> Belum ada sub isi risalah.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        return itemWrapper;
     }
 
     // =========================
@@ -549,65 +739,11 @@ document.addEventListener('DOMContentLoaded', function () {
     if (tambahRisalahBtn && risalahContainer) {
         tambahRisalahBtn.addEventListener('click', function (e) {
             e.preventDefault();
-
             const itemIndex = risalahContainer.querySelectorAll('.risalah-item').length;
-            const itemWrapper = document.createElement('div');
-            itemWrapper.className = 'risalah-item card mb-3 shadow-sm';
-            itemWrapper.dataset.index = itemIndex;
-
-            itemWrapper.innerHTML = `
-                <div class="card-body">
-                    <div class="row g-2 align-items-stretch isi-surat-row">
-                        <div class="col-md-1" style="display:flex;flex-direction:column;">
-                            <label class="form-label">No.</label>
-                            <input type="text" class="form-control no-auto" name="nomor[]" readonly style="flex:1;">
-                        </div>
-                        <div class="col-md-2" style="display:flex;flex-direction:column;">
-                            <label class="form-label">Topik <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="topik[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
-                        </div>
-                        <div class="col-md-2" style="display:flex;flex-direction:column;">
-                            <label class="form-label">Pembahasan <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="pembahasan[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
-                        </div>
-                        <div class="col-md-2" style="display:flex;flex-direction:column;">
-                            <label class="form-label">Tindak Lanjut <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="tindak_lanjut[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
-                        </div>
-                        <div class="col-md-2" style="display:flex;flex-direction:column;">
-                            <label class="form-label">Target <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="target[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
-                        </div>
-                        <div class="col-md-2" style="display:flex;flex-direction:column;">
-                            <label class="form-label">PIC <span class="text-danger">*</span></label>
-                            <textarea class="form-control" name="pic[]" rows="2" required style="flex:1;resize:vertical;"></textarea>
-                        </div>
-                        <div class="col-md-1 d-flex align-items-center justify-content-center">
-                            <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn">
-                                <i class="fas fa-trash"></i>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="sub-risalah-wrapper mt-3 border-top pt-3">
-                        <div class="d-flex align-items-center justify-content-between mb-2">
-                            <span class="text-muted small fw-semibold">
-                                <i class="fas fa-sitemap me-1 text-primary"></i> Sub Risalah
-                            </span>
-                            <button type="button" class="btn btn-outline-primary btn-sm tambah-sub-risalah-btn">
-                                <i class="fas fa-plus-circle me-1"></i> Tambah Sub Isi
-                            </button>
-                        </div>
-                        <div class="sub-risalah-container">
-                            <div class="sub-empty-state text-center text-muted small py-2">
-                                <i class="fas fa-layer-group me-1"></i> Belum ada sub risalah.
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-
-            risalahContainer.appendChild(itemWrapper);
+            const item = createMainRisalahItem(itemIndex);
+            risalahContainer.appendChild(item);
             updateNomor();
+            item.scrollIntoView({ behavior: 'smooth', block: 'start' });
         });
     }
 
@@ -629,13 +765,11 @@ document.addEventListener('DOMContentLoaded', function () {
         if (tambahSubBtn) {
             const item = tambahSubBtn.closest('.risalah-item');
             if (!item) return;
-            const parentIndex = parseInt(item.dataset.index ?? 0, 10);
+            const parentIndex  = parseInt(item.dataset.index ?? 0, 10);
             const subContainer = item.querySelector('.sub-risalah-container');
             if (!subContainer) return;
-
             const emptyState = subContainer.querySelector('.sub-empty-state');
             if (emptyState) emptyState.remove();
-
             subContainer.appendChild(createSubRisalahRow(parentIndex));
             updateNomor();
             return;
@@ -644,15 +778,16 @@ document.addEventListener('DOMContentLoaded', function () {
         // Hapus sub risalah
         const hapusSubBtn = e.target.closest('.hapus-sub-risalah-btn');
         if (hapusSubBtn) {
-            const subRow = hapusSubBtn.closest('.sub-risalah-row');
+            const subRow       = hapusSubBtn.closest('.sub-risalah-row');
             const subContainer = subRow ? subRow.closest('.sub-risalah-container') : null;
             if (subRow) {
                 subRow.remove();
                 updateNomor();
                 if (subContainer && !subContainer.querySelector('.sub-risalah-row')) {
                     subContainer.insertAdjacentHTML('beforeend', `
-                        <div class="sub-empty-state text-center text-muted small py-2">
-                            <i class="fas fa-layer-group me-1"></i> Belum ada sub risalah.
+                        <div class="sub-empty-state text-center py-3 rounded-2"
+                            style="background:#f8fafc; border:1.5px dashed #e2e8f0; color:#94a3b8; font-size:.82rem;">
+                            <i class="fas fa-layer-group me-1"></i> Belum ada sub isi risalah.
                         </div>
                     `);
                 }
@@ -665,14 +800,14 @@ document.addEventListener('DOMContentLoaded', function () {
     // LAMPIRAN
     // =========================
     const lampiranInputContainer = document.getElementById('lampiran-input-container');
-    const lampiranInput = document.getElementById('lampiran-input');
-    const lampiranList = document.getElementById('lampiran-list');
+    const lampiranInput          = document.getElementById('lampiran-input');
+    const lampiranList           = document.getElementById('lampiran-list');
 
     if (lampiranInputContainer && lampiranInput && lampiranList) {
         function createEmptyVisibleInput() {
             const newInput = document.createElement('input');
             newInput.type = 'file';
-            newInput.id = 'lampiran-input';
+            newInput.id   = 'lampiran-input';
             newInput.className = 'form-control';
             newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
             newInput.addEventListener('change', handleLampiranChange);
@@ -757,13 +892,13 @@ document.addEventListener('DOMContentLoaded', function () {
     // VALIDASI SUBMIT
     // =========================
     const risalahForm = document.querySelector('form');
-    const submitBtn = document.getElementById('submitBtn');
+    const submitBtn   = document.getElementById('submitBtn');
 
     if (risalahForm && submitBtn) {
         risalahForm.addEventListener('submit', function (e) {
             if (submitBtn.disabled) { e.preventDefault(); return false; }
             const jumlahRisalah = risalahContainer.querySelectorAll('.risalah-item').length;
-            const risalahAlert = document.getElementById('risalahAlert');
+            const risalahAlert  = document.getElementById('risalahAlert');
             if (jumlahRisalah < 1) {
                 e.preventDefault();
                 if (risalahAlert) {
@@ -785,7 +920,7 @@ document.addEventListener('DOMContentLoaded', function () {
 // JSTREE
 // =========================
 $(document).ready(function () {
-    var treeData = @json(json_decode($jsTreeData));
+    var treeData       = @json(json_decode($jsTreeData));
     var selectedTujuan = @json($tujuanArray);
 
     if (!treeData || treeData.length === 0) {
@@ -812,14 +947,10 @@ $(document).ready(function () {
         }).on('changed.jstree', function (e, data) {
             $('#tujuan-container').empty();
             let allSelectedNodes = data.instance.get_selected(true);
-            let selectedNodes = [];
             let userIds = [];
 
             allSelectedNodes.forEach(function (node) {
-                if (node.icon && node.icon === 'fa fa-user') {
-                    selectedNodes.push(node.text);
-                    userIds.push(node.id);
-                }
+                if (node.icon && node.icon === 'fa fa-user') userIds.push(node.id);
                 if (data.instance.is_selected(node.id)) data.instance.open_node(node.id);
             });
 
@@ -856,7 +987,7 @@ function updateSelectedRecipients(data) {
         .map(n => n.text)
         .sort((a, b) => getPriority(a) - getPriority(b));
 
-    let list = $('#selected-recipients');
+    let list    = $('#selected-recipients');
     let section = $('#selected-section');
     list.empty();
     if (selectedNodes.length) {

@@ -6,19 +6,27 @@ use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
 {
-    /**
-     * Run the migrations.
-     */
     public function up(): void
     {
-        //
+        Schema::table('risalah_details', function (Blueprint $table) {
+            $table->text('project_event')->nullable()->after('nomor');
+        });
+
+        Schema::table('risalah_details', function (Blueprint $table) {
+            $table->renameColumn('pembahasan', 'uraian_permasalahan');
+            $table->renameColumn('tindak_lanjut', 'pembahasan_tindak_lanjut');
+        });
     }
 
-    /**
-     * Reverse the migrations.
-     */
     public function down(): void
     {
-        //
+        Schema::table('risalah_details', function (Blueprint $table) {
+            $table->renameColumn('uraian_permasalahan', 'pembahasan');
+            $table->renameColumn('pembahasan_tindak_lanjut', 'tindak_lanjut');
+        });
+
+        Schema::table('risalah_details', function (Blueprint $table) {
+            $table->dropColumn('project_event');
+        });
     }
 };

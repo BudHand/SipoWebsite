@@ -518,36 +518,40 @@
                     newRow.style.alignItems = 'stretch';
 
                     newRow.innerHTML = `
-                <div class="col-md-1">
-                    <label class="form-label">No.</label>
-                    <input type="text" class="form-control no-auto" name="nomor[]" readonly>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Topik</label>
-                    <textarea class="form-control" name="topik[]" placeholder="Topik" rows="2" required></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Pembahasan</label>
-                    <textarea class="form-control" name="pembahasan[]" placeholder="Pembahasan" rows="2" required></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Tindak Lanjut</label>
-                    <textarea class="form-control" name="tindak_lanjut[]" placeholder="Tindak Lanjut" rows="2" required></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Target</label>
-                    <textarea class="form-control" name="target[]" placeholder="Target" rows="2" required></textarea>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">PIC</label>
-                    <textarea class="form-control" name="pic[]" placeholder="PIC" rows="2" required></textarea>
-                </div>
-                <div class="col-md-1 d-flex align-items-center justify-content-center">
-                    <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn">
-                        <i class="fas fa-trash"></i>
-                    </button>
-                </div>
-            `;
+                        <div class="col-md-1">
+                            <label class="form-label">No.</label>
+                            <input type="text" class="form-control no-auto" name="nomor[]" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Proyek/Event</label>
+                            <textarea class="form-control" name="project_event[]" placeholder="Proyek/Event" rows="2"></textarea>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Topik</label>
+                            <textarea class="form-control" name="topik[]" placeholder="Topik" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Uraian Permasalahan</label>
+                            <textarea class="form-control" name="uraian_permasalahan[]" placeholder="Uraian Permasalahan" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">Pembahasan / Tindak Lanjut</label>
+                            <textarea class="form-control" name="pembahasan_tindak_lanjut[]" placeholder="Pembahasan / Tindak Lanjut" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">Target</label>
+                            <textarea class="form-control" name="target[]" placeholder="Target" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-1">
+                            <label class="form-label">PIC</label>
+                            <textarea class="form-control" name="pic[]" placeholder="PIC" rows="2" required></textarea>
+                        </div>
+                        <div class="col-md-1 d-flex align-items-center justify-content-center">
+                            <button type="button" class="btn btn-danger btn-sm hapus-risalah-btn">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `;
 
                     risalahContainer.appendChild(newRow);
                     updateNomor();

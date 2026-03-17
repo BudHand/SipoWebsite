@@ -7,8 +7,9 @@
     <title> Risalah {{ $risalah->nomor_risalah }} </title>
     <style>
         @page {
+            size: A4 landscape;
             margin-top: 20px;
-            margin-bottom: 0px;
+            margin-bottom: 20px;
             margin-left: 0;
             margin-right: 0;
         }
@@ -18,8 +19,8 @@
             font-size: 12px;
             margin: 0;
             padding: 0;
-            padding-top: 120px;
-            padding-bottom: 100px;
+            padding-top: 80px;
+            padding-bottom: 40px;
         }
 
         .pdf-mode,
@@ -29,23 +30,20 @@
 
         .first-page-adjust {
             height: 0px;
-            margin-top: -120px;
+            margin-top: -80px;
         }
 
-        header {
+        /* ===== LOGO POJOK KANAN ATAS ===== */
+        .logo-header {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
+            top: 15px;
+            right: 20px;
+            z-index: 1000;
         }
 
-        footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            width: 100%;
+        .logo-header img {
+            width: 180px;
+            height: auto;
         }
 
         main {
@@ -122,7 +120,6 @@
             width: auto;
         }
 
-        /* Tabel utama */
         .fill {
             border-collapse: collapse;
             font-size: 11px;
@@ -173,8 +170,6 @@
             text-align: center;
         }
 
-        /* ===== SUB RISALAH STYLING ===== */
-        /* Identik dengan baris utama */
         .sub-row td {
             border: 1.5px solid black;
             padding: 6px;
@@ -209,32 +204,13 @@
         }
 
         /* view-mode */
-        .view-mode header img,
-        .view-mode footer img,
         .view-mode .content {
             width: 50%;
             margin: auto;
         }
 
-        .view-mode header,
-        .view-mode footer {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            width: 100%;
-            position: fixed;
-            left: 0;
-            z-index: 100;
-        }
-
-        .view-mode {
-            overflow: hidden;
-        }
-
-        .view-mode header img {
-            display: block;
-            margin: 0 auto;
-            width: 50%;
+        .view-mode .logo-header img {
+            width: 100px;
         }
 
         .view-mode .header1 {
@@ -277,8 +253,6 @@
         }
 
         /* pdf-mode */
-        .pdf-mode header img,
-        .pdf-mode footer img,
         .pdf-mode .content {
             width: 100%;
         }
@@ -318,7 +292,7 @@
         }
 
         .date {
-            margin-top: 10%;
+            margin-top: 3%;
             display: flex;
             justify-content: center;
             text-align: center;
@@ -359,6 +333,12 @@
             $needsWatermark && $file && file_exists($file)
                 ? 'data:image/png;base64,' . base64_encode(file_get_contents($file))
                 : null;
+
+        /* ===== LOGO BASE64 ===== */
+        $logoPath = public_path('assets/img/logo-rekaindo.png');
+        $logoBase64 = file_exists($logoPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($logoPath))
+            : null;
     @endphp
 
     @if ($needsWatermark && $wmBase64)
@@ -385,24 +365,20 @@
         </div>
     @endif
 
-    <header>
-        @if (isset($headerImage))
-            <img src="{{ $headerImage }}" width="100%">
-        @endif
-    </header>
-
-    <footer>
-        @if (isset($footerImage))
-            <img src="{{ $footerImage }}" width="100%">
-        @endif
-    </footer>
+    {{-- ===== LOGO POJOK KANAN ATAS (menggantikan header/footer) ===== --}}
+    @if ($logoBase64)
+        <div class="logo-header">
+            <img src="{{ $logoBase64 }}" alt="Logo Rekaindo">
+        </div>
+    @endif
 
     <main>
         <div class="first-page-adjust"></div>
         <div class="content">
             <div class="date">
-                <div class="title">
-                    <h5>Risalah Rapat<br>
+                <div class="title" style="width: 85%; align-self: center; margin: auto;">
+                    <h5>Risalah Rapat
+                        {{-- <br> --}}
                         {{ $risalah->agenda }}
                         <br>Nomor: {{ $risalah->nomor_risalah }}
                     </h5>
@@ -410,15 +386,15 @@
             </div>
 
             <div class="letter">
-                <table style="font-size: 12px; margin-bottom: 20px;">
+                <table style="font-size: 12px; margin-bottom: 10px; line-height: 1.8; border-collapse: collapse;">
                     <tr>
-                        <td style="width: 100px;">Hari, tanggal</td>
-                        <td style="width: 10px;">:</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">Hari, tanggal</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">:</td>
                         <td>{{ $risalah->tgl_dibuat->translatedFormat('d F Y') }}</td>
                     </tr>
                     <tr>
-                        <td>Waktu</td>
-                        <td>:</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">Waktu</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">:</td>
                         <td>
                             {{ $risalah->waktu_mulai }}
                             @if (preg_match('/^\d{1,2}(\.\d{1,2})?$/', $risalah->waktu_mulai))
@@ -432,24 +408,24 @@
                         </td>
                     </tr>
                     <tr>
-                        <td>Tempat</td>
-                        <td>:</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">Tempat</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">:</td>
                         <td>{{ $risalah->tempat }}</td>
                     </tr>
                     <tr>
-                        <td>Agenda</td>
-                        <td>:</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">Agenda</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">:</td>
                         <td>{!! nl2br(e($risalah->agenda)) !!}</td>
                     </tr>
                     <tr>
-                        <td>Daftar Hadir</td>
-                        <td>:</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">Daftar Hadir</td>
+                        <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">:</td>
                         <td>Daftar Hadir Terlampir</td>
                     </tr>
                     @if ($risalah->with_undangan)
                         <tr>
-                            <td>Nomor Undangan</td>
-                            <td>:</td>
+                            <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">Nomor Undangan</td>
+                            <td style="white-space: nowrap; padding-right: 8px; vertical-align: top;">:</td>
                             <td>{{ $undangan->nomor_undangan }}</td>
                         </tr>
                     @endif
@@ -458,117 +434,116 @@
 
             <div class="collab">
                 <div class="header2">
-<table style="border-collapse: collapse; font-size: 11px; table-layout: fixed; width: 100%; page-break-inside: always;">
-    <thead>
-        <tr>
-            <th style="width:5%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center; font-size: 10px;">No</th>
-            <th style="width:15%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Topik</th>
-            <th style="width:25%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Pembahasan</th>
-            <th style="width:25%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Tindak Lanjut</th>
-            <th style="width:15%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Target</th>
-            <th style="width:15%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">PIC</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach ($risalah->risalahDetails as $index => $detail)
-            {{-- ===== BARIS UTAMA ===== --}}
-            <tr>
-                <td style="width:5%; border: 1.5px solid black; padding: 6px; text-align: center; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">{{ $index + 1 }}</td>
-                <td style="width:15%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">{{ $detail->topik }}</td>
-                <td style="width:25%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
-                    @foreach (explode(';', $detail->pembahasan) as $poin)
-                        {!! nl2br(e(trim($poin))) !!}<br>
-                    @endforeach
-                </td>
-                <td style="width:25%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
-                    @foreach (explode(';', $detail->tindak_lanjut) as $poin)
-                        {!! nl2br(e(trim($poin))) !!}<br>
-                    @endforeach
-                </td>
-                <td style="width:15%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
-                    @foreach (explode(';', $detail->target) as $poin)
-                        {!! nl2br(e(trim($poin))) !!}<br>
-                    @endforeach
-                </td>
-                <td style="width:15%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
-                    @foreach (explode(';', $detail->pic) as $poin)
-                        {!! nl2br(e(trim($poin))) !!}<br>
-                    @endforeach
-                </td>
-            </tr>
+                    {{-- ===== TABEL UTAMA ===== --}}
+                    <table style="border-collapse: collapse; font-size: 11px; table-layout: fixed; width: 100%; page-break-inside: always;">
+                        <thead>
+                            <tr>
+                                <th style="width:4%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center; font-size: 10px;">No</th>
+                                <th style="width:13%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Proyek/Event</th>
+                                <th style="width:13%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Topik</th>
+                                <th style="width:25%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Uraian Permasalahan</th>
+                                <th style="width:25%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Pembahasan / Tindak Lanjut</th>
+                                <th style="width:10%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">Target</th>
+                                <th style="width:10%; border: 1.5px solid black; padding: 6px; background-color: #f0f0f0; text-align: center;">PIC</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach ($risalah->risalahDetails as $index => $detail)
+                                {{-- ===== BARIS UTAMA ===== --}}
+                                <tr>
+                                    <td style="width:4%; border: 1.5px solid black; padding: 6px; text-align: center; vertical-align: top; word-wrap: break-word; word-break: break-all;">{{ $index + 1 }}</td>
+                                    <td style="width:13%; border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-all;">{{ $detail->project_event }}</td>
+                                    <td style="width:13%; border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-all;">{{ $detail->topik }}</td>
+                                    <td style="width:25%; border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-word;">
+                                        @foreach (explode(';', $detail->uraian_permasalahan) as $poin)
+                                            {!! nl2br(e(trim($poin))) !!}<br>
+                                        @endforeach
+                                    </td>
+                                    <td style="width:25%; border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-word;">
+                                        @foreach (explode(';', $detail->pembahasan_tindak_lanjut) as $poin)
+                                            {!! nl2br(e(trim($poin))) !!}<br>
+                                        @endforeach
+                                    </td>
+                                    <td style="width:10%; border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-all;">
+                                        @foreach (explode(';', $detail->target) as $poin)
+                                            {!! nl2br(e(trim($poin))) !!}<br>
+                                        @endforeach
+                                    </td>
+                                    <td style="width:10%; border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-all;">
+                                        @foreach (explode(';', $detail->pic) as $poin)
+                                            {!! nl2br(e(trim($poin))) !!}<br>
+                                        @endforeach
+                                    </td>
+                                </tr>
 
-            {{-- ===== BARIS SUB RISALAH ===== --}}
-            @if ($detail->subDetails && $detail->subDetails->count() > 0)
-                @foreach ($detail->subDetails as $subIndex => $sub)
-                    <tr>
-                        <td style="width:3%; border: 1.5px solid black; padding: 6px; text-align: center; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;"></td>
-                        <td style="width:8%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-all;">
-                            @if (!empty($sub->topik)) {{ $sub->topik }} @endif
-                        </td>
-                        <td style="width:38%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
-                            @if (!empty($sub->pembahasan))
-                                @foreach (explode(';', $sub->pembahasan) as $poin)
-                                    {!! nl2br(e(trim($poin))) !!}<br>
-                                @endforeach
-                            @endif
-                        </td>
-                        <td style="width:38%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
-                            @if (!empty($sub->tindak_lanjut))
-                                @foreach (explode(';', $sub->tindak_lanjut) as $poin)
-                                    {!! nl2br(e(trim($poin))) !!}<br>
-                                @endforeach
-                            @endif
-                        </td>
-                        <td style="width:7%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
-                            @if (!empty($sub->target))
-                                @foreach (explode(';', $sub->target) as $poin)
-                                    {!! nl2br(e(trim($poin))) !!}<br>
-                                @endforeach
-                            @endif
-                        </td>
-                        <td style="width:6%; border: 1.5px solid black; padding: 6px; vertical-align: top; overflow: hidden; word-wrap: break-word; word-break: break-word;">
-                            @if (!empty($sub->pic))
-                                @foreach (explode(';', $sub->pic) as $poin)
-                                    {!! nl2br(e(trim($poin))) !!}<br>
-                                @endforeach
-                            @endif
-                        </td>
-                    </tr>
-                @endforeach
-            @endif
-        @endforeach
-    </tbody>
-</table>
+                                {{-- ===== BARIS SUB RISALAH ===== --}}
+                                @if ($detail->subDetails && $detail->subDetails->count() > 0)
+                                    @foreach ($detail->subDetails as $subIndex => $sub)
+                                        <tr>
+                                            <td style="border: 1.5px solid black; padding: 6px; text-align: center; vertical-align: top;"></td>
+                                            <td style="border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-all;">
+                                                @if (!empty($sub->project_event)) {{ $sub->project_event }} @endif
+                                            </td>
+                                            <td style="border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-all;">
+                                                @if (!empty($sub->topik)) {{ $sub->topik }} @endif
+                                            </td>
+                                            <td style="border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-word;">
+                                                @if (!empty($sub->pembahasan))
+                                                    @foreach (explode(';', $sub->pembahasan) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td style="border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-word;">
+                                                @if (!empty($sub->tindak_lanjut))
+                                                    @foreach (explode(';', $sub->tindak_lanjut) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td style="border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-word;">
+                                                @if (!empty($sub->target))
+                                                    @foreach (explode(';', $sub->target) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                            <td style="border: 1.5px solid black; padding: 6px; vertical-align: top; word-wrap: break-word; word-break: break-word;">
+                                                @if (!empty($sub->pic))
+                                                    @foreach (explode(';', $sub->pic) as $poin)
+                                                        {!! nl2br(e(trim($poin))) !!}<br>
+                                                    @endforeach
+                                                @endif
+                                            </td>
+                                        </tr>
+                                    @endforeach
+                                @endif
+                            @endforeach
+                        </tbody>
+                    </table>
 
                     {{-- ===== TANDA TANGAN ===== --}}
                     <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
                         <tr>
-                            <!-- Kolom Kiri: Notulis Acara -->
-                            <td
-                                style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
+                            <td style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
                                 @php
                                     $jabatanNotulis = $notulis?->position?->nm_position;
                                     $departemenNotulis = $notulis?->department?->name_department ?? '-';
                                 @endphp
                                 <p style="margin: 0; text-align:center">Notulis</p>
-                                <p
-                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $jabatanNotulis }}
                                 </p>
-                                <p
-                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $departemenNotulis }}
                                 </p>
                                 @if (!empty($risalah->qr_notulis_acara))
-                                    <img src="data:image/png;base64,{{ $risalah->qr_notulis_acara }}" width="150"
-                                        height="150" style="margin: 8px 0;">
+                                    <img src="data:image/png;base64,{{ $risalah->qr_notulis_acara }}" width="150" height="150" style="margin: 8px 0;">
                                 @endif
                                 <p style="margin: 4px 0; text-align:center">{{ $risalah->nama_notulis_acara }}</p>
                             </td>
 
-                            <!-- Kolom Kanan: Pemimpin Acara -->
-                            <td
-                                style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
+                            <td style="width: 50%; text-align: center; vertical-align: top; padding: 10px; border: none;">
                                 @php
                                     $jabatanPemimpin = $pemimpin?->position?->nm_position;
                                     $departemenPemimpin =
@@ -576,17 +551,14 @@
                                         ($userBertandatangan?->divisi?->nm_divisi ?? '-');
                                 @endphp
                                 <p style="margin: 0; text-align:center">Pemimpin Acara</p>
-                                <p
-                                    style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 4px 0 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $jabatanPemimpin }}
                                 </p>
-                                <p
-                                    style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
+                                <p style="margin: 0; text-align:center; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
                                     {{ $departemenPemimpin }}
                                 </p>
                                 @if (!empty($risalah->qr_pemimpin_acara))
-                                    <img src="data:image/png;base64,{{ $risalah->qr_pemimpin_acara }}" width="150"
-                                        height="150" style="margin: 8px 0;">
+                                    <img src="data:image/png;base64,{{ $risalah->qr_pemimpin_acara }}" width="150" height="150" style="margin: 8px 0;">
                                 @endif
                                 <p style="margin: 4px 0; text-align:center">{{ $risalah->nama_pemimpin_acara }}</p>
                             </td>
