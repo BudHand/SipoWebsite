@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Model CounterNomorSurat
@@ -172,11 +173,10 @@ class CounterNomorSurat extends Model
     {
         $last = static::where('tahun', $tahun)
             ->where('kode_tipe_surat', $kodeTipeSurat)
-            ->where('divisi', $divisi) // Counter per divisi
-            ->orderBy('seri_tahun', 'desc')
-            ->first();
+            ->where('divisi', $divisi)
+            ->max(DB::raw('CAST(seri_tahun AS UNSIGNED)'));
 
-        return $last ? (int) $last->seri_tahun : 0;
+        return $last ? (int) $last : 0;
     }
 
     /**
@@ -194,11 +194,10 @@ class CounterNomorSurat extends Model
         $last = static::where('tahun', $tahun)
             ->where('bulan', $bulan)
             ->where('kode_tipe_surat', $kodeTipeSurat)
-            ->where('divisi', $divisi) // Counter per divisi
-            ->orderBy('seri_bulan', 'desc')
-            ->first();
+            ->where('divisi', $divisi)
+            ->max(DB::raw('CAST(seri_bulan AS UNSIGNED)'));
 
-        return $last ? (int) $last->seri_bulan : 0;
+        return $last ? (int) $last : 0;
     }
 
     /**
