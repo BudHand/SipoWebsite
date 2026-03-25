@@ -17,9 +17,9 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('manager.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('admin.memo.index') }}" class="text-decoration-none text-primary">Memo</a>
+                            <a href="{{ route('memo.terkirim') }}" class="text-decoration-none text-primary">Memo</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Edit Memo</span>
                         </div>
@@ -33,22 +33,13 @@
                     @method('PUT')
 
                     <div class="card">
-                        @if ($errors->any())
-                            <div class="alert alert-danger mb-3">
-                                <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
                         <div class="card-header">
                             <div class="card-title">Formulir Edit Memo</div>
                         </div>
                         <div class="card-body">
                             <div id="tujuan-container"></div>
                             <div id="tembusan-container"></div>
-                            <div id="bcc-container"></div>
+                                    <div id="bcc-container"></div>
                             {{-- Row 1: Tanggal Surat & Seri Tahunan Surat --}}
                             <div class="row mb-3">
                                 @if ($parentMemo)
@@ -89,8 +80,17 @@
                                 @error('kode_bagian')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
-
                             </div>
+                            {{-- <div class="col-md-6">
+                                    <label for="seri_surat" class="form-label">
+                                        <i class="fas fa-hashtag text-primary me-1"></i>
+                                        Seri Tahunan Surat <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="seri_surat" id="seri_surat" class="form-control"
+                                        value="{{ $memo->seri_surat }}">
+                                    <input type="hidden" name="divisi_id_divisi" value="1">
+                                    <input type="hidden" name="pembuat" value="Admin Sistem">
+                                </div> --}}
                         </div>
 
                         {{-- Row 2: Nomor Surat & Perihal --}}
@@ -112,6 +112,14 @@
                                 @enderror
                                 {{-- </div> --}}
                             </div>
+                            {{-- <div class="col-md-6">
+                                    <label for="nomor_surat" class="form-label">
+                                        <i class="fas fa-file-alt text-primary me-1"></i>
+                                        Nomor Surat <span class="text-danger">*</span>
+                                    </label>
+                                    <input type="text" name="nomor_memo" id="nomor_memo" class="form-control"
+                                        value="{{ $memo->nomor_memo }}">
+                                </div> --}}
                             <div class="col-md-6">
                                 <label for="perihal" class="form-label">
                                     <i class="fas fa-tag text-primary me-1"></i>
@@ -221,6 +229,20 @@
                                     </div>
                                 @endif
                             </div>
+                            {{-- <div class="col-md-6">
+                                    <label for="lampiran" class="form-label">
+                                        <i class="fas fa-paperclip text-primary me-1"></i>
+                                        Lampiran
+                                    </label>
+                                    <input type="file" class="form-control @error('lampiran') is-invalid @enderror"
+                                        id="lampiran" name="lampiran" accept=".pdf">
+                                    <small class="form-text text-muted">
+                                        Format yang diizinkan: PDF (Max: 2MB)
+                                    </small>
+                                    @error('lampiran')
+                                        <div class="invalid-feedback">{{ $message }}</div>
+                                    @enderror
+                                </div> --}}
                         </div>
 
                         {{-- Row 4: Kepada (Full Width) --}}
@@ -236,258 +258,74 @@
                                 @push('scripts')
                                     <script>
                                         const tujuanNameArray = @json($tujuanArray);
+
                                         $(function() {
-                                            const treeData = @json(json_decode($jsTreeData));
-                                            const selectedTujuan = @json($tujuanArray ?? []);
-                                            const selectedTembusan = @json($selectedTembusan ?? []);
-                                            const selectedBcc = @json($selectedBcc ?? []);
-
-                                            // function initRecipientTree(treeSelector, preSelected, selectedListSelector, sectionSelector,
-                                            //     inputContainer, inputName) {
-                                            //     $(treeSelector).jstree({
-                                            //         'core': {
-                                            //             'data': treeData,
-                                            //             'themes': {
-                                            //                 'dots': true
-                                            //             }
-                                            //         },
-                                            //         'plugins': ['checkbox', 'search'],
-                                            //         'checkbox': {
-                                            //             'three_state': true,
-                                            //             'cascade': 'down'
-                                            //         }
-                                            //     }).on('ready.jstree', function(e, data) {
-
-                                            //         // Sembunyikan checkbox root
-                                            //         $(treeSelector + ' li').each(function() {
-                                            //             var node = data.instance.get_node(this.id);
-                                            //             if (node && node.parent === '#') {
-                                            //                 $(this).find('.jstree-checkbox').css('display', 'none');
-                                            //             }
-                                            //         });
-
-                                            //         // Pre-select & buka parent
-                                            //         preSelected.forEach(function(id) {
-                                            //             var idStr = id.toString();
-                                            //             // Coba format user-X dulu, lalu format asli
-                                            //             var candidates = [
-                                            //                 idStr.startsWith('user-') ? idStr : 'user-' + idStr,
-                                            //                 idStr
-                                            //             ];
-                                            //             var targetId = null;
-                                            //             candidates.forEach(function(candidate) {
-                                            //                 if (!targetId && data.instance.get_node(candidate)) {
-                                            //                     targetId = candidate;
-                                            //                 }
-                                            //             });
-
-                                            //             if (targetId) {
-                                            //                 data.instance.check_node(targetId);
-                                            //                 var parentId = data.instance.get_parent(targetId);
-                                            //                 while (parentId && parentId !== '#') {
-                                            //                     data.instance.open_node(parentId);
-                                            //                     parentId = data.instance.get_parent(parentId);
-                                            //                 }
-                                            //             }
-                                            //         });
-
-                                            //     }).on('changed.jstree', function(e, data) {
-                                            //         var selectedNodes = data.instance.get_selected(true);
-                                            //         var userNodes = selectedNodes.filter(function(node) {
-                                            //             return node.id && node.id.toString().startsWith('user-');
-                                            //         });
-
-                                            //         // Update tampilan list
-                                            //         var list = $(selectedListSelector);
-                                            //         list.empty();
-                                            //         if (userNodes.length) {
-                                            //             userNodes.forEach(function(node) {
-                                            //                 list.append('<li>' + node.text + '</li>');
-                                            //             });
-                                            //             $(sectionSelector).show();
-                                            //         } else {
-                                            //             $(sectionSelector).hide();
-                                            //         }
-
-                                            //         // Isi hidden input
-                                            //         if (inputContainer) {
-                                            //             $(inputContainer).empty();
-                                            //             selectedNodes.forEach(function(node) {
-                                            //                 $(inputContainer).append(
-                                            //                     '<input type="hidden" name="' + inputName + '" value="' + node
-                                            //                     .id + '">'
-                                            //                 );
-                                            //                 if (inputName === 'tujuan[]') {
-                                            //                     $(inputContainer).append(
-                                            //                         '<input type="hidden" name="tujuanString[]" value="' + node
-                                            //                         .text + '">'
-                                            //                     );
-                                            //                 }
-                                            //             });
-                                            //         }
-
-                                            //         if (inputName === 'tujuan[]' && userNodes.length > 0) {
-                                            //             $('#errorTujuan').hide();
-                                            //         }
-                                            //     });
-                                            // }
-                                            function initRecipientTree(treeSelector, preSelected, selectedListSelector, sectionSelector,
-                                                inputContainer, inputName) {
-                                                $(treeSelector).jstree({
-                                                    'core': {
-                                                        'data': treeData,
-                                                        'themes': {
-                                                            'dots': true
-                                                        }
+                                            $('#org-tree')
+                                                .jstree({
+                                                    core: {
+                                                        data: @json(json_decode($jsTreeData))
                                                     },
-                                                    'plugins': ['checkbox', 'search'],
-                                                    'checkbox': {
-                                                        'three_state': true,
-                                                        'cascade': 'down'
-                                                    }
-                                                }).on('ready.jstree', function(e, data) {
-
-                                                    // Sembunyikan checkbox root
-                                                    $(treeSelector + ' li').each(function() {
-                                                        var node = data.instance.get_node(this.id);
-                                                        if (node && node.parent === '#') {
-                                                            $(this).find('.jstree-checkbox').css('display', 'none');
+                                                    plugins: ["checkbox", "search"],
+                                                    checkbox: {
+                                                        keep_selected_style: false,
+                                                        three_state: false,
+                                                        cascade: "none",
+                                                    },
+                                                })
+                                                // hide checkboxes for top-level nodes
+                                                .on('ready.jstree', function(e, data) {
+                                                    $('#org-tree li').each(function() {
+                                                        const node = data.instance.get_node(this.id);
+                                                        if (node && node.parent === "#") {
+                                                            $(this).find('.jstree-checkbox').hide();
                                                         }
                                                     });
 
-                                                    // Pre-select & buka parent
-                                                    preSelected.forEach(function(id) {
-                                                        var idStr = id.toString();
-                                                        var candidates = [
-                                                            idStr.startsWith('user-') ? idStr : 'user-' + idStr,
-                                                            idStr
-                                                        ];
-                                                        var targetId = null;
+                                                    // ✅ Auto-select tujuan nodes
+                                                    const treeInstance = data.instance;
+                                                    const allNodes = treeInstance.get_json('#', {
+                                                        flat: true
+                                                    });
 
-                                                        candidates.forEach(function(candidate) {
-                                                            if (!targetId && data.instance.get_node(candidate)) {
-                                                                targetId = candidate;
-                                                            }
-                                                        });
-
-                                                        if (targetId) {
-                                                            data.instance.check_node(targetId);
-                                                            var parentId = data.instance.get_parent(targetId);
-                                                            while (parentId && parentId !== '#') {
-                                                                data.instance.open_node(parentId);
-                                                                parentId = data.instance.get_parent(parentId);
-                                                            }
+                                                    tujuanNameArray.forEach(name => {
+                                                        const foundNode = allNodes.find(node => node.text === name);
+                                                        if (foundNode) {
+                                                            treeInstance.check_node(foundNode.id);
                                                         }
                                                     });
 
-                                                }).on('changed.jstree', function(e, data) {
-                                                    var selectedNodes = data.instance.get_selected(true);
-
-                                                    function isOrgNode(nodeId) {
-                                                        return nodeId.startsWith('divisi-') ||
-                                                            nodeId.startsWith('dept-') ||
-                                                            nodeId.startsWith('section-') ||
-                                                            nodeId.startsWith('unit-') ||
-                                                            nodeId.startsWith('director-');
-                                                    }
-
-                                                    function isUserNode(nodeId) {
-                                                        return nodeId.startsWith('user-');
-                                                    }
-
-                                                    function hasSelectedOrgAncestor(node, instance) {
-                                                        var parentId = node.parent;
-
-                                                        while (parentId && parentId !== '#') {
-                                                            var parentNode = instance.get_node(parentId);
-                                                            if (parentNode && parentNode.state && parentNode.state.selected && isOrgNode(
-                                                                    parentNode.id)) {
-                                                                return true;
-                                                            }
-                                                            parentId = parentNode ? parentNode.parent : '#';
+                                                    // ✅ Open parents of all selected nodes
+                                                    treeInstance.get_selected(true).forEach(node => {
+                                                        let parentId = treeInstance.get_parent(node.id);
+                                                        while (parentId && parentId !== "#") {
+                                                            treeInstance.open_node(parentId);
+                                                            parentId = treeInstance.get_parent(parentId);
                                                         }
+                                                    });
+                                                })
+                                                .on('changed.jstree', function(e, data) {
+                                                    document.getElementById("errorTujuan").style.display = "none";
 
-                                                        return false;
-                                                    }
-
-                                                    // =========================
-                                                    // LIST TAMPILAN YANG DIRINGKAS
-                                                    // =========================
-                                                    var displayNodes = selectedNodes.filter(function(node) {
-                                                        // kalau node punya parent organisasi yang juga terpilih, jangan tampilkan
-                                                        return !hasSelectedOrgAncestor(node, data.instance);
+                                                    const sortOrder = ["div", "dept", "section", "unit", "user"];
+                                                    const selectedNodes = data.instance.get_selected(true).sort((a, b) => {
+                                                        const aType = a.id.split("-")[0];
+                                                        const bType = b.id.split("-")[0];
+                                                        return sortOrder.indexOf(aType) - sortOrder.indexOf(bType);
                                                     });
 
-                                                    // kalau mau, kita bisa urutkan agar org tampil dulu, user belakangan
-                                                    displayNodes.sort(function(a, b) {
-                                                        const aOrg = isOrgNode(a.id) ? 0 : 1;
-                                                        const bOrg = isOrgNode(b.id) ? 0 : 1;
-                                                        return aOrg - bOrg;
-                                                    });
-
-                                                    // =========================
-                                                    // UPDATE PANEL LIST
-                                                    // =========================
-                                                    var list = $(selectedListSelector);
+                                                    const list = $("#selected-recipients");
+                                                    const section = $("#selected-section");
                                                     list.empty();
 
-                                                    if (displayNodes.length) {
-                                                        displayNodes.forEach(function(node) {
-                                                            let label = node.text;
-
-                                                            if (node.id.startsWith('divisi-')) {
-                                                                label = 'Divisi: ' + node.text;
-                                                            } else if (node.id.startsWith('dept-')) {
-                                                                label = 'Department: ' + node.text;
-                                                            } else if (node.id.startsWith('section-')) {
-                                                                label = 'Section: ' + node.text;
-                                                            } else if (node.id.startsWith('unit-')) {
-                                                                label = 'Unit: ' + node.text;
-                                                            } else if (node.id.startsWith('director-')) {
-                                                                label = 'Direktorat: ' + node.text;
-                                                            }
-
-                                                            list.append('<li>' + label + '</li>');
+                                                    if (selectedNodes.length) {
+                                                        selectedNodes.forEach(node => {
+                                                            list.append(`<li>${node.text}</li>`);
                                                         });
-
-                                                        $(sectionSelector).show();
+                                                        section.show();
                                                     } else {
-                                                        $(sectionSelector).hide();
-                                                    }
-
-                                                    // =========================
-                                                    // HIDDEN INPUT TETAP FULL
-                                                    // =========================
-                                                    if (inputContainer) {
-                                                        $(inputContainer).empty();
-
-                                                        selectedNodes.forEach(function(node) {
-                                                            $(inputContainer).append(
-                                                                '<input type="hidden" name="' + inputName + '" value="' + node
-                                                                .id + '">'
-                                                            );
-
-                                                            if (inputName === 'tujuan[]') {
-                                                                $(inputContainer).append(
-                                                                    '<input type="hidden" name="tujuanString[]" value="' + node
-                                                                    .text + '">'
-                                                                );
-                                                            }
-                                                        });
-                                                    }
-
-                                                    if (inputName === 'tujuan[]' && selectedNodes.length > 0) {
-                                                        $('#errorTujuan').hide();
+                                                        section.hide();
                                                     }
                                                 });
-                                            }
-
-                                            initRecipientTree('#org-tree', selectedTujuan, '#selected-recipients', '#selected-section',
-                                                '#tujuan-container', 'tujuan[]');
-                                            initRecipientTree('#tembusan-tree', selectedTembusan, '#selected-tembusan',
-                                                '#selected-tembusan-section', '#tembusan-container', 'tembusan[]');
-                                            initRecipientTree('#bcc-tree', selectedBcc, '#selected-bcc', '#selected-bcc-section', '#bcc-container',
-                                                'bcc[]');
                                         });
                                     </script>
                                 @endpush
@@ -521,9 +359,7 @@
                             <div class="col-md-12">
                                 <label for="tembusan-tree" class="form-label">
                                     <i class="fas fa-user text-primary me-1"></i>
-                                    CC (Tembusan / Carbon Copy) <span class="text-muted form-text"
-                                        style="font-size: x-small;">(Kosongkan
-                                        jika tidak ada.)</span>
+                                    CC (Tembusan / Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                 </label>
                                 <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                     <div style="font-size: small;" id="tembusan-tree"></div>
@@ -531,8 +367,7 @@
                                 <div style="display: none;" id="selected-tembusan-section" class="mt-2">
                                     <label style="font-size: small;" class="form-label">Tembusan Terpilih:</label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                        <ul id="selected-tembusan"
-                                            style="font-size: small; padding-left: 15px; margin: 0;"></ul>
+                                        <ul id="selected-tembusan" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
                                     </div>
                                 </div>
                             </div>
@@ -541,9 +376,7 @@
                             <div class="col-md-12">
                                 <label for="bcc-tree" class="form-label">
                                     <i class="fas fa-user-secret text-primary me-1"></i>
-                                    BCC (Blind Carbon Copy) <span class="text-muted form-text"
-                                        style="font-size: x-small;">(Kosongkan jika
-                                        tidak ada.)</span>
+                                    BCC (Blind Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                 </label>
                                 <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                     <div style="font-size: small;" id="bcc-tree"></div>
@@ -551,8 +384,7 @@
                                 <div style="display: none;" id="selected-bcc-section" class="mt-2">
                                     <label style="font-size: small;" class="form-label">BCC Terpilih:</label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                        <ul id="selected-bcc" style="font-size: small; padding-left: 15px; margin: 0;">
-                                        </ul>
+                                        <ul id="selected-bcc" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
                                     </div>
                                 </div>
                             </div>
@@ -588,12 +420,119 @@
                                 @enderror
                             </div>
                         </div>
+
+
+
+
+
+
+
                     </div>
+
+                    {{-- Section: Keperluan Barang (Disabled) --}}
+                    {{-- @php
+                            // Susun data prefill: prioritas old() (ketika validasi gagal), lalu dari DB ($memo->keperluanBarang)
+                            $prefillItems = [];
+
+                            if (old('barang_nama')) {
+                                foreach (old('barang_nama') as $i => $nama) {
+                                    $prefillItems[] = [
+                                        'id' => old("detail_id.$i"),
+                                        'nama' => $nama,
+                                        'qty' => old("barang_qty.$i"),
+                                        'satuan' => old("barang_satuan.$i"),
+                                    ];
+                                }
+                            } elseif (!empty($memo) && ($memo->kategoriBarang ?? collect())->isNotEmpty()) {
+                                foreach ($memo->kategoriBarang as $it) {
+                                    $prefillItems[] = [
+                                        'id' => $it->id, // sesuaikan nama PK detail
+                                        'nama' => $it->nama_barang, // sesuaikan kolom DB
+                                        'qty' => $it->qty, // sesuaikan kolom DB
+                                        'satuan' => $it->satuan, // sesuaikan kolom DB
+                                    ];
+                                }
+                            }
+
+                            // Tentukan jumlah awal baris (min 1). Default 2 jika kosong.
+                            $initialCount = max(1, count($prefillItems) ?: 2);
+                        @endphp
+
+                        <div class="row mb-3">
+                            <div class="col-12">
+                                <div class="p-3 rounded-3 border" style="background:#e9f4ff;border-color:#cfe2ff;">
+
+                                    @if ($memo->kategoriBarang && $memo->kategoriBarang->isNotEmpty())
+                                        <div class="d-flex justify-content-between align-items-center mb-2">
+                                            <div class="fw-semibold" style="color:#1E4178;">Keperluan Barang</div>
+                                            <small class="text-muted">*Isi keperluan barang jika dibutuhkan</small>
+                                        </div>
+                                        @foreach ($memo->kategoriBarang as $index => $barang)
+                                            <div class="row g-3 align-items-end kb-row">
+                                                <input type="hidden"
+                                                    name="kategori_barang[{{ $index }}][id_kategori_barang]"
+                                                    value="{{ $barang->id_kategori_barang }}">
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Nomor</label>
+                                                    <input type="text"
+                                                        id="kategori_barang_{{ $index }}_nomor"
+                                                        name="kategori_barang[{{ $index }}][nomor]"
+                                                        class="form-control" value="{{ $barang->nomor }}" readonly>
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Barang</label>
+                                                    <input type="text"
+                                                        id="kategori_barang_{{ $index }}_nama_barang"
+                                                        name="kategori_barang[{{ $index }}][barang]"
+                                                        class="form-control" value="{{ $barang->barang }}" required
+                                                        oninvalid="this.setCustomValidity('Kolom ini wajib diisi.');"
+                                                        oninput="this.setCustomValidity('');">
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Qty</label>
+                                                    <input type="number"
+                                                        id="kategori_barang_{{ $index }}_qty"
+                                                        name="kategori_barang[{{ $index }}][qty]"
+                                                        class="form-control" value="{{ $barang->qty }}" required
+                                                        oninvalid="this.setCustomValidity('Kolom ini wajib diisi.');"
+                                                        oninput="this.setCustomValidity('');">
+                                                </div>
+                                                <div class="col-lg-3 col-md-3">
+                                                    <label class="form-label mb-1">Satuan</label>
+                                                    <input type="text"
+                                                        id="kategori_barang_{{ $index }}_satuan"
+                                                        name="kategori_barang[{{ $index }}][satuan]"
+                                                        class="form-control" value="{{ $barang->satuan }}" required
+                                                        oninvalid="this.setCustomValidity('Kolom ini wajib diisi.');"
+                                                        oninput="this.setCustomValidity('');">
+                                                </div>
+                                            </div>
+                                        @endforeach
+                                    @endif
+                                    Grid Baris Barang
+                                    <div id="kb_fields">
+                                        <div id="barangContainer" class="d-grid gap-3">
+                                            baris dibuat via JS (prefill dari PHP/DB)
+                                        </div>
+                                    </div>
+
+                                    tampung id detail untuk update (sejajar dengan baris)
+                                    <input type="hidden" name="deleted_detail_ids" id="deleted_detail_ids">
+                                </div>
+                            </div>
+                        </div>
+
+                        kirim data prefill dari PHP ke JS
+                        <script>
+                            window.kbPrefill = @json($prefillItems); // [{id, nama, qty, satuan}, ...]
+                        </script>
+                        =================== /Section: Keperluan Barang ===================
+                        --}}
 
                     <!-- Action Buttons -->
                     <div class="form-group">
                         <div class="d-flex justify-content-end gap-2">
-                            <a href="{{ route('admin.memo.index') }}" class="btn rounded-3"
+                            <a href="{{ route('memo.terkirim') }}" class="btn rounded-3"
                                 style="background-color:#fff; color:#0d6efd; border:1px solid #0d6efd;">
                                 Batal
                             </a>
@@ -611,23 +550,88 @@
 
 @push('scripts')
     <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Script dimulai');
+
+            const selectedTembusanNodes = @json($selectedTembusan);
+            const selectedBccNodes = @json($selectedBcc ?? []);
+
+            $('#tembusan-tree').jstree({
+                'core': { 'data': @json(json_decode($jsTreeData)) },
+                'plugins': ["checkbox", "search"],
+                'checkbox': { 'three_state': false, 'cascade': 'none' }
+            }).on('ready.jstree', function(e, data) {
+                $('#tembusan-tree li').each(function() {
+                    var node = data.instance.get_node(this.id);
+                    if (node && node.parent === "#") {
+                        $(this).find('.jstree-checkbox').css('display', 'none');
+                    }
+                });
+
+                selectedTembusanNodes.forEach(function(nodeId) {
+                    if (data.instance.get_node(nodeId)) {
+                        data.instance.check_node(nodeId);
+                    }
+                });
+            }).on('changed.jstree', function(e, data) {
+                let selectedNodes = data.instance.get_selected(true);
+                let list = $('#selected-tembusan');
+                let section = $('#selected-tembusan-section');
+                list.empty();
+
+                if (selectedNodes.length) {
+                    selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
+                    section.show();
+                } else {
+                    section.hide();
+                }
+            });
+
+            $('#bcc-tree').jstree({
+                'core': { 'data': @json(json_decode($jsTreeData)) },
+                'plugins': ["checkbox", "search"],
+                'checkbox': { 'three_state': false, 'cascade': 'none' }
+            }).on('ready.jstree', function(e, data) {
+                $('#bcc-tree li').each(function() {
+                    var node = data.instance.get_node(this.id);
+                    if (node && node.parent === "#") {
+                        $(this).find('.jstree-checkbox').css('display', 'none');
+                    }
+                });
+
+                selectedBccNodes.forEach(function(nodeId) {
+                    if (data.instance.get_node(nodeId)) {
+                        data.instance.check_node(nodeId);
+                    }
+                });
+            }).on('changed.jstree', function(e, data) {
+                let selectedNodes = data.instance.get_selected(true);
+                let list = $('#selected-bcc');
+                let section = $('#selected-bcc-section');
+                list.empty();
+
+                if (selectedNodes.length) {
+                    selectedNodes.forEach(node => list.append(`<li>${node.text}</li>`));
+                    section.show();
+                } else {
+                    section.hide();
+                }
+            });
+
+            $(document).ready(function() {
+                console.log("Select2 loaded?", typeof $.fn.select2);
+            });
+        });
         // =========================
         // LAMPIRAN: pilih satu per satu, tampil sebagai list
         // =========================
         $(document).ready(function() {
-            console.log('Document ready - checking lampiran elements');
             const lampiranInputContainer = document.getElementById('lampiran-input-container');
             const lampiranInput = document.getElementById('lampiran-input');
             const lampiranList = document.getElementById('lampiran-list');
 
-            console.log('Elements found:', {
-                container: !!lampiranInputContainer,
-                input: !!lampiranInput,
-                list: !!lampiranList
-            });
-
             if (lampiranInputContainer && lampiranInput && lampiranList) {
-                console.log('Lampiran dynamic initialized successfully');
+                console.log('Lampiran dynamic initialized');
 
                 function createEmptyVisibleInput() {
                     const newInput = document.createElement('input');
@@ -635,22 +639,29 @@
                     newInput.id = 'lampiran-input';
                     newInput.className = 'form-control';
                     newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
+
+                    // Pasang event handler lagi
                     newInput.addEventListener('change', handleLampiranChange);
+
+                    // Bersihkan container dan pasang input baru
                     lampiranInputContainer.innerHTML = '';
                     lampiranInputContainer.appendChild(newInput);
                 }
-
-                let isProcessing = false;
+                let isProcessing = false; // Flag untuk mencegah duplikasi
 
                 function handleLampiranChange(e) {
                     const input = e.target;
                     if (!input.files || input.files.length === 0 || isProcessing) return;
 
-                    isProcessing = true;
+                    isProcessing = true; // Set flag untuk mencegah duplikasi
                     input.removeEventListener('change', handleLampiranChange);
 
                     const file = input.files[0];
-                    const maxSize = 2 * 1024 * 1024;
+
+
+
+                    // Validasi ukuran file (2MB)
+                    const maxSize = 2 * 1024 * 1024; // 2MB
                     if (file.size > maxSize) {
                         Swal.fire({
                             icon: 'error',
@@ -658,21 +669,25 @@
                             text: 'Ukuran file tidak boleh lebih dari 2MB',
                             confirmButtonColor: '#1572e8'
                         });
+                        // Reset input tanpa membuat yang baru
                         input.value = '';
                         isProcessing = false;
                         return;
                     }
 
+                    // Wrapper tiap file di list
                     const itemWrapper = document.createElement('div');
                     itemWrapper.className =
                         'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
 
+                    // Bagian info file + progress
                     const infoWrapper = document.createElement('div');
                     infoWrapper.className = 'flex-grow-1';
 
                     const nameSpan = document.createElement('span');
                     nameSpan.textContent = file.name;
 
+                    // Progress bar simple (indikator "siap diunggah")
                     const progressOuter = document.createElement('div');
                     progressOuter.className = 'progress mt-1';
                     progressOuter.style.height = '4px';
@@ -683,43 +698,50 @@
                     progressInner.setAttribute('aria-valuenow', '100');
                     progressInner.setAttribute('aria-valuemin', '0');
                     progressInner.setAttribute('aria-valuemax', '100');
-                    progressInner.textContent = '';
+                    progressInner.textContent = ''; // biar tipis
 
                     progressOuter.appendChild(progressInner);
                     infoWrapper.appendChild(nameSpan);
                     infoWrapper.appendChild(progressOuter);
 
+                    // Tombol hapus
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'btn btn-sm btn-outline-danger';
                     removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
 
+                    // Pindahkan input asli ke dalam wrapper, jadikan hidden & beri name
                     input.name = 'lampiran[]';
                     input.classList.add('d-none');
                     input.removeEventListener('change', handleLampiranChange);
 
                     itemWrapper.appendChild(infoWrapper);
                     itemWrapper.appendChild(removeBtn);
-                    itemWrapper.appendChild(input);
+                    itemWrapper.appendChild(input); // input tersembunyi tetap di DOM supaya ikut terkirim
 
                     lampiranList.appendChild(itemWrapper);
 
+                    // Hapus item + input jika tombol hapus diklik
                     removeBtn.addEventListener('click', function() {
                         itemWrapper.remove();
                     });
 
+                    // Buat input baru yang kosong untuk pilih file berikutnya
                     createEmptyVisibleInput();
 
+                    // Reset flag setelah selesai
                     setTimeout(() => {
                         isProcessing = false;
                     }, 100);
                 }
 
+                // Pasang handler pertama kali
                 lampiranInput.addEventListener('change', handleLampiranChange);
             } else {
                 console.warn('Lampiran elements not found, skip lampiran dynamic init');
             }
 
+            // Hapus lampiran yang sudah ada
             $('.delete-lampiran-existing').on('click', function() {
                 const lampiranIndex = $(this).data('index');
                 const fileName = $(this).data('name');
@@ -768,7 +790,7 @@
         $('#memoForm').on('submit', function(e) {
             const selectedNodes = $('#org-tree').jstree('get_selected', true);
             if (selectedNodes.length === 0) {
-                e.preventDefault();
+                e.preventDefault(); // stop here
                 $('#errorTujuan').show()[0].scrollIntoView({
                     behavior: 'smooth',
                     block: 'center'
@@ -777,19 +799,20 @@
             }
         });
 
-        // ===================================================================
-        // TinyMCE Initialization - Enter = BR, Shift+Enter = P
-        // ===================================================================
+        // TinyMCE Initialization
         document.addEventListener('DOMContentLoaded', function() {
             console.log('DOM loaded, initializing TinyMCE...');
 
+            // Check if TinyMCE is loaded
             if (typeof tinymce === 'undefined') {
                 console.error('TinyMCE not loaded! Check if CDN is accessible.');
+                // Show fallback textarea
                 var wrapper = document.getElementById('tinymce-container');
                 var textarea = document.getElementById('isi_surat');
                 if (wrapper && textarea) {
                     wrapper.classList.remove('loading');
                     textarea.style.display = 'block';
+
                     var notice = document.createElement('div');
                     notice.className = 'alert alert-danger mt-2';
                     notice.innerHTML =
@@ -801,19 +824,23 @@
 
             console.log('TinyMCE version:', tinymce.majorVersion + '.' + tinymce.minorVersion);
 
+            // Add loading state
             var wrapper = document.getElementById('tinymce-container');
             if (wrapper) {
                 wrapper.classList.add('loading');
             }
 
+            // Timeout fallback - if TinyMCE doesn't load within 10 seconds
             var loadingTimeout = setTimeout(function() {
                 if (wrapper && wrapper.classList.contains('loading')) {
                     console.warn('TinyMCE loading timeout - using fallback');
                     wrapper.classList.remove('loading');
+
                     var textarea = document.getElementById('isi_surat');
                     if (textarea) {
                         textarea.style.display = 'block';
                         textarea.classList.add('form-control');
+
                         var notice = document.createElement('div');
                         notice.className = 'alert alert-info mt-2';
                         notice.innerHTML =
@@ -821,8 +848,9 @@
                         textarea.parentNode.insertBefore(notice, textarea.nextSibling);
                     }
                 }
-            }, 10000);
+            }, 10000); // 10 seconds timeout
 
+            // Initialize with error handling
             try {
                 tinymce.init({
                     selector: '#isi_surat',
@@ -832,40 +860,26 @@
                         'advlist', 'autolink', 'lists', 'link', 'image', 'table', 'code',
                         'wordcount', 'paste', 'searchreplace', 'fullscreen', 'help', 'nonbreaking'
                     ],
-
-                    // ========== TOOLBAR DENGAN FONT & VERTICAL ALIGN ==========
                     toolbar: [
-                        'undo redo | fontfamily fontsize | bold italic underline | forecolor backcolor',
+                        'undo redo | formatselect | bold italic underline | forecolor backcolor',
                         'alignleft aligncenter alignright alignjustify | bullist numlist | outdent indent',
-                        'link image table tablecellvalign | tabAlign | nonbreaking | code fullscreen | help'
+                        'link image table | tabAlign | nonbreaking | code fullscreen | help'
                     ],
-
-                    // Font Family Options
-                    font_family_formats: 'Arial=arial,helvetica,sans-serif; Calibri=calibri,sans-serif; Times New Roman=times new roman,times,serif; Courier New=courier new,courier,monospace; Verdana=verdana,geneva,sans-serif; Georgia=georgia,palatino,serif; Tahoma=tahoma,arial,helvetica,sans-serif',
-
-                    // Font Size Options
-                    font_size_formats: '8pt 9pt 10pt 11pt 12pt 14pt 16pt 18pt 20pt 24pt 28pt 32pt 36pt',
-
                     branding: false,
                     promotion: false,
                     statusbar: false,
-
-                    // ========== KONFIGURASI TABLE UNTUK WYSIWYG ==========
-                    table_resize_bars: true,
-                    table_column_resizing: 'preservetable',
-                    table_use_colgroups: true,
-                    object_resizing: true,
-                    table_advtab: true,
-                    table_cell_advtab: true,
-                    table_toolbar: 'tableprops tabledelete | tableinsertrowbefore tableinsertrowafter tabledeleterow | tableinsertcolbefore tableinsertcolafter tabledeletecol | tablecellvalign',
-
+                    // Konfigurasi tabel untuk PDF yang lebih baik
                     table_default_attributes: {
                         'border': '1',
-                        'cellpadding': '2'
+                        'style': 'border-collapse: collapse; width: 100%; table-layout: auto;'
                     },
                     table_default_styles: {
                         'border-collapse': 'collapse',
-                        'width': '100%'
+                        'width': '100%',
+                        'table-layout': 'auto'
+                    },
+                    table_cell_default_attributes: {
+                        'style': 'border: 1px solid #000; padding: 8px; word-wrap: break-word; vertical-align: top;'
                     },
                     table_cell_default_styles: {
                         'border': '1px solid #000',
@@ -873,18 +887,16 @@
                         'word-wrap': 'break-word',
                         'vertical-align': 'top'
                     },
-
-                    // Preserve width attributes dan colgroup
-                    extended_valid_elements: 'table[border|style|class|width],colgroup,col[style|width],td[style|colspan|rowspan|width],th[style|colspan|rowspan|width]',
-                    valid_children: '+body[style],+table[colgroup]',
-                    // ========== END KONFIGURASI TABLE ==========
-
+                    // Pastikan konten paste tidak rusak formatnya
                     paste_data_images: true,
-                    paste_word_valid_elements: "b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ol,ul,li,a[href],span,color,font-size,font-color,font-family,mark,table,tr,td,th,div,colgroup,col",
+                    paste_word_valid_elements: "b,strong,i,em,h1,h2,h3,h4,h5,h6,p,ol,ul,li,a[href],span,color,font-size,font-color,font-family,mark,table,tr,td,th,div",
                     paste_retain_style_properties: "all",
+
+                    // Preserve whitespace dan formatting
                     entity_encoding: 'raw',
                     keep_styles: true,
 
+                    // Format untuk output yang lebih baik
                     formats: {
                         alignleft: {
                             selector: 'p,h1,h2,h3,h4,h5,h6,td,th,div,ul,ol,li,table,img',
@@ -911,48 +923,48 @@
                             }
                         }
                     },
-
+                    // Tab configuration for better text alignment
                     indent_use_margin: true,
 
-                    // ========== KONFIGURASI ENTER = BR (BUKAN P BARU) ==========
-                    forced_root_block: 'p', // Tetap pakai <p> sebagai container
-                    force_br_newlines: false, // Jangan paksa BR di semua tempat
-                    force_p_newlines: false, // Jangan paksa P di semua tempat
-                    end_container_on_empty_block: false,
-                    newline_behavior: 'linebreak', // Enter = <br>, Shift+Enter = <p> baru
-                    // ========== END KONFIGURASI ENTER ==========
-                    content_style: `
-                        body {
-                            font-family: Arial, Helvetica, sans-serif !important;
-                            font-size: 12pt;
-                        }
-                    `,
+                    // Konfigurasi agar Enter dan Shift+Enter menghasilkan jarak yang sama (BR tag)
+                    forced_root_block: 'div',
+                    force_br_newlines: false,
+                    force_p_newlines: false,
+                    end_container_on_empty_block: true,
+
+                    // Custom CSS untuk tab spacing dan line height yang rapat
                     content_css: 'data:text/css;charset=UTF-8,' + encodeURIComponent(`
+                        /* Global reset untuk line height yang rapat */
                         body {
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                             margin: 0;
                             padding: 8px;
-                            font-family: arial, helvetica, sans-serif;
-                            font-size: 12pt;
                         }
+
+                        /* Paragraph dengan margin 0 agar jarak sama dengan BR */
                         p {
                             margin: 0 !important;
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                             padding: 0 !important;
                             display: block !important;
                         }
+
+                        /* BR tag dengan line-height yang sama dengan paragraph */
                         br {
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                             display: block !important;
                             content: "" !important;
                             margin: 0 !important;
                             padding: 0 !important;
                         }
+
+                        /* Div styling */
                         div {
                             margin: 0 !important;
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                             padding: 0 !important;
                         }
+
                         .tab-space {
                             display: inline-block;
                             width: 40px;
@@ -963,38 +975,45 @@
                             min-width: 40px;
                             text-align: right;
                         }
+
+                        /* Styling untuk preformatted text dengan tab */
                         .tab-formatted {
                             white-space: pre;
                             font-family: 'Courier New', monospace;
                             tab-size: 8;
                         }
+
+                        /* Table styling untuk spacing yang konsisten */
                         table {
                             margin: 0.3em 0 !important;
-                            line-height: 1.5 !important;
-                            border-collapse: collapse !important;
+                            line-height: 1.2 !important;
                         }
+
                         table p {
                             margin: 0 !important;
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                         }
+
                         td, th {
                             padding: 8px !important;
-                            line-height: 1.5 !important;
-                            border: 1px solid #000 !important;
-                            vertical-align: top !important;
+                            line-height: 1.2 !important;
                         }
+
+                        /* List styling */
                         ul, ol {
                             margin: 0.3em 0 !important;
                             padding-left: 2em !important;
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                         }
+
                         li {
-                            line-height: 1.5 !important;
+                            line-height: 1.2 !important;
                             margin: 0 !important;
                             padding: 0 !important;
                         }
                     `),
 
+                    // Quickbars untuk akses cepat (pengganti contextmenu)
                     quickbars_selection_toolbar: 'bold italic underline | tabAlign | alignleft aligncenter alignright',
                     quickbars_insert_toolbar: 'quickimage quicktable | hr pagebreak',
 
@@ -1004,57 +1023,48 @@
                             $('#isi_surat').trigger('input');
                         });
 
+                        // Cleanup setelah paste untuk konsistensi spacing
                         editor.on('PastePostProcess', function(e) {
+                            // Normalisasi spacing tanpa mengganggu display property
                             var allElements = e.node.querySelectorAll('*');
                             allElements.forEach(function(el) {
                                 if (el.tagName.toLowerCase() !== 'p') {
-                                    el.style.lineHeight = '1.5';
+                                    el.style.lineHeight = '1.2';
                                 }
                             });
                         });
 
-                        // ========== CUSTOM ENTER BEHAVIOR ==========
-                        // Enter = <br> (line break dalam paragraph yang sama)
-                        // Shift+Enter = <p> baru (paragraph baru)
-                        // ========== CUSTOM ENTER BEHAVIOR ==========
+                        // Override Enter key agar sama dengan Shift+Enter (selalu BR tag)
                         editor.on('keydown', function(e) {
-                            if (e.keyCode === 13) { // Enter key
+                            if (e.keyCode === 13) { // Enter
                                 var node = editor.selection.getNode();
                                 var inList = editor.dom.getParent(node, 'li,ol,ul');
-                                var inTable = editor.dom.getParent(node, 'td,th');
 
-                                // PENTING: Di dalam list atau table, biarkan TinyMCE default behavior
-                                if (inList || inTable) {
-                                    return; // Exit handler, biar TinyMCE yang handle
+                                // Di luar list:
+                                // Enter = paragraf/blok baru
+                                // Shift+Enter = line break (<br>)
+                                if (!inList && !e.shiftKey) {
+                                    // biarkan default TinyMCE bikin blok baru
+                                    return;
                                 }
 
-                                // Di luar list/table:
-                                if (e.shiftKey) {
-                                    // Shift+Enter = paragraph baru
-                                    e.preventDefault();
-                                    editor.execCommand('InsertParagraph');
-                                    return false;
-                                } else {
-                                    // Enter = line break <br>
+                                if (!inList && e.shiftKey) {
                                     e.preventDefault();
                                     editor.execCommand('InsertLineBreak');
-                                    return false;
+                                    return;
                                 }
                             }
 
                             // Tab functionality
-                            if (e.keyCode === 9) {
-                                var node = editor.selection.getNode();
-                                var inList = editor.dom.getParent(node, 'li,ol,ul');
-
-                                // Di dalam list, biarkan default Tab behavior (indent/outdent)
-                                if (inList) {
-                                    return; // Biarkan TinyMCE handle indent list
-                                }
-
+                            if (e.keyCode === 9) { // Tab key
                                 e.preventDefault();
+
                                 if (e.shiftKey) {
+                                    // Shift+Tab: Outdent atau hapus tab spaces
                                     var content = editor.selection.getContent();
+                                    var node = editor.selection.getNode();
+
+                                    // Coba hapus 8 nbsp dari awal line atau selection
                                     if (content.includes('&nbsp;')) {
                                         var newContent = content.replace(/^(&nbsp;){1,8}/, '');
                                         editor.selection.setContent(newContent);
@@ -1062,12 +1072,15 @@
                                         editor.execCommand('Outdent');
                                     }
                                 } else {
+                                    // Tab: Insert multiple non-breaking spaces untuk alignment
                                     var tabSpaces =
-                                        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;';
+                                        '&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;'; // 8 spasi
                                     editor.insertContent(tabSpaces);
                                 }
                             }
                         });
+
+                        // Add custom buttons for common formatting
                         editor.ui.registry.addButton('tabAlign', {
                             text: 'Tab Align',
                             tooltip: 'Insert tab spaces for alignment',
@@ -1078,65 +1091,27 @@
                             }
                         });
 
-                        editor.ui.registry.addMenuButton('tablecellvalign', {
-                            text: 'V-Align',
-                            tooltip: 'Vertical Alignment',
-                            fetch: function(callback) {
-                                var items = [{
-                                        type: 'menuitem',
-                                        text: 'Top',
-                                        onAction: function() {
-                                            editor.execCommand(
-                                                'mceTableApplyCellStyle',
-                                                false, {
-                                                    'vertical-align': 'top'
-                                                });
-                                        }
-                                    },
-                                    {
-                                        type: 'menuitem',
-                                        text: 'Middle',
-                                        onAction: function() {
-                                            editor.execCommand(
-                                                'mceTableApplyCellStyle',
-                                                false, {
-                                                    'vertical-align': 'middle'
-                                                });
-                                        }
-                                    },
-                                    {
-                                        type: 'menuitem',
-                                        text: 'Bottom',
-                                        onAction: function() {
-                                            editor.execCommand(
-                                                'mceTableApplyCellStyle',
-                                                false, {
-                                                    'vertical-align': 'bottom'
-                                                });
-                                        }
-                                    }
-                                ];
-                                callback(items);
-                            }
-                        });
-
+                        // Editor ready callback
                         editor.on('init', function() {
                             console.log('TinyMCE editor initialized successfully');
 
+                            // Clear timeout and remove loading state
                             if (loadingTimeout) {
                                 clearTimeout(loadingTimeout);
                             }
+
                             var wrapper = document.getElementById('tinymce-container');
                             if (wrapper) {
                                 wrapper.classList.remove('loading');
                             }
                         });
 
-
+                        // Error handling
                         editor.on('LoadError', function(e) {
                             console.error('TinyMCE load error:', e);
                         });
 
+                        // Setup complete
                         editor.on('SetupEditor', function(e) {
                             console.log('TinyMCE setup completed for editor:', e.editor.id);
                         });
@@ -1146,6 +1121,7 @@
                 console.error('Error initializing TinyMCE (full config):', error);
                 console.log('Attempting simple TinyMCE configuration...');
 
+                // Try with minimal configuration
                 try {
                     tinymce.init({
                         selector: '#isi_surat',
@@ -1163,15 +1139,20 @@
                     });
                 } catch (simpleError) {
                     console.error('Even simple TinyMCE failed:', simpleError);
+
+                    // Final fallback: Show textarea
                     var wrapper = document.getElementById('tinymce-container');
                     var textarea = document.getElementById('isi_surat');
+
                     if (wrapper) wrapper.classList.remove('loading');
                     if (loadingTimeout) clearTimeout(loadingTimeout);
+
                     if (textarea) {
                         textarea.style.display = 'block';
                         textarea.style.minHeight = '400px';
                         textarea.style.width = '100%';
                         textarea.classList.add('form-control');
+
                         var notice = document.createElement('div');
                         notice.className = 'alert alert-warning mt-2';
                         notice.innerHTML =
@@ -1185,6 +1166,7 @@
         $(document).ready(function() {
             console.log('submit trigger');
 
+            // Custom validator untuk TinyMCE
             $.validator.addMethod('tinymceRequired', function(value, element) {
                 const editorId = $(element).attr('id');
                 if (tinymce.get(editorId)) {
@@ -1209,12 +1191,14 @@
                 return 'Isi surat minimal ' + param + ' karakter';
             });
 
+            // Validator untuk memastikan konten tidak hanya berisi tag kosong
             $.validator.addMethod('tinymceNotEmpty', function(value, element) {
                 const editorId = $(element).attr('id');
                 if (tinymce.get(editorId)) {
                     const content = tinymce.get(editorId).getContent({
                         format: 'text'
                     });
+                    // Cek jika konten hanya berisi whitespace atau tag kosong
                     return content.trim().length > 0 && content.trim() !== '';
                 }
                 return value.trim().length > 0;
@@ -1229,9 +1213,9 @@
                     seri_surat: {
                         required: false
                     },
-                    // nomor_surat: {
-                    //     required: true
-                    // },
+                    nomor_surat: {
+                        required: true
+                    },
                     perihal: {
                         required: true
                     },
@@ -1279,6 +1263,7 @@
                 errorPlacement: function(error, element) {
                     error.addClass('invalid-feedback');
                     if (element.attr('id') === 'isi_surat') {
+                        // Untuk TinyMCE, letakkan error setelah wrapper
                         element.closest('.tinymce-wrapper').after(error);
                         element.closest('.tinymce-wrapper').addClass('has-error');
                     } else {
@@ -1298,28 +1283,76 @@
                     }
                 },
                 submitHandler: function(form) {
+                    // Sinkronisasi TinyMCE dengan textarea sebelum submit
                     if (tinymce.get('isi_surat')) {
+                        // Pastikan semua formatting tersimpan
                         tinymce.get('isi_surat').save();
+
+                        // Optional: Clean up excessive nbsp sequences jika diperlukan
+                        var content = tinymce.get('isi_surat').getContent();
+                        // Anda bisa menambahkan cleanup di sini jika diperlukan
                     }
 
-                    // Validasi tujuan
+                    // Clear existing tujuan[] inputs
+                    $('#tujuan-container').empty();
+
+                    // Get selected nodes
                     const selectedNodes = $('#org-tree').jstree('get_selected', true);
+
+                    const tujuan = selectedNodes;
                     if (selectedNodes.length === 0) {
                         document.getElementById('errorTujuan').style.display = 'block';
                         document.getElementById('errorTujuan').scrollIntoView({
                             behavior: 'smooth',
                             block: 'center'
                         });
+                        e.preventDefault();
+                        submitBtn.prop('disabled', false).text('Simpan');
                         return false;
                     }
+                    let sortOrder = ['div', 'dept', 'section', 'unit', 'user'];
+                    selectedNodes.sort((a, b) => {
+                        let aType = a.id.split('-')[0];
+                        let bType = b.id.split('-')[0];
+                        return sortOrder.indexOf(aType) - sortOrder.indexOf(bType);
+                    });
+                    tujuan.forEach(node => {
+                        const nodeId = node.id
+                        const nodeText = node.text;
+                        $('#tujuan-container').append(
+                            `<input type="hidden" name="tujuan[]" value="${node.id}">` +
+                            `<input type="hidden" name="tujuanString[]" value="${node.text}">`
+                        );
+                    });
 
+                    $('#tembusan-container').empty();
+                    const selectedTembusan = $('#tembusan-tree').jstree('get_selected', true);
+                    selectedTembusan.forEach(node => {
+                        $('#tembusan-container').append(
+                            `<input type="hidden" name="tembusan[]" value="${node.id}">`
+                        );
+                    });
+
+                    $('#bcc-container').empty();
+                    const selectedBccNodes = $('#bcc-tree').jstree('get_selected', true);
+                    selectedBccNodes.forEach(node => {
+                        $('#bcc-container').append(
+                            `<input type="hidden" name="bcc[]" value="${node.id}">`
+                        );
+                    });
+                    // Show loading state
                     const submitBtn = $(form).find('button[type="submit"]');
-                    submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...').prop(
-                        'disabled', true);
+                    const originalText = submitBtn.html();
+                    submitBtn.html('<i class="fas fa-spinner fa-spin me-1"></i>Menyimpan...');
+                    submitBtn.prop('disabled', true);
+                    //console.log("Submitting form with tujuan:", $('#tujuan-container').html());
+                    // Submit form
                     form.submit();
                 }
             });
         });
+
+
 
         (function() {
             const jumlahInput = document.getElementById('jumlahKategori');
@@ -1327,6 +1360,7 @@
             const kbFields = document.getElementById('kb_fields');
             const kbYes = document.getElementById('kb_yes');
             const kbNo = document.getElementById('kb_no');
+
             const prefill = Array.isArray(window.kbPrefill) ? window.kbPrefill : [];
 
             function rowTemplate(idx, preset = {}) {
@@ -1341,7 +1375,8 @@
         <input type="hidden" name="detail_id[]" value="${id}">
         <div class="col-lg-3 col-md-3">
           <label class="form-label mb-1">Nomor</label>
-          <input type="text" class="form-control nomor-field" name="barang_nomor[]" value="${nomor}" readonly style="background:#edf2f7;">
+          <input type="text" class="form-control nomor-field" name="barang_nomor[]" value="${nomor}" readonly
+                 style="background:#edf2f7;">
         </div>
         <div class="col-lg-3 col-md-3">
           <label class="form-label mb-1">Barang</label>
@@ -1363,6 +1398,7 @@
                 container.querySelectorAll('.nomor-field').forEach((el, i) => el.value = i + 1);
             }
 
+            // render tepat sejumlah 'count' dengan data preset (kalau ada)
             function renderWith(count, data = []) {
                 container.innerHTML = '';
                 for (let i = 0; i < count; i++) {
@@ -1373,23 +1409,29 @@
                 renumber();
             }
 
+            // Saat user mengubah jumlah baris:
             jumlahInput.addEventListener('input', function(e) {
                 let count = parseInt(e.target.value || '1', 10);
                 if (isNaN(count) || count < 1) count = 1;
-                const current = container.querySelectorAll('.kb-row').length;
-                const snapshot = [];
 
+                const current = container.querySelectorAll('.kb-row').length;
+
+                // Kumpulkan nilai yang sudah terisi agar tidak hilang saat ganti jumlah
+                const snapshot = [];
                 container.querySelectorAll('.kb-row').forEach(row => {
                     snapshot.push({
                         id: row.querySelector('input[name="detail_id[]"]').value,
-                        nama: row.querySelector('input[name="barang_nama[]"]').value,
+                        nama: row.querySelector('input[name="barang_nama[]"]')
+                            .value,
                         qty: row.querySelector('input[name="barang_qty[]"]').value,
-                        satuan: row.querySelector('input[name="barang_satuan[]"]').value,
+                        satuan: row.querySelector('input[name="barang_satuan[]"]')
+                            .value,
                     });
                 });
 
                 if (count === current) return;
 
+                // jika diperbesar → tambah baris kosong di belakang
                 if (count > current) {
                     for (let i = current; i < count; i++) snapshot[i] = snapshot[i] || {
                         id: '',
@@ -1398,20 +1440,23 @@
                         satuan: ''
                     };
                 } else {
+                    // jika diperkecil → potong dari belakang
                     snapshot.length = count;
                 }
+
                 renderWith(count, snapshot);
             });
 
+            // Toggle aktif/nonaktif section
             function setEnabled(enabled) {
                 kbFields.style.display = enabled ? '' : 'none';
                 jumlahInput.disabled = !enabled;
                 container.querySelectorAll('input').forEach(inp => inp.disabled = !enabled);
             }
-
             kbYes.addEventListener('change', () => setEnabled(true));
             kbNo.addEventListener('change', () => setEnabled(false));
 
+            // INIT: jika ada data DB/old → pakai itu; kalau tidak ada → pakai jumlah bawaan
             if (prefill.length) {
                 jumlahInput.value = prefill.length;
                 renderWith(prefill.length, prefill);
