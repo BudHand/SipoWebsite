@@ -360,7 +360,7 @@
                                                             name="pembahasan_tindak_lanjut[]"
                                                             rows="3"
                                                             required
-                                                            style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->tindak_lanjut }}</textarea>
+                                                            style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->pembahasan_tindak_lanjut }}</textarea>
                                                     </div>
                                                 </div>
 
