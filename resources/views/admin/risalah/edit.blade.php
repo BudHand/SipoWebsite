@@ -347,7 +347,7 @@
                                                             <i class="fas fa-comments text-primary me-1"></i> Uraian Permasalahan <span class="text-danger">*</span>
                                                         </label>
                                                         <textarea class="form-control form-control-sm"
-                                                            name="pembahasan[]"
+                                                            name="uraian_permasalahan[]"
                                                             rows="3"
                                                             required
                                                             style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->uraian_permasalahan }}</textarea>
@@ -357,10 +357,10 @@
                                                             <i class="fas fa-tasks text-primary me-1"></i> Pembahasan / Tindak Lanjut <span class="text-danger">*</span>
                                                         </label>
                                                         <textarea class="form-control form-control-sm"
-                                                            name="tindak_lanjut[]"
+                                                            name="pembahasan_tindak_lanjut[]"
                                                             rows="3"
                                                             required
-                                                            style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->pembahasan_tindak_lanjut }}</textarea>
+                                                            style="resize:vertical; border-radius:6px; font-size:.87rem;">{{ $detail->tindak_lanjut }}</textarea>
                                                     </div>
                                                 </div>
 
@@ -669,7 +669,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <i class="fas fa-comments text-primary me-1"></i> Pembahasan <span class="text-danger">*</span>
                         </label>
                         <textarea class="form-control form-control-sm"
-                            name="pembahasan[]"
+                            name="uraian_permasalahan[]"
                             placeholder="Uraikan hasil pembahasan rapat..."
                             rows="3"
                             required
@@ -680,7 +680,7 @@ document.addEventListener('DOMContentLoaded', function () {
                             <i class="fas fa-tasks text-primary me-1"></i> Tindak Lanjut <span class="text-danger">*</span>
                         </label>
                         <textarea class="form-control form-control-sm"
-                            name="tindak_lanjut[]"
+                            name="pembahasan_tindak_lanjut[]"
                             placeholder="Tindakan yang perlu dilakukan..."
                             rows="3"
                             required
