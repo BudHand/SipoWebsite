@@ -133,14 +133,26 @@
                                     <i class="fas fa-signature text-primary me-1"></i>
                                     Nama yang Bertanda Tangan <span class="text-danger">*</span>
                                 </label>
-                                <input type="hidden" name="nama_bertandatangan" id="nama_bertandatangan"
-                                    class="form-control" value="{{ $memo->nama_bertandatangan }}" required>
-                                <select name="nama_bertandatangan" id="nama_bertandatangan" class="form-control"
-                                    value="$memo">
-                                    <option value="{{ $memo->nama_bertandatangan }}" selected>
-                                        {{ $memo->nama_bertandatangan }}
-                                    </option>
+
+                                <select name="nama_bertandatangan" id="nama_bertandatangan"
+                                    class="form-control @error('nama_bertandatangan') is-invalid @enderror" required>
+
+                                    <option value="">-- Pilih Penanda Tangan --</option>
+
+                                    @foreach ($penandatanganList as $user)
+                                        @php
+                                            $namaLengkap = trim($user->firstname . ' ' . $user->lastname);
+                                            $jabatan = $user->position->nm_position ?? '-';
+                                            $label = '(' . $jabatan . ') ' . $namaLengkap;
+                                        @endphp
+
+                                        <option value="{{ $namaLengkap }}"
+                                            {{ old('nama_bertandatangan', $memo->nama_bertandatangan) == $namaLengkap ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
                                 </select>
+
                                 @error('nama_bertandatangan')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror

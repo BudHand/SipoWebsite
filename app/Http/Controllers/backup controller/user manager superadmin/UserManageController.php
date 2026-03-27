@@ -160,33 +160,7 @@ class UserManageController extends Controller
         }
 
         // Kirim data ke view user-manage
-        return view('superadmin.user-manage.index', compact('divisi', 'view', 'roles', 'positions', 'users', 'kodeItems', 'sortOrder', 'mainDirector', 'organisasi', 'bagianKerja', 'orgOptions'));
-        // return view('superadmin.user-manage', compact('divisi', 'view', 'roles', 'positions', 'users', 'kodeItems', 'sortOrder', 'mainDirector', 'organisasi', 'bagianKerja', 'orgOptions'));
-    }
-
-    public function create()
-    {
-        $positions   = Position::all();
-        $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
-
-        $mainDirector = Director::with([
-            'subDirectors.divisi.department.section.unit',
-            'subDirectors.divisi.department.unit',
-            'subDirectors.department.section.unit',
-            'subDirectors.department.unit',
-            'divisi.department.section.unit',
-            'divisi.department.unit',
-            'department.section.unit',
-            'department.unit',
-        ])->where('is_main', 1)->first();
-
-        $orgOptions = [];
-        if ($mainDirector) {
-            $orgOptions = $this->buildOrgOptions($mainDirector);
-        }
-
-        return view('superadmin.user-manage.create',
-            compact('positions', 'bagianKerja', 'orgOptions'));
+        return view('superadmin.user-manage', compact('divisi', 'view', 'roles', 'positions', 'users', 'kodeItems', 'sortOrder', 'mainDirector', 'organisasi', 'bagianKerja', 'orgOptions'));
     }
 
     public function store(Request $request)

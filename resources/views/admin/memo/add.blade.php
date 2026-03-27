@@ -186,6 +186,37 @@
 
                             <div class="row">
                                 <!-- Nama yang Beratanda Tangan -->
+                                {{-- <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="nama_bertandatangan" class="form-label">
+                                            <i class="fas fa-signature text-primary me-1"></i>
+                                            Nama yang Bertanda Tangan <span class="text-danger">*</span>
+                                        </label>
+
+                                        <select name="nama_bertandatangan" id="nama_bertandatangan"
+                                            class="form-control @error('nama_bertandatangan') is-invalid @enderror"
+                                            required>
+                                            <option value="" disabled selected>-- Pilih --</option>
+
+                                            @foreach ($penandatanganList as $user)
+                                                @php
+                                                    $namaLengkap = trim($user->firstname . ' ' . $user->lastname);
+                                                    $jabatan = $user->position->nm_position ?? '-';
+                                                @endphp
+
+                                                <option value="{{ $namaLengkap }}"
+                                                    {{ old('nama_bertandatangan') == $namaLengkap ? 'selected' : '' }}>
+                                                    ({{ $jabatan }})
+                                                    {{ $namaLengkap }}
+                                                </option>
+                                            @endforeach
+                                        </select>
+
+                                        @error('nama_bertandatangan')
+                                            <div class="invalid-feedback">{{ $message }}</div>
+                                        @enderror
+                                    </div>
+                                </div> --}}
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label for="nama_bertandatangan" class="form-label">
@@ -349,7 +380,8 @@
                                 <div class="col-md-12">
                                     <label for="tembusan-tree" class="form-label">
                                         <i class="fas fa-user text-primary me-1"></i>
-                                        CC (Tembusan / Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan
+                                        CC (Tembusan / Carbon Copy) <span class="text-muted form-text"
+                                            style="font-size: x-small;">(Kosongkan
                                             jika tidak ada.)</span>
                                     </label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
@@ -358,7 +390,8 @@
                                     <div style="display: none;" id="selected-tembusan-section" class="mt-2">
                                         <label style="font-size: small;" class="form-label">Tembusan Terpilih:</label>
                                         <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                            <ul id="selected-tembusan" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
+                                            <ul id="selected-tembusan"
+                                                style="font-size: small; padding-left: 15px; margin: 0;"></ul>
                                         </div>
                                     </div>
                                 </div>
@@ -367,7 +400,8 @@
                                 <div class="col-md-12">
                                     <label for="bcc-tree" class="form-label">
                                         <i class="fas fa-user-secret text-primary me-1"></i>
-                                        BCC (Blind Carbon Copy) <span class="text-muted form-text" style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
+                                        BCC (Blind Carbon Copy) <span class="text-muted form-text"
+                                            style="font-size: x-small;">(Kosongkan jika tidak ada.)</span>
                                     </label>
                                     <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
                                         <div style="font-size: small;" id="bcc-tree"></div>
@@ -375,7 +409,8 @@
                                     <div style="display: none;" id="selected-bcc-section" class="mt-2">
                                         <label style="font-size: small;" class="form-label">BCC Terpilih:</label>
                                         <div class="border rounded p-2" style="max-height: 300px; overflow-y: auto;">
-                                            <ul id="selected-bcc" style="font-size: small; padding-left: 15px; margin: 0;"></ul>
+                                            <ul id="selected-bcc"
+                                                style="font-size: small; padding-left: 15px; margin: 0;"></ul>
                                         </div>
                                     </div>
                                 </div>

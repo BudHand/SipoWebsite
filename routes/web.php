@@ -150,16 +150,26 @@ Route::middleware(['auth', 'role:1'])->group(function () {
     Route::delete('/risalah/delete/{id_risalah}', [RisalahController::class, 'destroy'])->name('risalah.destroy');
 
     // manage user
-    Route::get('/user-manage/edit/{id}', [UserController::class, 'edit'])->name('user-manage.edit');
+    Route::get('/user-manage', [UserManageController::class, 'index'])->name('user.manage');
+    Route::get('/user-manage/create', [UserManageController::class, 'create'])->name('user-manage.create');
+    Route::post('/user-manage/add', [RegisteredUserController::class, 'store'])->name('user-manage/add');
+    Route::post('/user-manage/import', [RegisteredUserController::class, 'import_ajax'])->name('user-manage.import');
+
+    Route::get('/user-manage/{id}', [UserController::class, 'show'])->name('user-manage.show');
+    Route::get('/user-manage/{id}/edit', [UserController::class, 'edit'])->name('user-manage.edit');
+    Route::put('/user-manage/update/{id}', [UserController::class, 'update'])->name('user-manage/update');
     Route::delete('/user-manage/delete/{id}', [UserController::class, 'destroy'])->name('user-manage.destroy');
     Route::put('/user-manage/restore/{id}', [UserController::class, 'restore'])->name('user-manage.restore');
-    Route::put('/user-manage/update/{id}', [UserController::class, 'update'])->name('user-manage/update');
-    Route::get('/role-management', [UserController::class, 'showRole'])->name('user.role');
-    Route::get('/user-manage/paginate', [UserManageController::class, 'paginateUsers'])->name('user-manage.paginate');
-    Route::get('/user-manage', [UserManageController::class, 'index'])->name('user.manage');
-    // Route::get('user-manage/add', [RegisteredUserController::class, 'create'])->name('user-manage/add');
-    Route::post('user-manage/add', [RegisteredUserController::class, 'store'])->name('user-manage/add');
-    Route::post('user-manage/import', [RegisteredUserController::class, 'import_ajax'])->name('user-manage.import');
+    // Route::get('/user-manage/edit/{id}', [UserController::class, 'edit'])->name('user-manage.edit');
+    // Route::delete('/user-manage/delete/{id}', [UserController::class, 'destroy'])->name('user-manage.destroy');
+    // Route::put('/user-manage/restore/{id}', [UserController::class, 'restore'])->name('user-manage.restore');
+    // Route::put('/user-manage/update/{id}', [UserController::class, 'update'])->name('user-manage/update');
+    // Route::get('/role-management', [UserController::class, 'showRole'])->name('user.role');
+    // Route::get('/user-manage/paginate', [UserManageController::class, 'paginateUsers'])->name('user-manage.paginate');
+    // Route::get('/user-manage', [UserManageController::class, 'index'])->name('user.manage');
+    // // Route::get('user-manage/add', [RegisteredUserController::class, 'create'])->name('user-manage/add');
+    // Route::post('user-manage/add', [RegisteredUserController::class, 'store'])->name('user-manage/add');
+    // Route::post('user-manage/import', [RegisteredUserController::class, 'import_ajax'])->name('user-manage.import');
 
     //Perusahaan Controller
     Route::post('/data-perusahaan/update', [PerusahaanController::class, 'update'])->name('data-perusahaan.update');

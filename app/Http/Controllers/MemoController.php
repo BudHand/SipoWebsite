@@ -1227,26 +1227,17 @@ class MemoController extends Controller
 
         // Expand hierarchy supaya pilih level atas otomatis mencakup seluruh turunan
         if (!empty($divisions)) {
-            $deptFromDivision = Department::whereIn('divisi_id_divisi', $divisions)
-                ->pluck('id_department')
-                ->map(fn($v) => (int) $v)
-                ->all();
+            $deptFromDivision = Department::whereIn('divisi_id_divisi', $divisions)->pluck('id_department')->map(fn($v) => (int) $v)->all();
             $departments = array_values(array_unique(array_merge($departments, $deptFromDivision)));
         }
 
         if (!empty($departments)) {
-            $sectionFromDepartment = Section::whereIn('department_id_department', $departments)
-                ->pluck('id_section')
-                ->map(fn($v) => (int) $v)
-                ->all();
+            $sectionFromDepartment = Section::whereIn('department_id_department', $departments)->pluck('id_section')->map(fn($v) => (int) $v)->all();
             $sections = array_values(array_unique(array_merge($sections, $sectionFromDepartment)));
         }
 
         if (!empty($sections)) {
-            $unitFromSection = Unit::whereIn('section_id_section', $sections)
-                ->pluck('id_unit')
-                ->map(fn($v) => (int) $v)
-                ->all();
+            $unitFromSection = Unit::whereIn('section_id_section', $sections)->pluck('id_unit')->map(fn($v) => (int) $v)->all();
             $units = array_values(array_unique(array_merge($units, $unitFromSection)));
         }
 
@@ -2665,23 +2656,26 @@ class MemoController extends Controller
         // Daftar manager yang satu divisi, department, section, dan unit dengan admin yg membuat suratnya
         if ($user->role_id_role !== 1) {
             $managers = User::with('position:id_position,nm_position')
-                ->where('role_id_role', 3)
-                // ->where('position_id_position', '!=', 9)
-                // ->where(function ($q) use ($user) {
-                //     $q->where(function ($q2) use ($user) {
-                //         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
-                //     })
-                //         ->orWhere(function ($q2) use ($user) {
-                //             $q2->whereNotNull('department_id_department')->where('department_id_department', $user->department_id_department);
-                //         })
-                //         ->orWhere(function ($q2) use ($user) {
-                //             $q2->whereNotNull('section_id_section')->where('section_id_section', $user->section_id_section);
-                //         })
-                //         ->orWhere(function ($q2) use ($user) {
-                //             $q2->whereNotNull('unit_id_unit')->where('unit_id_unit', $user->unit_id_unit);
-                //         });
-                // })
-                ->get(['id', 'firstname', 'lastname', 'position_id_position']);
+            ->where('role_id_role', 3)
+            ->orderBy('firstname')
+            ->get(['id', 'firstname', 'lastname', 'position_id_position']);
+                // ->where('role_id_role', 3)
+                // // ->where('position_id_position', '!=', 9)
+                // // ->where(function ($q) use ($user) {
+                // //     $q->where(function ($q2) use ($user) {
+                // //         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
+                // //     })
+                // //         ->orWhere(function ($q2) use ($user) {
+                // //             $q2->whereNotNull('department_id_department')->where('department_id_department', $user->department_id_department);
+                // //         })
+                // //         ->orWhere(function ($q2) use ($user) {
+                // //             $q2->whereNotNull('section_id_section')->where('section_id_section', $user->section_id_section);
+                // //         })
+                // //         ->orWhere(function ($q2) use ($user) {
+                // //             $q2->whereNotNull('unit_id_unit')->where('unit_id_unit', $user->unit_id_unit);
+                // //         });
+                // // })
+                // ->get(['id', 'firstname', 'lastname', 'position_id_position']);
         } else {
             $managers = User::with('position:id_position,nm_position')
                 ->where('role_id_role', 3)
@@ -2731,7 +2725,6 @@ class MemoController extends Controller
         $orgTree = $this->getOrgTreeWithUsers();
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
-
         return view(
             Auth::user()->role->nm_role . '.memo.add',
             [
@@ -2964,6 +2957,107 @@ class MemoController extends Controller
         }
     }
 
+    // public function editBaru($id)
+    // {
+    //     $memo = Memo::findOrFail($id);
+    //     $divisi = Divisi::all();
+    //     $divisiId = Auth::user()->divisi_id_divisi;
+    //     $seri = Seri::all();
+    //     $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
+
+    //     $parentMemo = null;
+    //     if ($memo->feedback) {
+    //         // sesuaikan dengan nama model & kolommu
+    //         $parentMemo = Memo::find($memo->feedback);
+    //     }
+
+    //     $managers = User::where('role_id_role', 3)->get(['id', 'firstname', 'lastname']);
+
+    //     $orgTree = $this->getOrgTreeWithUsers();
+    //     $jsTreeData = $this->convertToJsTree($orgTree);
+    //     $mainDirector = $orgTree[0] ?? null;
+
+    //     // $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
+    //     // Ganti baris ini:
+    //     $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
+
+    //     // Menjadi ini:
+    //     $tujuanArray = [];
+    //     if ($memo->tujuan) {
+    //         $tujuanArray = collect(array_values(array_filter(explode(';', $memo->tujuan), fn($v) => trim($v) !== '')))
+    //             ->filter(fn($v) => is_numeric($v))
+    //             ->map(fn($v) => 'user-' . (int) $v)
+    //             ->values()
+    //             ->all();
+    //     }
+
+    //     // Parse lampiran data jika ada
+    //     $lampiranData = [];
+    //     if ($memo->lampiran) {
+    //         // Coba decode sebagai JSON dulu (untuk data baru)
+    //         $jsonData = json_decode($memo->lampiran, true);
+    //         if ($jsonData !== null && is_array($jsonData)) {
+    //             $lampiranData = $jsonData;
+    //         } else {
+    //             // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
+    //             // atau bisa dikasih placeholder jika memang ada file
+    //             $lampiranData = [];
+    //         }
+    //     }
+
+    //     $tembusan = [];
+
+    //     $directors = Director::all();
+    //     $division = Divisi::all();
+    //     $department = Department::all();
+    //     $section = Section::all();
+    //     $unit = Unit::all();
+
+    //     foreach ($directors as $director) {
+    //         $tembusan[] = [
+    //             'id' => 'director_' . $director->id_director,
+    //             'name' => $director->name_director,
+    //         ];
+    //     }
+    //     foreach ($division as $div) {
+    //         $tembusan[] = [
+    //             'id' => 'division_' . $div->id_divisi,
+    //             'name' => $div->nm_divisi,
+    //         ];
+    //     }
+    //     foreach ($department as $dept) {
+    //         $tembusan[] = [
+    //             'id' => 'department_' . $dept->id_department,
+    //             'name' => $dept->name_department,
+    //         ];
+    //     }
+    //     foreach ($section as $sect) {
+    //         $tembusan[] = [
+    //             'id' => 'section_' . $sect->id_section,
+    //             'name' => $sect->name_section,
+    //         ];
+    //     }
+    //     foreach ($unit as $u) {
+    //         $tembusan[] = [
+    //             'id' => 'unit_' . $u->id_unit,
+    //             'name' => $u->name_unit,
+    //         ];
+    //     }
+
+    //     $selectedTembusan = [];
+    //     if ($memo->tembusan) {
+    //         $cc = array_values(array_filter(explode(';', $memo->tembusan), fn($v) => trim($v) !== ''));
+    //         $selectedTembusan = collect($cc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
+    //     }
+
+    //     $selectedBcc = [];
+    //     if ($memo->bcc) {
+    //         $bcc = array_values(array_filter(explode(';', $memo->bcc), fn($v) => trim($v) !== ''));
+    //         $selectedBcc = collect($bcc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
+    //     }
+
+    //     return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja'));
+    // }
     public function editBaru($id)
     {
         $memo = Memo::findOrFail($id);
@@ -2974,21 +3068,21 @@ class MemoController extends Controller
 
         $parentMemo = null;
         if ($memo->feedback) {
-            // sesuaikan dengan nama model & kolommu
             $parentMemo = Memo::find($memo->feedback);
         }
 
         $managers = User::where('role_id_role', 3)->get(['id', 'firstname', 'lastname']);
 
+        // Tambahkan ini
+        $penandatanganList = User::with('position:id_position,nm_position')
+            ->where('role_id_role', 3)
+            ->orderBy('firstname')
+            ->get(['id', 'firstname', 'lastname', 'position_id_position']);
+
         $orgTree = $this->getOrgTreeWithUsers();
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null;
 
-        // $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
-        // Ganti baris ini:
-        $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
-
-        // Menjadi ini:
         $tujuanArray = [];
         if ($memo->tujuan) {
             $tujuanArray = collect(array_values(array_filter(explode(';', $memo->tujuan), fn($v) => trim($v) !== '')))
@@ -2998,16 +3092,12 @@ class MemoController extends Controller
                 ->all();
         }
 
-        // Parse lampiran data jika ada
         $lampiranData = [];
         if ($memo->lampiran) {
-            // Coba decode sebagai JSON dulu (untuk data baru)
             $jsonData = json_decode($memo->lampiran, true);
             if ($jsonData !== null && is_array($jsonData)) {
                 $lampiranData = $jsonData;
             } else {
-                // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
-                // atau bisa dikasih placeholder jika memang ada file
                 $lampiranData = [];
             }
         }
@@ -3063,7 +3153,7 @@ class MemoController extends Controller
             $selectedBcc = collect($bcc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
         }
 
-        return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja'));
+        return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja'));
     }
 
     public function updateBaru(Request $request, $id)
