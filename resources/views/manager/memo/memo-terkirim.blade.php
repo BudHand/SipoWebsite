@@ -44,8 +44,8 @@
                     <div class="col-12 col-md-auto d-flex align-items-center">
                         <input value="{{ request('tgl_dibuat_awal') }}" type="date" class="form-control rounded-3"
                             name="tgl_dibuat_awal" placeholder="Tanggal Awal">
-                            <span class="mx-1">→</span>
-                            <input value="{{ request('tgl_dibuat_akhir') }}" type="date" class="form-control rounded-3"
+                        <span class="mx-1">→</span>
+                        <input value="{{ request('tgl_dibuat_akhir') }}" type="date" class="form-control rounded-3"
                             name="tgl_dibuat_akhir" placeholder="Tanggal Akhir">
                     </div>
 
@@ -101,7 +101,23 @@
                                 @foreach ($memoTerkirim as $index => $kirim)
                                     <tr>
                                         <td class="nomor">{{ ($memoTerkirim->firstItem() ?? 0) + $index }}</td>
-                                        @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
+                                        @php
+                                            $status = $kirim->memo->status;
+
+                                            $class = match ($status) {
+                                                'reject' => 'text-danger',
+                                                'correction' => 'text-warning',
+                                                'approve' => 'text-success',
+                                                default => '',
+                                            };
+
+                                            $style = $status === 'pending' ? 'color: #0dcaf0;' : '';
+                                        @endphp
+
+                                        <td class="nama-dokumen {{ $class }}" style="{{ $style }}">
+                                            {{ Str::limit($kirim->memo->judul, 35, '...') }}
+                                        </td>
+                                        {{-- @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
                                             <td class="nama-dokumen
                                             {{ $kirim->memo->status == 'reject' ? 'text-danger' : ($kirim->memo->status == 'correction' ? 'text-warning' : ($kirim->memo->status == 'approve' ? 'text-success' : '')) }}"
                                                 style="{{ $kirim->memo->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
@@ -113,7 +129,7 @@
                                                 style="{{ $kirim->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
                                                 {{ Str::limit($kirim->memo->judul, 35, '...') }}
                                             </td>
-                                        @endif
+                                        @endif --}}
 
                                         <!-- <td>{{ $kirim->memo->tgl_dibuat }}</td> -->
                                         <td>{{ $kirim->memo->tgl_dibuat ? \Carbon\Carbon::parse($kirim->memo->tgl_dibuat)->format('d-m-Y') : '-' }}
@@ -122,7 +138,7 @@
                                         <td>{{ $kirim->memo->tgl_disahkan ? \Carbon\Carbon::parse($kirim->memo->tgl_disahkan)->format('d-m-Y') : '-' }}
                                         </td>
                                         {{-- <td class="text-center">{{ $kirim->memo->kode_bagian ?? '-' }}</td> --}}
-                                        <td class="text-center">
+                                        {{-- <td class="text-center">
                                             @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
                                                 @if ($kirim->memo->status == 'reject')
                                                     <span class="badge bg-danger">Ditolak</span>
@@ -144,6 +160,23 @@
                                                     <span class="badge bg-success">Diterima</span>
                                                 @endif
                                             @endif
+                                        </td> --}}
+                                        <td class="text-center">
+                                            @php
+                                                $status = $kirim->memo->status;
+
+                                                $badge = match ($status) {
+                                                    'reject' => ['class' => 'bg-danger', 'text' => 'Ditolak'],
+                                                    'pending' => ['class' => 'bg-info', 'text' => 'Diproses'],
+                                                    'correction' => ['class' => 'bg-warning', 'text' => 'Dikoreksi'],
+                                                    'approve' => ['class' => 'bg-success', 'text' => 'Diterima'],
+                                                    default => ['class' => 'bg-secondary', 'text' => ucfirst($status)],
+                                                };
+                                            @endphp
+
+                                            <span class="badge {{ $badge['class'] }}">
+                                                {{ $badge['text'] }}
+                                            </span>
                                         </td>
                                         <td>
                                             <div class="d-flex justify-content-center gap-2">
