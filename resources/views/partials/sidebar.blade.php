@@ -290,8 +290,8 @@
                 </li>
 
                 <!-- Risalah Rapat -->
-                <li class="nav-item {{ request()->routeIs('risalah.manager') ? 'active' : '' }}">
-                    <a href="{{ route('risalah.manager') }}" class="nav-link">
+                <li class="nav-item {{ request()->routeIs('manager.risalah.index') ? 'active' : '' }}">
+                    <a href="{{ route('manager.risalah.index') }}" class="nav-link">
                         <i class="fas fa-clipboard-list"></i>
                         <p>Risalah Rapat</p>
                     </a>

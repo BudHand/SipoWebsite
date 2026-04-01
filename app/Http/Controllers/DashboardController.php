@@ -256,7 +256,7 @@ class DashboardController extends Controller
                 'memo_masuk'      => route('memo.diterima'),
                 'undangan_keluar' => route('undangan.terkirim'),
                 'undangan_masuk'  => route('undangan.diterima'),
-                'risalah'         => route('risalah.manager'),
+                // 'risalah'         => route('risalah.manager'),
             ];
         }
 

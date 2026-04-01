@@ -20,7 +20,7 @@
                 </div>
 
                 {{-- Row Filter --}}
-                <form class="row g-2 align-items-center" method="GET" action="{{ route('risalah.manager') }}">
+                <form class="row g-2 align-items-center" method="GET" action="{{ route('manager.risalah.index') }}">
                     <div class="col-auto">
                         <select name="per_page" class="form-select rounded-3" style="max-width:100px;"
                             onchange="this.form.submit()">

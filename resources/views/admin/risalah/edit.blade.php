@@ -488,7 +488,7 @@
                         </div>
 
                         <div class="card-footer text-end">
-                            <a href="{{ route('admin.risalah.index') }}" class="btn btn-outline-primary me-2">Batal</a>
+                            <a href="{{ route(Auth::user()->role->nm_role . '.risalah.index') }}" class="btn btn-outline-primary me-2">Batal</a>
                             <button type="submit" id="submitBtn" class="btn btn-primary">Simpan</button>
                         </div>
                     </div>

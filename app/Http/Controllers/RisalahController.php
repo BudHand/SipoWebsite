@@ -266,7 +266,7 @@ class RisalahController extends Controller
         $users = User::orderBy('firstname')->get();
         $self = Auth::user();
 
-        return view(Auth::user()->role->nm_role . '.risalah.add', [
+        return view('admin.risalah.add', [
             'risalah' => $risalah,
             'users' => $users,
             'kode_bagian' => $bagianKerja,
@@ -292,7 +292,7 @@ class RisalahController extends Controller
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null;
 
-        return view(Auth::user()->role->nm_role . '.risalah.add-custom', [
+        return view('admin.risalah.add-custom', [
             'risalah' => $risalah,
             'kode_bagian' => $bagianKerja,
             'bagianKerja' => $bagianKerja,
@@ -928,7 +928,7 @@ class RisalahController extends Controller
         // kode_bagian
         $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
 
-        return view(Auth::user()->role->nm_role . '.risalah.edit', compact(
+        return view('admin.risalah.edit', compact(
             'risalah',
             'divisi',
             'seri',
@@ -1209,7 +1209,7 @@ class RisalahController extends Controller
             // REDIRECT
             // =============================
             if (Auth::user()->role->id_role == 3) {
-                return redirect()->route('risalah.manager')
+                return redirect()->route('manager.risalah.index')
                     ->with('success', 'Risalah berhasil diperbarui dan dikirim ulang untuk persetujuan.');
             }
 

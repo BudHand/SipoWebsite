@@ -2,153 +2,283 @@
 
 namespace App\Http\Controllers;
 
-use Illuminate\Http\Request;
+use App\Models\Memo;
+use App\Models\Risalah;
+use App\Models\Undangan;
+use App\Models\Notifikasi;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use App\Models\{Notifikasi, Memo, Undangan, Risalah};
+use Illuminate\Support\Facades\Log;
 
 class NotifController extends Controller
 {
-    public function index()
+    public function index(): JsonResponse
     {
-        $user = Auth::user();
-        if (!$user) {
-            return redirect()->route('login');
-        }
+        try {
+            $user = Auth::user();
 
-        $notifications = Notifikasi::where('id_user', $user->id)
-            ->orderBy('id_notifikasi', 'desc')
-            ->get();
-        $role = Auth::user()->role_id_role;
-
-        foreach ($notifications as $n) {
-
-            $notifJudul = strtolower($n->judul);
-            $docJudul = $n->judul_document;
-            if (str_contains($notifJudul, 'memo')) {
-                $doc = Memo::where('judul', $docJudul)->first();
-                $docId = $doc->id_memo ?? null;
-                if ($doc) {
-                    if ($role == 3 && $doc->status == 'approve') {
-                        $type = 'memo-diterima';
-                    } elseif ($role == 3 && $doc->status != 'approve') {
-                        $type = 'memo-terkirim';
-                    } elseif ($role == 2) {
-                        $type = 'memo';
-                    }
-                } else {
-                    $type = 'memo-null';
-                }
-            } elseif (str_contains($notifJudul, 'undangan')) {
-                $doc = Undangan::where('judul', $docJudul)->first();
-                $docId = $doc->id_undangan ?? null;
-                if ($doc) {
-                    $type = 'undangan';
-                } else {
-                    $type = 'undangan-null';
-                }
-            } elseif (str_contains($notifJudul, 'risalah')) {
-                $doc = Risalah::where('judul', $docJudul)->first();
-                $docId = $doc->id_risalah ?? null;
-                if ($doc) {
-                    $type = 'risalah';
-                } else {
-                    $type = 'risalah-null';
-                }
+            if (!$user) {
+                return response()->json([
+                    'notifications' => [],
+                    'message' => 'Unauthorized',
+                ], 401);
             }
 
-            if ($role == 2) { // ADMIN
-                if ($docId) {
-                    if ($type == 'memo') {
-                        $n->redirect_url = route('memo.show', $docId);
-                    } elseif ($type == 'undangan') {
-                        $n->redirect_url = route('view.undangan', $docId);
-                    } elseif ($type == 'risalah') {
-                        $n->redirect_url = route('view.risalahAdmin', $docId);
-                    }
-                } else {
-                    if ($type == 'memo-null') {
-                        $n->redirect_url = route('admin.memo.index');
-                    } elseif ($type == 'undangan-null') {
-                        $n->redirect_url = route('admin.undangan.index');
-                    } elseif ($type == 'risalah-null') {
-                        $n->redirect_url = route('admin.risalah.index');
-                    }
-                }
-            } elseif ($role == 3) { // MANAGER
-                if ($docId) {
-                    if ($type == 'memo-terkirim') {
-                        $n->redirect_url = route('view.memo-terkirim', $docId);
-                    } elseif ($type == 'memo-diterima') {
-                        $n->redirect_url = route('view.memo-diterima', $docId);
-                    } elseif ($type == 'undangan') {
-                        $n->redirect_url = route('view.undangan', $docId);
-                    } elseif ($type == 'risalah') {
-                        $n->redirect_url = route('persetujuan.risalah', $docId);
-                    }
-                } elseif (!$docId) {
-                    if ($type == 'memo-null') {
-                        $n->redirect_url = route('memo.terkirim');
-                    } elseif ($type == 'memo-diterima') {
-                        $n->redirect_url = route('memo.diterima');
-                    } elseif ($type == 'undangan-null') {
-                        $n->redirect_url = route('undangan.manager');
-                    } elseif ($type == 'risalah-null') {
-                        $n->redirect_url = route('risalah.manager');
-                    }
-                }
+            $role = (int) $user->role_id_role;
+
+            $notifications = Notifikasi::query()
+                ->where('id_user', $user->id)
+                ->orderByDesc('id_notifikasi')
+                ->get()
+                ->map(function ($notification) use ($role) {
+                    return $this->transformNotification($notification, $role);
+                })
+                ->values();
+
+            return response()->json([
+                'notifications' => $notifications,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Notif index error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'notifications' => [],
+                'message' => 'Gagal memuat notifikasi',
+            ], 500);
+        }
+    }
+
+    public function getUnreadCount(): JsonResponse
+    {
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'count' => 0,
+                ], 401);
             }
+
+            $count = Notifikasi::query()
+                ->where('id_user', $user->id)
+                ->where('dibaca', 0)
+                ->count();
+
+            return response()->json([
+                'count' => $count,
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Notif getUnreadCount error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'count' => 0,
+            ], 500);
         }
-        //dd($notifications);
-        return response()->json(['notifications' => $notifications]);
     }
 
-    // Ambil jumlah notifikasi yang belum dibaca
-    public function getUnreadCount()
+    public function markAsRead(int $id): JsonResponse
     {
-        $user = Auth::user();
-        if (!$user) {
-            return response()->json(['count' => 0]);
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
+
+            $notification = Notifikasi::query()
+                ->where('id_user', $user->id)
+                ->where('id_notifikasi', $id)
+                ->first();
+
+            if (!$notification) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Notifikasi tidak ditemukan',
+                ], 404);
+            }
+
+            if ((int) $notification->dibaca === 0) {
+                $notification->update([
+                    'dibaca' => 1,
+                ]);
+            }
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Notifikasi berhasil ditandai dibaca',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Notif markAsRead error: ' . $e->getMessage(), [
+                'notification_id' => $id,
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menandai notifikasi',
+            ], 500);
         }
-
-        $count = Notifikasi::where('id_user', $user->id)
-            ->where('dibaca', 0)
-            ->count();
-
-        return response()->json(['count' => $count]);
     }
 
-    // Tandai notifikasi sebagai sudah dibaca
-    public function markAllAsRead($id)
+    public function markAllAsRead(): JsonResponse
     {
-        $user = Auth::user();
-        if ($user) {
-            // Gunakan id_notifikasi sesuai dengan struktur database Anda
-            Notifikasi::where('id_user', $user->id)
-                ->where('id_notifikasi', $id) // atau 'id' sesuai kolom primary key
-                ->update(['dibaca' => 1]);
+        try {
+            $user = Auth::user();
+
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Unauthorized',
+                ], 401);
+            }
+
+            Notifikasi::query()
+                ->where('id_user', $user->id)
+                ->where('dibaca', 0)
+                ->update([
+                    'dibaca' => 1,
+                ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Semua notifikasi berhasil ditandai dibaca',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Notif markAllAsRead error: ' . $e->getMessage(), [
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menandai semua notifikasi',
+            ], 500);
         }
-        return response()->json(['success' => true]);
     }
-    // Di model Notification
-    public function getIconColor()
+
+    private function transformNotification(Notifikasi $notification, int $role): array
     {
-        $colors = [
-            'undangan' => 'success',
-            'memo' => 'primary',
-            'risalah' => 'info'
+        $judulNotif = strtolower((string) ($notification->judul ?? ''));
+        $judulDocument = $notification->judul_document ?? null;
+
+        $type = 'unknown';
+        $documentId = null;
+        $redirectUrl = '#';
+
+        if (str_contains($judulNotif, 'memo')) {
+            $memo = Memo::query()
+                ->where('judul', $judulDocument)
+                ->first();
+
+            $documentId = $memo?->id_memo;
+
+            if ($memo) {
+                if ($role === 3 && $memo->status === 'approve') {
+                    $type = 'memo-diterima';
+                } elseif ($role === 3) {
+                    $type = 'memo-terkirim';
+                } else {
+                    $type = 'memo';
+                }
+            } else {
+                $type = 'memo-null';
+            }
+        } elseif (str_contains($judulNotif, 'undangan')) {
+            $undangan = Undangan::query()
+                ->where('judul', $judulDocument)
+                ->first();
+
+            $documentId = $undangan?->id_undangan;
+            $type = $undangan ? 'undangan' : 'undangan-null';
+        } elseif (str_contains($judulNotif, 'risalah')) {
+            $risalah = Risalah::query()
+                ->where('judul', $judulDocument)
+                ->first();
+
+            $documentId = $risalah?->id_risalah;
+            $type = $risalah ? 'risalah' : 'risalah-null';
+        }
+
+        if ($role === 2) {
+            $redirectUrl = $this->resolveAdminUrl($type, $documentId);
+        } elseif ($role === 3) {
+            $redirectUrl = $this->resolveManagerUrl($type, $documentId);
+        } elseif ($role === 1) {
+            $redirectUrl = $this->resolveSuperadminUrl($type, $documentId);
+        }
+
+        return [
+            'id_notifikasi' => $notification->id_notifikasi,
+            'judul' => $notification->judul ?? 'Tanpa judul',
+            'judul_document' => $notification->judul_document ?? '-',
+            'dibaca' => (int) ($notification->dibaca ?? 0),
+            'updated_at' => optional($notification->updated_at)?->toDateTimeString(),
+            'redirect_url' => $redirectUrl ?: '#',
         ];
-
-        return $colors[strtolower($this->type ?? '')] ?? 'secondary';
     }
 
-    public function getIconClass()
+    private function resolveAdminUrl(string $type, ?int $documentId): string
     {
-        $icons = [
-            'undangan' => 'fa-solid fa-calendar-week',
-            'memo' => 'fa-solid fa-file-text',
-            'risalah' => 'fa-solid fa-clipboard'
-        ];
+        if ($documentId) {
+            return match ($type) {
+                'memo' => route('memo.show', $documentId),
+                'undangan' => route('view.undangan', $documentId),
+                'risalah' => route('view.risalahAdmin', $documentId),
+                default => '#',
+            };
+        }
 
-        return $icons[strtolower($this->type ?? '')] ?? 'fa-solid fa-file';
+        return match ($type) {
+            'memo-null' => route('admin.memo.index'),
+            'undangan-null' => route('admin.undangan.index'),
+            'risalah-null' => route('admin.risalah.index'),
+            default => '#',
+        };
+    }
+
+    private function resolveManagerUrl(string $type, ?int $documentId): string
+    {
+        if ($documentId) {
+            return match ($type) {
+                'memo-terkirim' => route('view.memo-terkirim', $documentId),
+                'memo-diterima' => route('view.memo-diterima', $documentId),
+                'undangan' => route('view.undangan', $documentId),
+                'risalah' => route('persetujuan.risalah', $documentId),
+                default => '#',
+            };
+        }
+
+        return match ($type) {
+            'memo-null', 'memo-terkirim' => route('memo.terkirim'),
+            'memo-diterima' => route('memo.diterima'),
+            'undangan-null' => route('undangan.manager'),
+            'risalah-null' => route('manager.risalah.index'),
+            default => '#',
+        };
+    }
+
+    private function resolveSuperadminUrl(string $type, ?int $documentId): string
+    {
+        if ($documentId) {
+            return match ($type) {
+                'memo' => route('superadmin.memo.index'),
+                'undangan' => route('superadmin.undangan.index'),
+                'risalah' => route('superadmin.risalah.index'),
+                default => '#',
+            };
+        }
+
+        return match ($type) {
+            'memo-null' => route('superadmin.memo.index'),
+            'undangan-null' => route('superadmin.undangan.index'),
+            'risalah-null' => route('superadmin.risalah.index'),
+            default => '#',
+        };
     }
 }

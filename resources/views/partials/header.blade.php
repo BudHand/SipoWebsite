@@ -1,41 +1,56 @@
 <nav class="navbar navbar-expand-lg bg-white border-bottom shadow-sm">
     <div class="container-fluid">
 
-        <!-- Sidebar Toggle (tampilkan di semua ukuran dulu, nanti bisa dibatasi lagi) -->
-        {{-- <button type="button" class="toggle-sidebar" aria-label="Toggle sidebar">
-            <i class="fa fa-bars"
-                style="color:#BEA6EB;background:#E9E6FB;padding:10px;border-radius:10px;display:inline-block;"></i>
-        </button> --}}
         <span class="toggle-sidebar" role="button" tabindex="0" aria-label="Toggle sidebar">
             <i class="fa fa-bars"
                 style="color:#BEA6EB;background:#E9E6FB;padding:10px;border-radius:10px;display:inline-block;"></i>
         </span>
 
-
-        <!-- Area kosong untuk layout -->
         <div class="flex-grow-1"></div>
 
-        <!-- Header Icons -->
-        <ul class="navbar-nav ms-auto align-items-center" style="gap:24px;">
+        <ul class="navbar-nav ms-auto align-items-center gap-3">
 
-            <!-- Notifikasi -->
+            {{-- Notifikasi --}}
             <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle" href="#" id="notifDropdown" role="button"
-                    data-bs-toggle="dropdown" aria-expanded="false"
-                    style="background:#E9E6FB; padding:8px 12px; border-radius:20px;">
-                    <i class="fa fa-bell" style="color:#BEA6EB;font-size:20px;"></i>
-                    <span class="notification badge bg-danger" id="notif-count" style="display:none;">0</span>
+                <a class="nav-link position-relative rounded-circle d-flex align-items-center justify-content-center"
+                    href="#"
+                    id="notifDropdown"
+                    role="button"
+                    data-bs-toggle="dropdown"
+                    aria-expanded="false"
+                    style="width: 48px; height: 48px; background: #F3F1FB;">
+                    <i class="fa fa-bell text-primary"></i>
+                    <span id="notif-count"
+                        class="badge badge-danger position-absolute translate-middle rounded-pill"
+                        style="top: 8px; right: -2px; display: none;">
+                        0
+                    </span>
                 </a>
-                <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="notifDropdown"
-                    style="width:400px; max-height:400px; overflow-y:auto; overflow-x:hidden;">
-                    <li class="dropdown-header fw-bold">Notifikasi</li>
-                    <li>
-                        <div id="notif-body" class="px-3 py-2 text-center text-muted">Memuat notifikasi...</div>
-                    </li>
-                </ul>
+
+                <div class="dropdown-menu dropdown-menu-end shadow border-0 mt-2"
+                    aria-labelledby="notifDropdown"
+                    style="width: 360px; border-radius: 16px; overflow: hidden;">
+                    <div class="px-3 py-3 border-bottom d-flex justify-content-between align-items-start">
+                        <div>
+                            <h6 class="mb-1 fw-bold">Notifikasi</h6>
+                            <small class="text-muted" id="notif-subtitle">Memuat...</small>
+                        </div>
+                        <button type="button" id="mark-all-read-btn" class="btn btn-sm btn-light border">
+                            Read all
+                        </button>
+                    </div>
+
+                    <div id="notif-body" class="list-group list-group-flush" style="max-height: 420px; overflow-y: auto;">
+                        <div class="text-center text-muted px-3 py-4">Memuat notifikasi...</div>
+                    </div>
+
+                    <div class="text-center text-muted small px-3 py-2 border-top bg-light">
+                        Notifikasi terbaru akan muncul otomatis
+                    </div>
+                </div>
             </li>
 
-            <!-- Profile & Settings -->
+            {{-- Profile & Settings --}}
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle" href="#" id="profileDropdown" role="button"
                     data-bs-toggle="dropdown" aria-expanded="false"
@@ -57,19 +72,24 @@
                             <div class="text-muted mb-2" style="font-size:14px;">Super Admin</div>
                         @else
                             <div class="text-muted mb-2" style="font-size:14px;">
-                                {{ Auth::user()->position->nm_position }}</div>
+                                {{ Auth::user()->position->nm_position }}
+                            </div>
                         @endif
                     </li>
                     <li>
                         <hr class="dropdown-divider">
                     </li>
-                    <li><a class="dropdown-item" href="{{ route('edit-profile') }}"><i class="fas fa-user me-2"></i>
-                            Profil</a></li>
+                    <li>
+                        <a class="dropdown-item" href="{{ route('edit-profile') }}">
+                            <i class="fas fa-user me-2"></i> Profil
+                        </a>
+                    </li>
                     <li>
                         <form action="{{ route('logout') }}" method="POST">
                             @csrf
-                            <button class="dropdown-item text-danger" type="submit"><i
-                                    class="fas fa-sign-out-alt me-2"></i> Keluar</button>
+                            <button class="dropdown-item text-danger" type="submit">
+                                <i class="fas fa-sign-out-alt me-2"></i> Keluar
+                            </button>
                         </form>
                     </li>
                 </ul>
@@ -78,270 +98,367 @@
     </div>
 </nav>
 
-{{-- Toggle Sidebar + Backdrop --}}
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const toggleBtn = document.querySelector('.toggle-sidebar');
-            const sidebar = document.querySelector('.sidebar');
-            const backdrop = document.querySelector('.sidebar-backdrop');
-            const body = document.body;
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleBtn = document.querySelector('.toggle-sidebar');
+        const sidebar = document.querySelector('.sidebar');
+        const backdrop = document.querySelector('.sidebar-backdrop');
+        const body = document.body;
 
-            let hadMinimize = false;
-            const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
+        let hadMinimize = false;
+        const isMobile = () => window.matchMedia('(max-width: 991.98px)').matches;
 
-            function openSidebar() {
-                hadMinimize = body.classList.contains('sidebar_minimize');
-                if (hadMinimize) body.classList.remove('sidebar_minimize');
-                sidebar?.classList.add('active');
-                backdrop?.classList.add('show');
-                document.documentElement.style.overflow = 'hidden';
-                document.body.style.overflow = 'hidden';
+        function openSidebar() {
+            hadMinimize = body.classList.contains('sidebar_minimize');
+            if (hadMinimize) body.classList.remove('sidebar_minimize');
+            sidebar?.classList.add('active');
+            backdrop?.classList.add('show');
+            document.documentElement.style.overflow = 'hidden';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeSidebar() {
+            sidebar?.classList.remove('active');
+            backdrop?.classList.remove('show');
+            document.documentElement.style.overflow = '';
+            document.body.style.overflow = '';
+            if (hadMinimize && !isMobile()) body.classList.add('sidebar_minimize');
+        }
+
+        function toggleSidebar() {
+            if (sidebar?.classList.contains('active')) {
+                closeSidebar();
+            } else {
+                openSidebar();
             }
+        }
 
-            function closeSidebar() {
-                sidebar?.classList.remove('active');
-                backdrop?.classList.remove('show');
-                document.documentElement.style.overflow = '';
-                document.body.style.overflow = '';
-                if (hadMinimize && !isMobile()) body.classList.add('sidebar_minimize');
+        toggleBtn?.addEventListener('click', toggleSidebar);
+        backdrop?.addEventListener('click', closeSidebar);
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape' && sidebar?.classList.contains('active')) {
+                closeSidebar();
             }
+        });
 
-            function toggleSidebar() {
-                if (sidebar?.classList.contains('active')) {
-                    closeSidebar();
-                } else {
-                    openSidebar();
+        document.querySelectorAll('.sidebar a').forEach(a => {
+            a.addEventListener('click', () => {
+                if (!isMobile()) return;
+
+                if (a.hasAttribute('data-bs-toggle') && a.getAttribute('data-bs-toggle') === 'collapse') {
+                    return;
                 }
-            }
 
-            toggleBtn?.addEventListener('click', toggleSidebar);
-            backdrop?.addEventListener('click', closeSidebar);
-
-            // Tutup saat tekan ESC
-            document.addEventListener('keydown', e => {
-                if (e.key === 'Escape' && sidebar?.classList.contains('active')) closeSidebar();
-            });
-
-            // Tutup otomatis saat klik link di sidebar (hanya mobile)
-            document.querySelectorAll('.sidebar a').forEach(a => {
-                a.addEventListener('click', (e) => {
-                    if (!isMobile()) return;
-
-                    // Jika link adalah toggle collapse, jangan tutup sidebar
-                    if (a.hasAttribute('data-bs-toggle') && a.getAttribute('data-bs-toggle') ===
-                        'collapse') {
-                        return;
-                    }
-
-                    // Jika link normal (href valid), tutup sidebar
-                    if (a.getAttribute('href') && a.getAttribute('href') !== '#') {
-                        closeSidebar();
-                    }
-                });
-            });
-
-            // Reset state kalau resize ke desktop
-            window.addEventListener('resize', () => {
-                if (!isMobile()) closeSidebar();
+                if (a.getAttribute('href') && a.getAttribute('href') !== '#') {
+                    closeSidebar();
+                }
             });
         });
-    </script>
+
+        window.addEventListener('resize', () => {
+            if (!isMobile()) closeSidebar();
+        });
+    });
+</script>
 @endpush
-{{-- JS Notifikasi --}}
+
 @push('scripts')
-    <script>
-        document.addEventListener("DOMContentLoaded", function() {
-            // Variable untuk menyimpan count saat ini
-            let currentCount = 0;
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        let currentCount = 0;
+        const notifBody = document.getElementById('notif-body');
+        const notifCount = document.getElementById('notif-count');
+        const notifSubtitle = document.getElementById('notif-subtitle');
+        const markAllBtn = document.getElementById('mark-all-read-btn');
+        let isLoading = false;
 
-            loadNotif();
-            loadNotifCount();
+        init();
 
-            // auto refresh tiap 15 detik
-            setInterval(function() {
-                loadNotif();
-                loadNotifCount();
+        function init() {
+            loadNotifications();
+            loadNotificationCount();
+
+            setInterval(() => {
+                loadNotifications(false);
+                loadNotificationCount();
             }, 15000);
 
-            // Mapping icon & warna berdasarkan judul
-            function getNotifConfig(judul) {
-                let lower = judul.toLowerCase();
-                let icon = "fas fa-file";
-                let bgColor = "secondary";
+            markAllBtn?.addEventListener('click', async function(e) {
+                e.preventDefault();
+                await markAllAsRead();
+            });
+        }
 
-                if (lower.includes("risalah")) {
-                    icon = "fas fa-clipboard-list";
-                    if (lower.includes("tolak")) bgColor = "danger";
-                    else if (lower.includes("koreksi")) bgColor = "warning";
-                    else if (lower.includes("setuju") || lower.includes("masuk") || lower.includes("kirim"))
-                        bgColor = "success";
-                } else if (lower.includes("undangan")) {
-                    icon = "fas fa-calendar-check";
-                    if (lower.includes("tolak")) bgColor = "danger";
-                    else if (lower.includes("koreksi")) bgColor = "warning";
-                    else if (lower.includes("setuju") || lower.includes("masuk") || lower.includes("kirim"))
-                        bgColor = "success";
-                } else if (lower.includes("memo")) {
-                    icon = "fas fa-file-alt";
-                    if (lower.includes("tolak")) bgColor = "danger";
-                    else if (lower.includes("revisi")) bgColor = "warning";
-                    else if (lower.includes("setuju") || lower.includes("masuk") || lower.includes("kirim"))
-                        bgColor = "success";
-                } else if (lower.includes("surat")) {
-                    icon = "fas fa-envelope";
-                    bgColor = "warning";
-                } else if (lower.includes("laporan")) {
-                    icon = "fas fa-chart-bar";
-                    bgColor = "danger";
+        function getNotifConfig(judul = '') {
+            const lower = String(judul).toLowerCase();
+
+            if (lower.includes("risalah")) {
+                if (lower.includes("tolak")) return { icon: "fas fa-clipboard-list", badge: "danger" };
+                if (lower.includes("koreksi")) return { icon: "fas fa-clipboard-list", badge: "warning" };
+                if (lower.includes("setuju") || lower.includes("approve") || lower.includes("masuk") || lower.includes("kirim")) {
+                    return { icon: "fas fa-clipboard-list", badge: "success" };
+                }
+                return { icon: "fas fa-clipboard-list", badge: "primary" };
+            }
+
+            if (lower.includes("undangan")) {
+                if (lower.includes("tolak")) return { icon: "fas fa-calendar-check", badge: "danger" };
+                if (lower.includes("koreksi")) return { icon: "fas fa-calendar-check", badge: "warning" };
+                return { icon: "fas fa-calendar-check", badge: "success" };
+            }
+
+            if (lower.includes("memo")) {
+                if (lower.includes("tolak")) return { icon: "fas fa-file-alt", badge: "danger" };
+                if (lower.includes("koreksi") || lower.includes("revisi")) return { icon: "fas fa-file-alt", badge: "warning" };
+                return { icon: "fas fa-file-alt", badge: "info" };
+            }
+
+            if (lower.includes("surat")) {
+                return { icon: "fas fa-envelope", badge: "info" };
+            }
+
+            if (lower.includes("laporan")) {
+                return { icon: "fas fa-chart-bar", badge: "dark" };
+            }
+
+            return { icon: "fas fa-bell", badge: "secondary" };
+        }
+
+        function formatTanggalIndo(dateString) {
+            if (!dateString) return '-';
+
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return '-';
+
+            return new Intl.DateTimeFormat('id-ID', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+
+        function truncateText(text, limit = 60) {
+            if (!text) return '-';
+            text = String(text);
+            return text.length > limit ? text.substring(0, limit - 3) + '...' : text;
+        }
+
+        function escapeHtml(text) {
+            if (text === null || text === undefined) return '';
+            return String(text)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;')
+                .replace(/'/g, '&#039;');
+        }
+
+        function setLoadingState() {
+            notifBody.innerHTML = `<div class="text-center text-muted px-3 py-4">Memuat notifikasi...</div>`;
+            notifSubtitle.textContent = 'Memuat...';
+        }
+
+        function setEmptyState() {
+            notifBody.innerHTML = `<div class="text-center text-muted px-3 py-4">Belum ada notifikasi</div>`;
+            notifSubtitle.textContent = 'Tidak ada notifikasi baru';
+        }
+
+        function setErrorState(message = 'Gagal memuat notifikasi') {
+            notifBody.innerHTML = `<div class="text-center text-danger px-3 py-4">${escapeHtml(message)}</div>`;
+            notifSubtitle.textContent = 'Terjadi kendala';
+        }
+
+        async function loadNotifications(showLoading = true) {
+            if (isLoading) return;
+            isLoading = true;
+
+            try {
+                if (showLoading) setLoadingState();
+
+                const response = await fetch("{{ route('notifications.index') }}", {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
                 }
 
-                return {
-                    icon,
-                    bgColor
-                };
+                const data = await response.json();
+                const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+
+                renderNotifications(notifications);
+            } catch (error) {
+                console.error('Error loading notifications:', error);
+                setErrorState('Error memuat notifikasi');
+            } finally {
+                isLoading = false;
+            }
+        }
+
+        function renderNotifications(notifications) {
+            if (!notifications.length) {
+                setEmptyState();
+                return;
             }
 
-            // format tanggal ke Indonesia (contoh: 26 Agustus 2025, 14:30)
-            function formatTanggalIndo(dateString) {
-                let date = new Date(dateString);
-                return new Intl.DateTimeFormat('id-ID', {
-                    day: '2-digit',
-                    month: 'long',
-                    year: 'numeric',
-                    hour: '2-digit',
-                    minute: '2-digit'
-                }).format(date);
-            }
+            const unreadCount = notifications.filter(item => Number(item.dibaca) === 0).length;
+            notifSubtitle.textContent = unreadCount > 0
+                ? `${unreadCount} belum dibaca`
+                : 'Semua notifikasi sudah dibaca';
 
-            // potong teks dengan ... jika panjang lebih dari limit
-            function truncateText(text, limit = 50) {
-                if (!text) return "-";
-                return text.length > limit ? text.substring(0, limit - 3) + "..." : text;
-            }
+            let html = '';
 
-            // ambil daftar notifikasi
-            function loadNotif() {
-                fetch("{{ route('notifications.index') }}")
-                    .then(response => response.json())
-                    .then(data => {
-                        let body = document.getElementById('notif-body');
-                        if (data.notifications.length === 0) {
-                            body.innerHTML =
-                                `<div class="text-muted py-2 text-start">Tidak ada notifikasi</div>`;
-                            return;
-                        }
+            notifications.forEach(notif => {
+                const judul = notif.judul ?? 'Tanpa judul';
+                const judulDocument = notif.judul_document ?? '-';
+                const updatedAt = notif.updated_at ?? null;
+                const redirectUrl = notif.redirect_url ?? '#';
+                const isUnread = Number(notif.dibaca) === 0;
+                const config = getNotifConfig(judul);
 
-                        let html = "";
-                        data.notifications.forEach(notif => {
-                            let readClass = notif.dibaca == 0 ? "fw-bold" : "text-muted";
-                            let {
-                                icon,
-                                bgColor
-                            } = getNotifConfig(notif.judul);
-
-                            // Tentukan background color berdasarkan status dibaca
-                            let itemBgColor = notif.dibaca == 0 ?
-                                'background: rgba(173, 216, 230, 0.3);' : 'background: transparent;';
-
-                            html += `
-                    <div class="dropdown-item d-flex align-items-center ${readClass} text-start notif-item"
-                         data-id="${notif.id_notifikasi}"
-                         data-read="${notif.dibaca}"
-                         data-redirect_url="${notif.redirect_url}"
-                         style="cursor: pointer; ${itemBgColor} border-radius: 8px; margin: 2px 0;padding: 12px;">
-                        <div class="me-3">
-                            <div class="bg-${bgColor} d-flex align-items-center justify-content-center"
-                                style="width:36px; height:36px; border-radius:50%;">
-                                <i class="${icon} text-white" style="font-size:18px;"></i>
+                html += `
+                    <a href="javascript:void(0)"
+                        class="list-group-item list-group-item-action border-0 rounded-3 mb-2 ${isUnread ? 'bg-light' : ''} notif-item"
+                        data-id="${notif.id_notifikasi}"
+                        data-read="${notif.dibaca}"
+                        data-redirect-url="${escapeHtml(redirectUrl)}">
+                        <div class="d-flex align-items-start gap-3">
+                            <div class="avatar avatar-sm">
+                                <span class="avatar-title rounded-circle bg-${config.badge}">
+                                    <i class="${config.icon} text-white"></i>
+                                </span>
                             </div>
+                            <div class="flex-1">
+                                <div class="fw-semibold text-dark mb-1">${escapeHtml(judul)}</div>
+                                <div class="text-muted small mb-1">${escapeHtml(truncateText(judulDocument, 60))}</div>
+                                <div class="text-muted small">${escapeHtml(formatTanggalIndo(updatedAt))}</div>
+                            </div>
+                            ${isUnread ? '<span class="badge badge-primary badge-dot"></span>' : ''}
                         </div>
-                        <div class="flex-grow-1 text-start">
-                            <div>${notif.judul}</div>
-                            <div class="small text-secondary">${truncateText(notif.judul_document, 50)}</div>
-                            <small class="text-muted">${formatTanggalIndo(notif.updated_at)}</small>
-                        </div>
-                    </div>
+                    </a>
                 `;
-                        });
+            });
 
-                        body.innerHTML = html;
+            notifBody.innerHTML = html;
 
-                        // tambahkan event listener ke setiap item notif
-                        document.querySelectorAll('.notif-item').forEach(item => {
-                            item.addEventListener('click', function(e) {
-                                e.preventDefault();
-                                let notifId = this.getAttribute('data-id');
-                                let isRead = this.getAttribute('data-read');
-                                let redirectUrl = this.getAttribute('data-redirect_url')
+            notifBody.querySelectorAll('.notif-item').forEach(item => {
+                item.addEventListener('click', async function(e) {
+                    e.preventDefault();
 
-                                // Hanya mark as read jika belum dibaca
-                                if (isRead == '0') {
-                                    markNotifAsRead(notifId, this, redirectUrl);
-                                } else {
-                                    window.location.href = redirectUrl;
-                                }
-                            });
-                        });
-                    })
-                    .catch(error => {
-                        console.error('Error loading notifications:', error);
-                        document.getElementById('notif-body').innerHTML =
-                            '<div class="text-danger py-2">Error memuat notifikasi</div>';
-                    });
+                    const notifId = this.getAttribute('data-id');
+                    const isRead = this.getAttribute('data-read');
+                    const redirectUrl = this.getAttribute('data-redirect-url');
+
+                    if (!redirectUrl || redirectUrl === '#') return;
+
+                    if (isRead === '0') {
+                        await markNotificationAsRead(notifId);
+                    }
+
+                    window.location.href = redirectUrl;
+                });
+            });
+        }
+
+        async function markNotificationAsRead(id) {
+            try {
+                const response = await fetch(`/notifications/${id}/tanda-dibaca`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    updateCounterDirectly(-1);
+                }
+            } catch (error) {
+                console.error('Error marking notification as read:', error);
             }
+        }
 
-            // fungsi tandai satu notif dibaca
-            function markNotifAsRead(id, element, redirectUrl) {
-                fetch(`/notifications/${id}/tanda-dibaca`, {
-                        method: 'POST',
-                        headers: {
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                            'Content-Type': 'application/json',
-                            'Accept': 'application/json'
-                        }
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
+        async function markAllAsRead() {
+            try {
+                markAllBtn.disabled = true;
+                markAllBtn.innerHTML = 'Loading...';
 
-                            // Update UI
-                            element.classList.remove('fw-bold');
-                            element.classList.add('text-muted');
-                            element.setAttribute('data-read', '1');
+                const response = await fetch("{{ route('notifications.readAll') }}", {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Content-Type': 'application/json',
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
 
-                            updateCounterDirectly(-1);
-                            setTimeout(() => loadNotifCount(), 50);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
 
-                            // Redirect after marking read
-                            window.location.href = redirectUrl;
-                        }
-                    })
+                const data = await response.json();
+
+                if (data.success) {
+                    currentCount = 0;
+                    updateCounterUI();
+                    loadNotifications(false);
+                    loadNotificationCount();
+                }
+            } catch (error) {
+                console.error('Error marking all notifications as read:', error);
+                alert('Gagal menandai semua notifikasi sebagai dibaca');
+            } finally {
+                markAllBtn.disabled = false;
+                markAllBtn.innerHTML = 'Read all';
             }
+        }
 
+        function updateCounterDirectly(change) {
+            currentCount = Math.max(0, currentCount + change);
+            updateCounterUI();
+        }
 
-            // Update counter secara langsung
-            function updateCounterDirectly(change) {
-                currentCount = Math.max(0, currentCount + change);
-                let countEl = document.getElementById('notif-count');
-                countEl.innerText = currentCount;
-                countEl.style.display = currentCount > 0 ? 'inline-block' : 'none';
+        function updateCounterUI() {
+            notifCount.innerText = currentCount;
+            notifCount.style.display = currentCount > 0 ? 'inline-block' : 'none';
+        }
+
+        async function loadNotificationCount() {
+            try {
+                const response = await fetch("{{ route('notifications.count') }}", {
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}`);
+                }
+
+                const data = await response.json();
+                currentCount = Number(data.count ?? 0);
+                updateCounterUI();
+            } catch (error) {
+                console.error('Error loading notification count:', error);
             }
-
-            // ambil jumlah unread
-            function loadNotifCount() {
-                fetch("{{ route('notifications.count') }}")
-                    .then(response => response.json())
-                    .then(data => {
-                        currentCount = data.count;
-                        let countEl = document.getElementById('notif-count');
-                        countEl.innerText = data.count;
-                        countEl.style.display = data.count > 0 ? 'inline-block' : 'none';
-                    })
-                    .catch(error => {
-                        console.error('Error loading notification count:', error);
-                    });
-            }
-        });
-    </script>
+        }
+    });
+</script>
 @endpush

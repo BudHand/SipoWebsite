@@ -124,9 +124,14 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
     Route::get('/data-perusahaan', [PerusahaanController::class, 'index'])->name('data-perusahaan');
 
     //notifikasi
-    Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
-    Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
-    Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAllAsRead'])->name('notifications.markAsRead');
+    // Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
+    // Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
+    // Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAllAsRead'])->name('notifications.markAsRead');
+    // notifikasi
+Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
+Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
+Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAsRead'])->name('notifications.markAsRead');
+Route::post('/notifications/read-all', [NotifController::class, 'markAllAsRead'])->name('notifications.readAll');
 
     Route::get('/risalah/edit/{id}', [RisalahController::class, 'edit'])->name('risalah.edit');
     Route::put('/risalah/{id}', [RisalahController::class, 'update'])->name('risalah.update');
@@ -308,12 +313,13 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     Route::get('/manager/undangan/terkirim', [KirimController::class, 'undanganTerkirim'])->name('undangan.terkirim');
 
     //risalah
-    Route::get('/manager/risalah', [KirimController::class, 'risalah'])->name('risalah.manager');
-    Route::get('/risalah-tambah', [KirimController::class, 'create'])->name('add-risalah.manager');
-    Route::get('/risalah-tambah-tanpa-undangan', [KirimController::class, 'createCustom'])->name('add-risalah.custom.manager');
-    Route::post('/risalah-store', [KirimController::class, 'store'])->name('risalah.store.manager');
+    Route::get('/manager/risalah', [KirimController::class, 'risalah'])->name('manager.risalah.index');
+    Route::get('/risalah-tambah', [RisalahController::class, 'create'])->name('add-risalah.manager');
+    Route::get('/risalah-tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('add-risalah.custom.manager');
+    Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
+    // Route::post('/risalah-store', [KirimController::class, 'store'])->name('risalah.store.manager');
     Route::get('/persetujuan-risalah/{id}', [KirimController::class, 'viewRisalah'])->name('persetujuan.risalah');
-    Route::put('/risalah/{id}/update-status', [RisalahController::class, 'updateStatus'])->name('risalah.updateStatus');
+    // Route::put('/risalah/{id}/update-status', [RisalahController::class, 'updateStatus'])->name('risalah.updateStatus');
 });
 
 Route::middleware(['auth', 'role:2,3'])->group(function () {
