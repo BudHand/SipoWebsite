@@ -24,7 +24,6 @@ use Illuminate\Support\Facades\Crypt;
 
 class CetakPDFController extends Controller
 {
-
     private function loadPdfView(string $view, array $data = [])
     {
         return PDF::loadView($view, $data)->setOptions([
@@ -996,168 +995,162 @@ class CetakPDFController extends Controller
     }
 
     //View PDF dengan URL untuk diakses langsung tanpa download
-private function generateRisalahPdfFile($id_risalah)
-{
-    $risalah = Risalah::with('risalahDetails.subDetails')->findOrFail($id_risalah);
+    private function generateRisalahPdfFile($id_risalah)
+    {
+        $risalah = Risalah::with('risalahDetails.subDetails')->findOrFail($id_risalah);
 
-    if ($risalah->with_undangan) {
-        $undangan = Undangan::where('judul', $risalah->judul)->first();
-    } else {
-        $undangan = null;
-    }
+        if ($risalah->with_undangan) {
+            $undangan = Undangan::where('judul', $risalah->judul)->first();
+        } else {
+            $undangan = null;
+        }
 
-    $headerPath = public_path('assets/img/bheader.png');
-    $footerPath = public_path('assets/img/bfooter.png');
+        $headerPath = public_path('assets/img/bheader.png');
+        $footerPath = public_path('assets/img/bfooter.png');
 
-    $headerBase64 = file_exists($headerPath)
-        ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath))
-        : null;
+        $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
 
-    $footerBase64 = file_exists($footerPath)
-        ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath))
-        : null;
+        $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
 
-    $pemimpin = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-        ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_pemimpin_acara])
-        ->first();
+        $pemimpin = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
+            ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_pemimpin_acara])
+            ->first();
 
-    $notulis = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-        ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_notulis_acara])
-        ->first();
+        $notulis = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
+            ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$risalah->nama_notulis_acara])
+            ->first();
 
-    if ($pemimpin) {
-        $level = $this->detectLevel($pemimpin);
-        $pemimpin->level_kerja = $level;
-        $pemimpin->bagian_text = $this->getBagianText($pemimpin, $level);
-    }
+        if ($pemimpin) {
+            $level = $this->detectLevel($pemimpin);
+            $pemimpin->level_kerja = $level;
+            $pemimpin->bagian_text = $this->getBagianText($pemimpin, $level);
+        }
 
-    if ($notulis) {
-        $level = $this->detectLevel($notulis);
-        $notulis->level_kerja = $level;
-        $notulis->bagian_text = $this->getBagianText($notulis, $level);
-    }
+        if ($notulis) {
+            $level = $this->detectLevel($notulis);
+            $notulis->level_kerja = $level;
+            $notulis->bagian_text = $this->getBagianText($notulis, $level);
+        }
 
-    $cleanIsi = html_entity_decode(
-        strip_tags((string) $risalah->isi_risalah),
-        ENT_QUOTES | ENT_HTML5,
-        'UTF-8'
-    );
+        $cleanIsi = html_entity_decode(strip_tags((string) $risalah->isi_risalah), ENT_QUOTES | ENT_HTML5, 'UTF-8');
 
-    $formatRisalahPdf = $this->loadPdfView('format-surat.format-risalah', [
-        'risalah' => $risalah,
-        'undangan' => $undangan,
-        'cleanIsi' => $cleanIsi,
-        'pemimpin' => $pemimpin,
-        'notulis' => $notulis,
-        'headerImage' => $headerBase64,
-        'footerImage' => $footerBase64,
-        'isPdf' => true,
-        'docStatus' => $risalah->status,
-    ])->setPaper('A4', 'portrait');
+        $formatRisalahPdf = $this->loadPdfView('format-surat.format-risalah', [
+            'risalah' => $risalah,
+            'undangan' => $undangan,
+            'cleanIsi' => $cleanIsi,
+            'pemimpin' => $pemimpin,
+            'notulis' => $notulis,
+            'headerImage' => $headerBase64,
+            'footerImage' => $footerBase64,
+            'isPdf' => true,
+            'docStatus' => $risalah->status,
+        ])->setPaper('A4', 'portrait');
 
-    $tempMainPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
-    $formatRisalahPdf->save($tempMainPath);
+        $tempMainPath = storage_path('app/temp_format_risalah_' . $risalah->id_risalah . '.pdf');
+        $formatRisalahPdf->save($tempMainPath);
 
-    $attPdfs = $this->createTempPdfsFromAnyMany($risalah->lampiran ?? null, $risalah->id_risalah, 'risalah');
+        $attPdfs = $this->createTempPdfsFromAnyMany($risalah->lampiran ?? null, $risalah->id_risalah, 'risalah');
 
-    $finalFileName = $this->sanitizeFileName($risalah->judul) . ' - ' . $risalah->id_risalah . '.pdf';
-    $finalPath = storage_path('app/public/pdf/' . $finalFileName);
+        $finalFileName = $this->sanitizeFileName($risalah->judul) . ' - ' . $risalah->id_risalah . '.pdf';
+        $finalPath = storage_path('app/public/pdf/' . $finalFileName);
 
-    if (!file_exists(dirname($finalPath))) {
-        mkdir(dirname($finalPath), 0755, true);
-    }
+        if (!file_exists(dirname($finalPath))) {
+            mkdir(dirname($finalPath), 0755, true);
+        }
 
-    if (!empty($attPdfs)) {
-        if ($this->mergeAllPdfs($tempMainPath, $attPdfs, $finalPath)) {
-            $this->cleanupTempFiles([$tempMainPath]);
+        if (!empty($attPdfs)) {
+            if ($this->mergeAllPdfs($tempMainPath, $attPdfs, $finalPath)) {
+                $this->cleanupTempFiles([$tempMainPath]);
+            } else {
+                rename($tempMainPath, $finalPath);
+                $this->cleanupTempFiles($attPdfs);
+            }
         } else {
             rename($tempMainPath, $finalPath);
-            $this->cleanupTempFiles($attPdfs);
         }
-    } else {
-        rename($tempMainPath, $finalPath);
-    }
 
-    return [
-        'risalah' => $risalah,
-        'file_name' => $finalFileName,
-        'file_path' => $finalPath,
-        'file_url' => asset('storage/pdf/' . $finalFileName),
-    ];
-}
-public function viewrisalahPDF($id_risalah)
-{
-    try {
-        $result = $this->generateRisalahPdfFile($id_risalah);
-
-        return response()->file($result['file_path'], [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $result['file_name'] . '"',
-        ]);
-    } catch (\Throwable $e) {
-        Log::error('Error in viewrisalahPDF: ' . $e->getMessage());
-        Log::error('Stack trace: ' . $e->getTraceAsString());
-
-        return response()->json([
-            'error' => 'Gagal menampilkan PDF risalah',
-        ], 500);
-    }
-}
-public function viewRisalahPdfUrl($id)
-{
-    try {
-        $risalah = Risalah::findOrFail($id);
-
-        $payload = [
-            'id_risalah' => $risalah->id_risalah,
-            'expired_at' => now()->addMinutes(10)->timestamp,
+        return [
+            'risalah' => $risalah,
+            'file_name' => $finalFileName,
+            'file_path' => $finalPath,
+            'file_url' => asset('storage/pdf/' . $finalFileName),
         ];
-
-        $token = urlencode(Crypt::encryptString(json_encode($payload)));
-
-        return response()->json([
-            'status' => 'success',
-            'file_name' => $this->sanitizeFileName($risalah->judul) . ' - ' . $risalah->id_risalah . '.pdf',
-            'url' => route('mobile.risalah.pdf', ['token' => $token]),
-        ]);
-    } catch (\Throwable $e) {
-        Log::error('Error in viewRisalahPdfUrl: ' . $e->getMessage());
-
-        return response()->json([
-            'status' => 'error',
-            'message' => 'Gagal mengambil URL PDF risalah',
-        ], 500);
     }
-}
-public function viewRisalahPdfMobile($token)
-{
-    try {
-        $payload = json_decode(Crypt::decryptString(urldecode($token)), true);
+    public function viewrisalahPDF($id_risalah)
+    {
+        try {
+            $result = $this->generateRisalahPdfFile($id_risalah);
 
-        if (
-            !$payload ||
-            !isset($payload['id_risalah']) ||
-            !isset($payload['expired_at'])
-        ) {
-            abort(403, 'Token tidak valid');
+            return response()->file($result['file_path'], [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $result['file_name'] . '"',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error in viewrisalahPDF: ' . $e->getMessage());
+            Log::error('Stack trace: ' . $e->getTraceAsString());
+
+            return response()->json(
+                [
+                    'error' => 'Gagal menampilkan PDF risalah',
+                ],
+                500,
+            );
         }
-
-        if (now()->timestamp > $payload['expired_at']) {
-            abort(403, 'Link PDF sudah kedaluwarsa');
-        }
-
-        $result = $this->generateRisalahPdfFile($payload['id_risalah']);
-
-        return response()->file($result['file_path'], [
-            'Content-Type' => 'application/pdf',
-            'Content-Disposition' => 'inline; filename="' . $result['file_name'] . '"',
-        ]);
-    } catch (\Throwable $e) {
-        Log::error('Error in viewRisalahPdfMobile: ' . $e->getMessage());
-
-        abort(403, 'Link tidak valid atau sudah kedaluwarsa');
     }
-}
+    public function viewRisalahPdfUrl($id)
+    {
+        try {
+            $risalah = Risalah::findOrFail($id);
+
+            $payload = [
+                'id_risalah' => $risalah->id_risalah,
+                'expired_at' => now()->addMinutes(10)->timestamp,
+            ];
+
+            $token = urlencode(Crypt::encryptString(json_encode($payload)));
+
+            return response()->json([
+                'status' => 'success',
+                'file_name' => $this->sanitizeFileName($risalah->judul) . ' - ' . $risalah->id_risalah . '.pdf',
+                'url' => route('mobile.risalah.pdf', ['token' => $token]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error in viewRisalahPdfUrl: ' . $e->getMessage());
+
+            return response()->json(
+                [
+                    'status' => 'error',
+                    'message' => 'Gagal mengambil URL PDF risalah',
+                ],
+                500,
+            );
+        }
+    }
+    public function viewRisalahPdfMobile($token)
+    {
+        try {
+            $payload = json_decode(Crypt::decryptString(urldecode($token)), true);
+
+            if (!$payload || !isset($payload['id_risalah']) || !isset($payload['expired_at'])) {
+                abort(403, 'Token tidak valid');
+            }
+
+            if (now()->timestamp > $payload['expired_at']) {
+                abort(403, 'Link PDF sudah kedaluwarsa');
+            }
+
+            $result = $this->generateRisalahPdfFile($payload['id_risalah']);
+
+            return response()->file($result['file_path'], [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $result['file_name'] . '"',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error in viewRisalahPdfMobile: ' . $e->getMessage());
+
+            abort(403, 'Link tidak valid atau sudah kedaluwarsa');
+        }
+    }
     // public function viewRisalahPdfUrl($id_risalah)
     // {
     //     try {
