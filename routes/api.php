@@ -46,8 +46,8 @@ Route::post('/save-token-manual', [NotifApiController::class, 'saveTokenManual']
 //     return $response->json();
 // });
 
-
 Route::get('/memos/{id}/lampiran/downloadAll', [MemoController::class, 'downloadAll'])->name('api.memo.lampiran.downloadAll');
+Route::get('/mobile/risalah/pdf/{token}', [CetakPDFController::class, 'viewRisalahPdfMobile'])->name('mobile.risalah.pdf');
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/memos', [MemoApiController::class, 'index']);
@@ -70,6 +70,7 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/risalahs/{id}/lampiran/{index}', [RisalahApiController::class, 'lampiranSingle'])->name('api.risalah.lampiran.single');
     Route::put('/risalahs/{id}/update-status', [RisalahApiController::class, 'updateStatus'])->name('api.risalah.updateStatus');
     Route::get('/risalahs/{id}/pdf', [CetakPDFController::class, 'viewRisalahPdfUrl']);
+    // Route::get('/mobile/risalah/pdf/{token}', [CetakPDFController::class, 'viewRisalahPdfMobile'])->name('mobile.risalah.pdf');
 
     Route::get('/undangans', [UndanganApiController::class, 'index']);
     Route::get('/undangans/kode', [UndanganApiController::class, 'kodeFilter']);
