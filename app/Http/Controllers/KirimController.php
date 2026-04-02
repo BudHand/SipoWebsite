@@ -28,7 +28,6 @@ use App\Models\BagianKerja;
 
 class KirimController extends Controller
 {
-
     private function convertTujuanToUserId(array $rawTujuan)
     {
         $departments = [];
@@ -72,7 +71,9 @@ class KirimController extends Controller
             if (!empty($users)) {
                 $query->orWhereIn('id', $users);
             }
-        })->pluck('id')->toArray();
+        })
+            ->pluck('id')
+            ->toArray();
     }
 
     public function index($id)
@@ -280,73 +281,184 @@ class KirimController extends Controller
         return view('manager.memo.memo-terkirim', compact('memoTerkirim', 'sortBy', 'sortDirection'));
     }
 
+    /**
+     * Helper untuk memoDiterima
+     * Helper untuk mencocokkan userId dalam string dengan format semicolon
+     * Contoh format: "1;2;3" atau "2;3" atau "1;3" atau "1" dst.
+     */
+    private function applySemicolonUserMatch($query, string $column, int $userId)
+    {
+        return $query->where(function ($q) use ($column, $userId) {
+            $q->where($column, 'like', $userId . ';%')
+                ->orWhere($column, 'like', '%;' . $userId . ';%')
+                ->orWhere($column, 'like', '%;' . $userId)
+                ->orWhere($column, '=', (string) $userId);
+        });
+    }
+
+    private function semicolonContains(?string $value, int $userId): bool
+    {
+        if (blank($value)) {
+            return false;
+        }
+
+        $items = collect(explode(';', $value))->map(fn($item) => trim($item))->filter(fn($item) => $item !== '')->values()->all();
+
+        return in_array((string) $userId, $items, true);
+    }
+
     public function memoDiterima(Request $request)
     {
-        //dd($request->all());
-        $userId = auth()->id();
-        $memoController = new MemoController();
-        $userKode = $memoController->getDivDeptKode(Auth::user());
+        $user = Auth::user();
+        $userId = (int) $user->id;
+
         session(['previous_url' => url()->previous()]);
-        $sortBy = $request->get('sort_by', 'kirim_document.id_kirim_document');
-        $sortDirection = $request->get('sort_direction', 'desc');
-        $kode = Memo::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
-        $allowedSorts = ['kirim_document.id_kirim_document', 'memo.tgl_dibuat', 'memo.tgl_disahkan', 'memo.judul', 'memo.nomor_memo'];
 
-        if (!in_array($sortBy, $allowedSorts)) {
-            $sortBy = 'kirim_document.id_kirim_document';
+        $sortBy = $request->get('sort_by', 'created_at');
+        $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
+
+        $allowedSorts = ['created_at', 'tgl_dibuat', 'tgl_disahkan', 'judul', 'nomor_memo'];
+        if (!in_array($sortBy, $allowedSorts, true)) {
+            $sortBy = 'created_at';
         }
-        // Get archived memo document IDs for this user
-        $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Memo')->pluck('document_id')->toArray();
 
-        $memoDiterima = Kirim_Document::where('jenis_document', 'memo')
-            ->where('id_penerima', $userId)
-            ->whereNotIn('id_document', $memoDiarsipkan) // exclude archived
-            ->whereIn('kirim_document.status', ['pending', 'approve'])
-            ->whereHas('memo', function ($query) use ($request, $userKode) {
-                $query->where('nama_bertandatangan', '!=', Auth::user()->fullname);
+        $kode = Memo::query()->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
 
-                if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
-                    $query->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
-                } elseif ($request->filled('tgl_dibuat_awal')) {
-                    $query->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
-                } elseif ($request->filled('tgl_dibuat_akhir')) {
-                    $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
-                }
+        $memoDiarsipkan = Arsip::query()->where('user_id', $userId)->where('jenis_document', Memo::class)->pluck('document_id')->toArray();
 
-                if ($request->filled('search')) {
-                    $query->where(function ($q2) use ($request) {
-                        $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+        $memoDiterima = Memo::query()
+            ->with(['kirimDocument', 'divisi'])
+            ->whereNotIn('id_memo', $memoDiarsipkan)
+            ->where('nama_bertandatangan', '!=', $user->fullname)
+            ->where('status', 'approve')
+            ->where(function ($query) use ($userId) {
+                $query
+                    ->whereHas('kirimDocument', function ($sub) use ($userId) {
+                        $sub->where('jenis_document', 'memo')
+                            ->where('id_penerima', $userId)
+                            ->whereIn('status', ['pending', 'approve']);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $this->applySemicolonUserMatch($sub, 'tembusan', $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $this->applySemicolonUserMatch($sub, 'bcc', $userId);
                     });
-                }
+            });
 
-                if ($request->filled('kode')) {
-                    $query->where('kode', $request->kode);
-                }
-            })
-            ->whereIn('id_kirim_document', function ($subQuery) use ($userId) {
-                $subQuery->selectRaw('MIN(id_kirim_document)')->from('kirim_document')->where('jenis_document', 'memo')->where('id_penerima', $userId)->groupBy('id_document');
-            })
-            ->with('memo');
-
-        if (Str::startsWith($sortBy, 'memo.')) {
-            $memoColumn = Str::after($sortBy, 'memo.');
-            $memoDiterima
-                ->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
-                ->orderBy("memo.$memoColumn", $sortDirection)
-                ->select('kirim_document.*');
-        } else {
-            $memoDiterima->orderBy($sortBy, $sortDirection);
+        if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+            $memoDiterima->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
+        } elseif ($request->filled('tgl_dibuat_awal')) {
+            $memoDiterima->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+        } elseif ($request->filled('tgl_dibuat_akhir')) {
+            $memoDiterima->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
         }
 
-        $perPage = $request->get('per_page', 10);
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $memoDiterima->where(function ($q) use ($search) {
+                $q->where('judul', 'like', '%' . $search . '%')->orWhere('nomor_memo', 'like', '%' . $search . '%');
+            });
+        }
+
+        if ($request->filled('kode') && $request->kode !== 'pilih') {
+            $memoDiterima->where('kode', $request->kode);
+        }
+
+        $memoDiterima->orderBy($sortBy, $sortDirection);
+
+        $perPage = (int) $request->get('per_page', 10);
         $memoDiterima = $memoDiterima->paginate($perPage);
+
+        $memoDiterima->getCollection()->transform(function ($memo) use ($userId) {
+            $statusKirim = $memo->kirimDocument->where('jenis_document', 'memo')->where('id_penerima', $userId)->sortBy('id_kirim_document')->first();
+
+            if ($statusKirim) {
+                $memo->final_status = $statusKirim->status;
+                $memo->sumber_diterima = 'penerima';
+            } elseif ($this->semicolonContains($memo->tembusan, $userId)) {
+                $memo->final_status = $memo->status;
+                $memo->sumber_diterima = 'tembusan';
+            } elseif ($this->semicolonContains($memo->bcc, $userId)) {
+                $memo->final_status = $memo->status;
+                $memo->sumber_diterima = 'bcc';
+            } else {
+                $memo->final_status = $memo->status;
+                $memo->sumber_diterima = '-';
+            }
+
+            return $memo;
+        });
 
         return view('manager.memo.memo-diterima', compact('memoDiterima', 'sortBy', 'sortDirection', 'kode'));
     }
+    // public function memoDiterima(Request $request)
+    // {
+    //     //dd($request->all());
+    //     $userId = Auth::id();
+    //     $memoController = new MemoController();
+    //     $userKode = $memoController->getDivDeptKode(Auth::user());
+    //     session(['previous_url' => url()->previous()]);
+    //     $sortBy = $request->get('sort_by', 'kirim_document.id_kirim_document');
+    //     $sortDirection = $request->get('sort_direction', 'desc');
+    //     $kode = Memo::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+    //     $allowedSorts = ['kirim_document.id_kirim_document', 'memo.tgl_dibuat', 'memo.tgl_disahkan', 'memo.judul', 'memo.nomor_memo'];
+
+    //     if (!in_array($sortBy, $allowedSorts)) {
+    //         $sortBy = 'kirim_document.id_kirim_document';
+    //     }
+    //     // Get archived memo document IDs for this user
+    //     $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\\Models\\Memo')->pluck('document_id')->toArray();
+
+    //     $memoDiterima = Kirim_Document::where('jenis_document', 'memo')
+    //         ->where('id_penerima', $userId)
+    //         ->whereNotIn('id_document', $memoDiarsipkan) // exclude archived
+    //         ->whereIn('kirim_document.status', ['pending', 'approve'])
+    //         ->whereHas('memo', function ($query) use ($request, $userKode) {
+    //             $query->where('nama_bertandatangan', '!=', Auth::user()->fullname);
+
+    //             if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+    //                 $query->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
+    //             } elseif ($request->filled('tgl_dibuat_awal')) {
+    //                 $query->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+    //             } elseif ($request->filled('tgl_dibuat_akhir')) {
+    //                 $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
+    //             }
+
+    //             if ($request->filled('search')) {
+    //                 $query->where(function ($q2) use ($request) {
+    //                     $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+    //                 });
+    //             }
+
+    //             if ($request->filled('kode')) {
+    //                 $query->where('kode', $request->kode);
+    //             }
+    //         })
+    //         ->whereIn('id_kirim_document', function ($subQuery) use ($userId) {
+    //             $subQuery->selectRaw('MIN(id_kirim_document)')->from('kirim_document')->where('jenis_document', 'memo')->where('id_penerima', $userId)->groupBy('id_document');
+    //         })
+    //         ->with('memo');
+
+    //     if (Str::startsWith($sortBy, 'memo.')) {
+    //         $memoColumn = Str::after($sortBy, 'memo.');
+    //         $memoDiterima
+    //             ->join('memo', 'kirim_document.id_document', '=', 'memo.id_memo')
+    //             ->orderBy("memo.$memoColumn", $sortDirection)
+    //             ->select('kirim_document.*');
+    //     } else {
+    //         $memoDiterima->orderBy($sortBy, $sortDirection);
+    //     }
+
+    //     $perPage = $request->get('per_page', 10);
+    //     $memoDiterima = $memoDiterima->paginate($perPage);
+
+    //     return view('manager.memo.memo-diterima', compact('memoDiterima', 'sortBy', 'sortDirection', 'kode'));
+    // }
 
     public function undangan(Request $request)
     {
-        $userId = auth()->id();
+        $userId = Auth::id();
         $filterType = $request->get('userid_filter', 'both');
         $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
         $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
@@ -452,83 +564,163 @@ class KirimController extends Controller
 
         return view('manager.undangan.undangan', compact('undangans', 'sortBy', 'sortDirection', 'kode'));
     }
+
     public function undanganDiterima(Request $request)
     {
-        $userId = auth()->id();
+        $user = Auth::user();
+        $userId = (int) $user->id;
+
         $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
         $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
 
         $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
 
-        $allowedSorts = ['kirim_document.id_kirim_document', 'undangan.tgl_dibuat', 'undangan.tgl_disahkan', 'undangan.judul', 'undangan.nomor_undangan', 'tgl_rapat_diff'];
+        $allowedSorts = ['created_at', 'tgl_dibuat', 'tgl_disahkan', 'judul', 'nomor_undangan', 'tgl_rapat_diff'];
         if (!in_array($sortBy, $allowedSorts, true)) {
             $sortBy = 'tgl_rapat_diff';
         }
 
-        $subQuery = Kirim_Document::where('jenis_document', 'undangan')
-            ->where('id_penerima', $userId)
-            ->whereIn('status', ['pending', 'approve']);
+        $undanganDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', Undangan::class)->pluck('document_id')->toArray();
 
-        if ($request->filled('status')) {
-            $subQuery->where('status', $request->status);
+        $undangans = Undangan::with(['kirimDocument'])
+            ->whereNotIn('id_undangan', $undanganDiarsipkan)
+            ->where('status', 'approve')
+            ->where(function ($query) use ($userId) {
+                $query
+                    ->whereHas('kirimDocument', function ($sub) use ($userId) {
+                        $sub->where('jenis_document', 'undangan')
+                            ->where('id_penerima', $userId)
+                            ->whereIn('status', ['pending', 'approve']);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $this->applySemicolonUserMatch($sub, 'tembusan', $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $this->applySemicolonUserMatch($sub, 'bcc', $userId);
+                    });
+            });
+
+        // ===== FILTER =====
+        if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+            $undangans->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
+        } elseif ($request->filled('tgl_dibuat_awal')) {
+            $undangans->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+        } elseif ($request->filled('tgl_dibuat_akhir')) {
+            $undangans->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
         }
 
-        $subQuery->whereHas('undangan', function ($q) use ($request) {
-            if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
-                $q->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
-            } elseif ($request->filled('tgl_dibuat_awal')) {
-                $q->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
-            } elseif ($request->filled('tgl_dibuat_akhir')) {
-                $q->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
-            }
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $undangans->where(function ($q) use ($search) {
+                $q->where('judul', 'like', '%' . $search . '%')->orWhere('nomor_undangan', 'like', '%' . $search . '%');
+            });
+        }
 
-            if ($request->filled('search')) {
-                $q->where(function ($q2) use ($request) {
-                    $q2->where('judul', 'like', '%' . $request->search . '%')
-                        ->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
-                });
-            }
+        if ($request->filled('kode') && $request->kode !== 'pilih') {
+            $undangans->where('kode', $request->kode);
+        }
 
-            if ($request->filled('kode')) {
-                $q->where('kode', $request->kode);
-            }
-        });
-
-        $idKirimList = $subQuery
-            ->selectRaw('MIN(id_kirim_document) as id_kirim_document')
-            ->groupBy('id_document')
-            ->pluck('id_kirim_document');
-
-        $undanganDiarsipkan = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'App\Models\Undangan')
-            ->pluck('document_id')
-            ->toArray();
-
-        $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)
-            ->whereNotIn('id_document', $undanganDiarsipkan)
-            ->with('undangan');
-
+        // ===== SORTING =====
         if ($sortBy === 'tgl_rapat_diff') {
-            $undangans
-                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
-                ->orderByRaw('CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC')
-                ->orderByRaw("ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}")
-                ->select('kirim_document.*');
-        } elseif (Str::startsWith($sortBy, 'undangan.')) {
-            $field = Str::after($sortBy, 'undangan.');
-            $undangans
-                ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
-                ->orderBy("undangan.$field", $sortDirection)
-                ->select('kirim_document.*');
+            $undangans->orderByRaw('CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC')->orderByRaw("ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}");
         } else {
             $undangans->orderBy($sortBy, $sortDirection);
         }
 
-        $perPage = $request->get('per_page', 10);
+        $perPage = (int) $request->get('per_page', 10);
         $undangans = $undangans->paginate($perPage);
+
+        // ===== SET STATUS & SUMBER =====
+        $undangans->getCollection()->transform(function ($undangan) use ($userId) {
+            $statusKirim = $undangan->kirimDocument->where('jenis_document', 'undangan')->where('id_penerima', $userId)->sortBy('id_kirim_document')->first();
+
+            if ($statusKirim) {
+                $undangan->final_status = $statusKirim->status;
+                $undangan->sumber_diterima = 'penerima';
+            } elseif ($this->semicolonContains($undangan->tembusan, $userId)) {
+                $undangan->final_status = $undangan->status;
+                $undangan->sumber_diterima = 'tembusan';
+            } elseif ($this->semicolonContains($undangan->bcc, $userId)) {
+                $undangan->final_status = $undangan->status;
+                $undangan->sumber_diterima = 'bcc';
+            } else {
+                $undangan->final_status = $undangan->status;
+                $undangan->sumber_diterima = '-';
+            }
+
+            return $undangan;
+        });
 
         return view('manager.undangan.undangan-diterima', compact('undangans', 'sortBy', 'sortDirection', 'kode'));
     }
+    // public function undanganDiterima(Request $request)
+    // {
+    //     $userId = auth()->id();
+    //     $sortBy = $request->get('sort_by', 'tgl_rapat_diff');
+    //     $sortDirection = $request->get('sort_direction', 'asc') === 'asc' ? 'asc' : 'desc';
+
+    //     $kode = Undangan::whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+
+    //     $allowedSorts = ['kirim_document.id_kirim_document', 'undangan.tgl_dibuat', 'undangan.tgl_disahkan', 'undangan.judul', 'undangan.nomor_undangan', 'tgl_rapat_diff'];
+    //     if (!in_array($sortBy, $allowedSorts, true)) {
+    //         $sortBy = 'tgl_rapat_diff';
+    //     }
+
+    //     $subQuery = Kirim_Document::where('jenis_document', 'undangan')
+    //         ->where('id_penerima', $userId)
+    //         ->whereIn('status', ['pending', 'approve']);
+
+    //     if ($request->filled('status')) {
+    //         $subQuery->where('status', $request->status);
+    //     }
+
+    //     $subQuery->whereHas('undangan', function ($q) use ($request) {
+    //         if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+    //             $q->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
+    //         } elseif ($request->filled('tgl_dibuat_awal')) {
+    //             $q->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+    //         } elseif ($request->filled('tgl_dibuat_akhir')) {
+    //             $q->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
+    //         }
+
+    //         if ($request->filled('search')) {
+    //             $q->where(function ($q2) use ($request) {
+    //                 $q2->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_undangan', 'like', '%' . $request->search . '%');
+    //             });
+    //         }
+
+    //         if ($request->filled('kode')) {
+    //             $q->where('kode', $request->kode);
+    //         }
+    //     });
+
+    //     $idKirimList = $subQuery->selectRaw('MIN(id_kirim_document) as id_kirim_document')->groupBy('id_document')->pluck('id_kirim_document');
+
+    //     $undanganDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\Models\Undangan')->pluck('document_id')->toArray();
+
+    //     $undangans = Kirim_Document::whereIn('id_kirim_document', $idKirimList)->whereNotIn('id_document', $undanganDiarsipkan)->with('undangan');
+
+    //     if ($sortBy === 'tgl_rapat_diff') {
+    //         $undangans
+    //             ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+    //             ->orderByRaw('CASE WHEN DATEDIFF(tgl_rapat, CURDATE()) < 0 THEN 1 ELSE 0 END ASC')
+    //             ->orderByRaw("ABS(DATEDIFF(tgl_rapat, CURDATE())) {$sortDirection}")
+    //             ->select('kirim_document.*');
+    //     } elseif (Str::startsWith($sortBy, 'undangan.')) {
+    //         $field = Str::after($sortBy, 'undangan.');
+    //         $undangans
+    //             ->join('undangan', 'kirim_document.id_document', '=', 'undangan.id_undangan')
+    //             ->orderBy("undangan.$field", $sortDirection)
+    //             ->select('kirim_document.*');
+    //     } else {
+    //         $undangans->orderBy($sortBy, $sortDirection);
+    //     }
+
+    //     $perPage = $request->get('per_page', 10);
+    //     $undangans = $undangans->paginate($perPage);
+
+    //     return view('manager.undangan.undangan-diterima', compact('undangans', 'sortBy', 'sortDirection', 'kode'));
+    // }
 
     public function memo(Request $request)
     {

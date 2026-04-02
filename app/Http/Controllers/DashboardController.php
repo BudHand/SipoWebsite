@@ -136,20 +136,22 @@ class DashboardController extends Controller
      */
     private function countMemoMasuk(int $userId, array $arsipIds, string $fullname): int
     {
-        return (int) Kirim_Document::query()
-            ->where('jenis_document', 'memo')
-            ->where('id_penerima', $userId)
-            ->whereIn('kirim_document.status', ['pending', 'approve'])
-            ->whereNotIn('id_document', $arsipIds)
-            ->whereIn('id_kirim_document', function ($sub) use ($userId) {
-                $sub->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->where('jenis_document', 'memo')
-                    ->where('id_penerima', $userId)
-                    ->groupBy('id_document');
-            })
-            ->whereHas('memo', function ($mq) use ($fullname) {
-                $mq->where('nama_bertandatangan', '!=', $fullname);
+        return (int) Memo::query()
+            ->whereNotIn('id_memo', $arsipIds)
+            ->where('nama_bertandatangan', '!=', $fullname)
+            ->where('status', 'approve')
+            ->where(function ($query) use ($userId) {
+                $query->whereHas('kirimDocument', function ($sub) use ($userId) {
+                    $sub->where('jenis_document', 'memo')
+                        ->where('id_penerima', $userId)
+                        ->where('status', 'approve');
+                })
+                ->orWhere(function ($sub) use ($userId) {
+                    $this->applySemicolonUserMatch($sub, 'tembusan', $userId);
+                })
+                ->orWhere(function ($sub) use ($userId) {
+                    $this->applySemicolonUserMatch($sub, 'bcc', $userId);
+                });
             })
             ->count();
     }
@@ -198,17 +200,21 @@ class DashboardController extends Controller
      */
     private function countUndanganMasuk(int $userId, array $arsipIds): int
     {
-        return (int) Kirim_Document::query()
-            ->where('jenis_document', 'undangan')
-            ->where('id_penerima', $userId)
-            ->whereIn('kirim_document.status', ['pending', 'approve'])
-            ->whereNotIn('id_document', $arsipIds)
-            ->whereIn('id_kirim_document', function ($sub) use ($userId) {
-                $sub->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->where('jenis_document', 'undangan')
-                    ->where('id_penerima', $userId)
-                    ->groupBy('id_document');
+        return (int) Undangan::query()
+            ->whereNotIn('id_undangan', $arsipIds)
+            ->where('status', 'approve')
+            ->where(function ($query) use ($userId) {
+                $query->whereHas('kirimDocument', function ($sub) use ($userId) {
+                    $sub->where('jenis_document', 'undangan')
+                        ->where('id_penerima', $userId)
+                        ->where('status', 'approve');
+                })
+                ->orWhere(function ($sub) use ($userId) {
+                    $this->applySemicolonUserMatch($sub, 'tembusan', $userId);
+                })
+                ->orWhere(function ($sub) use ($userId) {
+                    $this->applySemicolonUserMatch($sub, 'bcc', $userId);
+                });
             })
             ->count();
     }
@@ -253,10 +259,10 @@ class DashboardController extends Controller
         if ($roleId === 3) {
             return [
                 'memo_keluar'     => route('memo.terkirim'),
-                'memo_masuk'      => route('memo.diterima'),
+                'memo_masuk'      => route('manager.memo.diterima'),
                 'undangan_keluar' => route('undangan.terkirim'),
                 'undangan_masuk'  => route('undangan.diterima'),
-                // 'risalah'         => route('risalah.manager'),
+                'risalah'         => route('manager.risalah.index'),
             ];
         }
 
@@ -336,5 +342,15 @@ class DashboardController extends Controller
             'undangan' => $undanganData,
             'risalah' => $risalahData,
         ];
+    }
+
+    private function applySemicolonUserMatch($query, string $column, int $userId)
+    {
+        return $query->where(function ($q) use ($column, $userId) {
+            $q->where($column, 'like', $userId . ';%')
+                ->orWhere($column, 'like', '%;' . $userId . ';%')
+                ->orWhere($column, 'like', '%;' . $userId)
+                ->orWhere($column, '=', (string) $userId);
+        });
     }
 }

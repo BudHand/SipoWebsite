@@ -31,7 +31,6 @@ use App\Services\NotifService;
 
 class RisalahController extends Controller
 {
-
     private function convertTujuanToUserId(array $rawTujuan)
     {
         $departments = [];
@@ -75,7 +74,9 @@ class RisalahController extends Controller
             if (!empty($users)) {
                 $query->orWhereIn('id', $users);
             }
-        })->pluck('id')->toArray();
+        })
+            ->pluck('id')
+            ->toArray();
     }
 
     public function index(Request $request)
@@ -84,7 +85,7 @@ class RisalahController extends Controller
         $seri = SeriRisalah::all();
         $userId = Auth::id();
         $kode = DB::table('risalah')
-            ->whereNotNull('kode')        // pastikan hanya yang ada kodenya
+            ->whereNotNull('kode') // pastikan hanya yang ada kodenya
             ->distinct()
             ->pluck('kode');
 
@@ -99,19 +100,15 @@ class RisalahController extends Controller
         $query = Risalah::query()
             ->whereNotIn('id_risalah', $risalahDiarsipkan)
             ->where(function ($q) use ($userId) {
-
                 // 1) RISALAH YANG DIBUAT USER INI
                 $q->where('pembuat', $userId)
 
-                // 2) ATAU USER TERLIBAT VIA KIRIM_DOCUMENT
-                ->orWhereHas('kirimDocument', function ($query) use ($userId) {
-                    $query->where('jenis_document', 'risalah')
-                        ->where(function ($query) use ($userId) {
-                            $query->where('id_pengirim', $userId)
-                                ->orWhere('id_penerima', $userId)
-                                ->orWhere('pembuat', $userId);
+                    // 2) ATAU USER TERLIBAT VIA KIRIM_DOCUMENT
+                    ->orWhereHas('kirimDocument', function ($query) use ($userId) {
+                        $query->where('jenis_document', 'risalah')->where(function ($query) use ($userId) {
+                            $query->where('id_pengirim', $userId)->orWhere('id_penerima', $userId)->orWhere('pembuat', $userId);
                         });
-                });
+                    });
             });
 
         // Filter status
@@ -136,23 +133,17 @@ class RisalahController extends Controller
         // Filter search
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')
-                    ->orWhere('nomor_risalah', 'like', '%' . $request->search . '%');
+                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_risalah', 'like', '%' . $request->search . '%');
             });
         }
 
         // Sorting & pagination
         $perPage = $request->get('per_page', 10);
-        $risalahs = $query->with('kirimDocument')
-            ->orderBy($sortBy, $sortDirection)
-            ->paginate($perPage);
+        $risalahs = $query->with('kirimDocument')->orderBy($sortBy, $sortDirection)->paginate($perPage);
 
         // Tambah final_status
         $risalahs->getCollection()->transform(function ($risalah) use ($userId) {
-            $statusKirim = Kirim_Document::where('id_document', $risalah->id_risalah)
-                ->where('jenis_document', 'risalah')
-                ->where('id_penerima', $userId)
-                ->first();
+            $statusKirim = Kirim_Document::where('id_document', $risalah->id_risalah)->where('jenis_document', 'risalah')->where('id_penerima', $userId)->first();
             $risalah->final_status = $statusKirim ? $statusKirim->status : '-';
             return $risalah;
         });
@@ -160,14 +151,10 @@ class RisalahController extends Controller
         // (Opsional) Ambil semua kirimDocuments user ini
         $kirimDocuments = Kirim_Document::where('jenis_document', 'risalah')
             ->where(function ($query) use ($userId) {
-                $query->where('id_pengirim', $userId)
-                    ->orWhere('id_penerima', $userId);
+                $query->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })
             ->get();
-        return view(
-            Auth::user()->role->nm_role . '.risalah.index',
-            compact('risalahs', 'seri', 'sortDirection', 'kirimDocuments', 'kode')
-        );
+        return view(Auth::user()->role->nm_role . '.risalah.index', compact('risalahs', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
 
     public function superadmin(Request $request)
@@ -175,12 +162,7 @@ class RisalahController extends Controller
         $divisi = Divisi::all();
         $seri = SeriRisalah::all();
         $userId = Auth::id();
-        $kode = Risalah::withTrashed()
-            ->whereNotNull('kode')
-            ->pluck('kode')
-            ->filter()
-            ->unique()
-            ->values();
+        $kode = Risalah::withTrashed()->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
 
         $risalahDiarsipkan = Arsip::where('user_id', Auth::id())->where('jenis_document', 'App\Models\Risalah')->pluck('document_id')->toArray();
         $sortBy = $request->get('sort_by', 'created_at'); // default ke created_at
@@ -191,9 +173,7 @@ class RisalahController extends Controller
             $sortBy = 'created_at'; // fallback default
         }
 
-        $query = Risalah::query()
-            ->whereNotIn('id_risalah', $risalahDiarsipkan)
-            ->orderBy($sortBy, $sortDirection);
+        $query = Risalah::query()->whereNotIn('id_risalah', $risalahDiarsipkan)->orderBy($sortBy, $sortDirection);
 
         // Filter berdasarkan status
         if ($request->filled('status')) {
@@ -210,9 +190,7 @@ class RisalahController extends Controller
         }
 
         // Ambil semua arsip memo berdasarkan user login
-        $arsipRisalahQuery = Arsip::where('user_id', $userId)
-            ->where('jenis_document', 'risalah')
-            ->with('document');
+        $arsipRisalahQuery = Arsip::where('user_id', $userId)->where('jenis_document', 'risalah')->with('document');
 
         $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
         $query->orderBy('created_at', $sortDirection);
@@ -227,8 +205,7 @@ class RisalahController extends Controller
         // Pencarian berdasarkan nama dokumen atau nomor memo
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')
-                    ->orWhere('nomor_risalah', 'like', '%' . $request->search . '%');
+                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_risalah', 'like', '%' . $request->search . '%');
             });
         }
         $perPage = $request->get('per_page', 10); // Default ke 10 jika tidak ada input
@@ -245,9 +222,8 @@ class RisalahController extends Controller
         $userId = Auth::id();
         $listUndangan = Kirim_Document::where('jenis_document', 'undangan')
             ->where('status', 'approve')
-            ->where(function($q) use ($userId) {
-                $q->where('id_pengirim', $userId)
-                ->orWhere('id_penerima', $userId);
+            ->where(function ($q) use ($userId) {
+                $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })
             ->pluck('id_document')
             ->unique();
@@ -272,7 +248,7 @@ class RisalahController extends Controller
             'kode_bagian' => $bagianKerja,
             'bagianKerja' => $bagianKerja,
             'self' => $self,
-            'undangan' => $undangan
+            'undangan' => $undangan,
         ]);
     }
 
@@ -299,24 +275,14 @@ class RisalahController extends Controller
             'users' => $users,
             'orgTree' => $orgTree,
             'jsTreeData' => $jsTreeData,
-            'mainDirector' => $mainDirector
+            'mainDirector' => $mainDirector,
         ]);
     }
 
     //function generate js tree (thx diva)
     public function getOrgTreeWithUsers()
     {
-        $directors = Director::with([
-            'users.position',
-            'divisi.users.position',
-            'divisi.department.users.position',
-            'divisi.department.section.users.position',
-            'divisi.department.section.unit.users.position',
-            'department.users.position',
-            'department.section.users.position',
-            'department.section.unit.users.position'
-        ])->get();
-
+        $directors = Director::with(['users.position', 'divisi.users.position', 'divisi.department.users.position', 'divisi.department.section.users.position', 'divisi.department.section.unit.users.position', 'department.users.position', 'department.section.users.position', 'department.section.unit.users.position'])->get();
 
         $tree = [];
 
@@ -329,15 +295,11 @@ class RisalahController extends Controller
     }
     public function filterUsersAtLevel($users, $level)
     {
-        return array_values(array_filter($users, function ($user) use ($level) {
-            return (
-                ($level === 'director' && is_null($user['divisi_id_divisi']) && is_null($user['department_id_department']) && is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) ||
-                ($level === 'divisi' && !is_null($user['divisi_id_divisi']) && is_null($user['department_id_department']) && is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) ||
-                ($level === 'department' && !is_null($user['department_id_department']) && is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) ||
-                ($level === 'section' && !is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) ||
-                ($level === 'unit' && !is_null($user['unit_id_unit']))
-            );
-        }));
+        return array_values(
+            array_filter($users, function ($user) use ($level) {
+                return ($level === 'director' && is_null($user['divisi_id_divisi']) && is_null($user['department_id_department']) && is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) || ($level === 'divisi' && !is_null($user['divisi_id_divisi']) && is_null($user['department_id_department']) && is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) || ($level === 'department' && !is_null($user['department_id_department']) && is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) || ($level === 'section' && !is_null($user['section_id_section']) && is_null($user['unit_id_unit'])) || ($level === 'unit' && !is_null($user['unit_id_unit']));
+            }),
+        );
     }
 
     public function getUserText($user, $context)
@@ -359,7 +321,7 @@ class RisalahController extends Controller
                     'Senior Manager' => 'SM',
                     'General Manager' => 'GM',
                     'Manager' => 'M',
-                    'Supervisor' => 'SPV'
+                    'Supervisor' => 'SPV',
                 ];
 
                 foreach ($abbreviations as $full => $abbrev) {
@@ -373,13 +335,10 @@ class RisalahController extends Controller
             $position = '-';
         }
 
-        $hierarki = collect([
-            $context['unit'] ?? null,
-            $context['section'] ?? null,
-            $context['department'] ?? null,
-            $context['divisi'] ?? null,
-            $context['director'] ?? null
-        ])->filter()->first() ?? '-';
+        $hierarki =
+            collect([$context['unit'] ?? null, $context['section'] ?? null, $context['department'] ?? null, $context['divisi'] ?? null, $context['director'] ?? null])
+                ->filter()
+                ->first() ?? '-';
 
         $firstname = $user['firstname'] ?? ($user['nm_user'] ?? '-');
         $lastname = $user['lastname'] ?? '';
@@ -391,12 +350,11 @@ class RisalahController extends Controller
     {
         $result = [];
 
-
         foreach ($tree as $director) {
             $dirNode = [
                 'id' => 'director-' . ($director['id_director'] ?? ''),
                 'text' => $director['name_director'] ?? 'Director',
-                'children' => []
+                'children' => [],
             ];
 
             // users at director
@@ -405,7 +363,7 @@ class RisalahController extends Controller
                 $dirNode['children'][] = [
                     'id' => 'user-' . $user['id'],
                     'text' => $this->getUserText($user, ['director' => $dirNode['text']]),
-                    'icon' => 'fa fa-user'
+                    'icon' => 'fa fa-user',
                 ];
             }
             $addedDepartments = [];
@@ -415,7 +373,7 @@ class RisalahController extends Controller
                 $divNode = [
                     'id' => 'divisi-' . ($divisi['id_divisi'] ?? ''),
                     'text' => $divName,
-                    'children' => []
+                    'children' => [],
                 ];
 
                 // divisi users
@@ -425,9 +383,9 @@ class RisalahController extends Controller
                         'id' => 'user-' . $user['id'],
                         'text' => $this->getUserText($user, [
                             'director' => $dirNode['text'],
-                            'divisi' => $divName
+                            'divisi' => $divName,
                         ]),
-                        'icon' => 'fa fa-user'
+                        'icon' => 'fa fa-user',
                     ];
                 }
 
@@ -440,7 +398,7 @@ class RisalahController extends Controller
 
                     $divNode['children'][] = $this->buildDeptNode($dept, [
                         'director' => $dirNode['text'],
-                        'divisi' => $divName
+                        'divisi' => $divName,
                     ]);
                     $addedDepartments[] = $deptId;
                 }
@@ -455,13 +413,12 @@ class RisalahController extends Controller
                     continue; // skip duplicates
                 }
                 $dirNode['children'][] = $this->buildDeptNode($dept, [
-                    'director' => $dirNode['text']
+                    'director' => $dirNode['text'],
                 ]);
                 $addedDepartments[] = $deptId;
             }
 
             // 2) Then add divisions (if any) and their departments
-
 
             $result[] = $dirNode;
         }
@@ -479,7 +436,7 @@ class RisalahController extends Controller
         $deptNode = [
             'id' => 'dept-' . ($dept['id_department'] ?? ''),
             'text' => $deptName,
-            'children' => []
+            'children' => [],
         ];
 
         // users at department
@@ -488,7 +445,7 @@ class RisalahController extends Controller
             $deptNode['children'][] = [
                 'id' => 'user-' . $user['id'],
                 'text' => $this->getUserText($user, array_merge($ctx, ['department' => $deptName])),
-                'icon' => 'fa fa-user'
+                'icon' => 'fa fa-user',
             ];
         }
 
@@ -498,18 +455,21 @@ class RisalahController extends Controller
             $sectionNode = [
                 'id' => 'section-' . ($section['id_section'] ?? ''),
                 'text' => $sectionName,
-                'children' => []
+                'children' => [],
             ];
 
             $usersAtSection = $this->filterUsersAtLevel($section['users'] ?? [], 'section');
             foreach ($usersAtSection as $user) {
                 $sectionNode['children'][] = [
                     'id' => 'user-' . $user['id'],
-                    'text' => $this->getUserText($user, array_merge($ctx, [
-                        'department' => $deptName,
-                        'section' => $sectionName
-                    ])),
-                    'icon' => 'fa fa-user'
+                    'text' => $this->getUserText(
+                        $user,
+                        array_merge($ctx, [
+                            'department' => $deptName,
+                            'section' => $sectionName,
+                        ]),
+                    ),
+                    'icon' => 'fa fa-user',
                 ];
             }
 
@@ -518,19 +478,22 @@ class RisalahController extends Controller
                 $unitNode = [
                     'id' => 'unit-' . ($unit['id_unit'] ?? ''),
                     'text' => $unitName,
-                    'children' => []
+                    'children' => [],
                 ];
 
                 $usersAtUnit = $this->filterUsersAtLevel($unit['users'] ?? [], 'unit');
                 foreach ($usersAtUnit as $user) {
                     $unitNode['children'][] = [
                         'id' => 'user-' . $user['id'],
-                        'text' => $this->getUserText($user, array_merge($ctx, [
-                            'department' => $deptName,
-                            'section' => $sectionName,
-                            'unit' => $unitName
-                        ])),
-                        'icon' => 'fa fa-user'
+                        'text' => $this->getUserText(
+                            $user,
+                            array_merge($ctx, [
+                                'department' => $deptName,
+                                'section' => $sectionName,
+                                'unit' => $unitName,
+                            ]),
+                        ),
+                        'icon' => 'fa fa-user',
                     ];
                 }
 
@@ -561,14 +524,7 @@ class RisalahController extends Controller
         // Konversi bulan ke angka Romawi
         $bulanRomawi = $this->convertToRoman(now()->month);
         // Format nomor dokumen
-        $nomorDokumen = sprintf(
-            "RIS-%02d/REKA%s/%s/%s/%d",
-            $nextSeri['seri_tahunan'],
-            strtoupper($kodeDirektur),
-            strtoupper($divDeptKode),
-            $bulanRomawi,
-            now()->year
-        );
+        $nomorDokumen = sprintf('RIS-%02d/REKA%s/%s/%s/%d', $nextSeri['seri_tahunan'], strtoupper($kodeDirektur), strtoupper($divDeptKode), $bulanRomawi, now()->year);
 
         return $nomorDokumen;
     }
@@ -576,62 +532,65 @@ class RisalahController extends Controller
     public function store(Request $request)
     {
         $memoController = new MemoController();
-        $request->validate([
-            'tgl_dibuat' => 'required|date',
-            'kode_bagian' => 'required|string|exists:bagian_kerja,kode_bagian',
-            'agenda' => 'required|string',
-            'tempat' => 'required|string',
-            'waktu_mulai' => 'required|string',
-            'waktu_selesai' => 'required|string',
-            'tujuan' => 'required_without:with_undangan',
-            'judul' => 'required|string',
-            'pembuat' => 'required|string',
+        $request->validate(
+            [
+                'tgl_dibuat' => 'required|date',
+                'kode_bagian' => 'required|string|exists:bagian_kerja,kode_bagian',
+                'agenda' => 'required|string',
+                'tempat' => 'required|string',
+                'waktu_mulai' => 'required|string',
+                'waktu_selesai' => 'required|string',
+                'tujuan' => 'required_without:with_undangan',
+                'judul' => 'required|string',
+                'pembuat' => 'required|string',
 
-            //detail baru
-            'nomor' => 'nullable|array',
-            'project_event' => 'nullable|array',
-            'topik' => 'nullable|array',
-            'uraian_permasalahan' => 'nullable|array',
-            'pembahasan_tindak_lanjut' => 'nullable|array',
-            'target' => 'nullable|array',
-            'pic' => 'nullable|array',
+                //detail baru
+                'nomor' => 'nullable|array',
+                'project_event' => 'nullable|array',
+                'topik' => 'nullable|array',
+                'uraian_permasalahan' => 'nullable|array',
+                'pembahasan_tindak_lanjut' => 'nullable|array',
+                'target' => 'nullable|array',
+                'pic' => 'nullable|array',
 
-            'project_event.*' => 'nullable|string',
-            'topik.*' => 'nullable|string',
-            'uraian_permasalahan.*' => 'nullable|string',
-            'pembahasan_tindak_lanjut.*' => 'nullable|string',
-            'target.*' => 'nullable|string',
-            'pic.*' => 'nullable|string',
+                'project_event.*' => 'nullable|string',
+                'topik.*' => 'nullable|string',
+                'uraian_permasalahan.*' => 'nullable|string',
+                'pembahasan_tindak_lanjut.*' => 'nullable|string',
+                'target.*' => 'nullable|string',
+                'pic.*' => 'nullable|string',
 
-            'lampiran' => 'nullable',
-            'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
-            //SUB
-            'sub_topik' => 'nullable|array',
-            'sub_topik.*' => 'nullable|array',
-            'sub_topik.*.*' => 'nullable|string',
+                'lampiran' => 'nullable',
+                'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
+                //SUB
+                'sub_topik' => 'nullable|array',
+                'sub_topik.*' => 'nullable|array',
+                'sub_topik.*.*' => 'nullable|string',
 
-            'sub_pembahasan' => 'nullable|array',
-            'sub_pembahasan.*' => 'nullable|array',
-            'sub_pembahasan.*.*' => 'nullable|string',
+                'sub_pembahasan' => 'nullable|array',
+                'sub_pembahasan.*' => 'nullable|array',
+                'sub_pembahasan.*.*' => 'nullable|string',
 
-            'sub_tindak_lanjut' => 'nullable|array',
-            'sub_tindak_lanjut.*' => 'nullable|array',
-            'sub_tindak_lanjut.*.*' => 'nullable|string',
+                'sub_tindak_lanjut' => 'nullable|array',
+                'sub_tindak_lanjut.*' => 'nullable|array',
+                'sub_tindak_lanjut.*.*' => 'nullable|string',
 
-            'sub_target' => 'nullable|array',
-            'sub_target.*' => 'nullable|array',
-            'sub_target.*.*' => 'nullable|string',
+                'sub_target' => 'nullable|array',
+                'sub_target.*' => 'nullable|array',
+                'sub_target.*.*' => 'nullable|string',
 
-            'sub_pic' => 'nullable|array',
-            'sub_pic.*' => 'nullable|array',
-            'sub_pic.*.*' => 'nullable|string',
-        ], [
-            'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
-            'kode_bagian.required' => 'Bagian kerja wajib dipilih.',
-            'kode_bagian.exists' => 'Kode bagian tidak valid.',
-            'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
-            'lampiran.*.max' => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
-        ]);
+                'sub_pic' => 'nullable|array',
+                'sub_pic.*' => 'nullable|array',
+                'sub_pic.*.*' => 'nullable|string',
+            ],
+            [
+                'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
+                'kode_bagian.required' => 'Bagian kerja wajib dipilih.',
+                'kode_bagian.exists' => 'Kode bagian tidak valid.',
+                'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
+                'lampiran.*.max' => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
+            ],
+        );
 
         // Proses file lampiran (jika ada)
         $lampiranPath = null;
@@ -656,7 +615,7 @@ class RisalahController extends Controller
                         'name' => $file->getClientOriginalName(),
                         'path' => $filePath,
                         'size' => $file->getSize(),
-                        'uploaded_at' => now()->toDateTimeString()
+                        'uploaded_at' => now()->toDateTimeString(),
                     ];
                 }
             }
@@ -684,10 +643,7 @@ class RisalahController extends Controller
         }
 
         // Generate QR Code untuk Notulis (tanpa nomor risalah karena belum ada)
-        $qrText = "Notulis Acara: " . $namaNotulisAcara
-            . "\nNomor Risalah: (Menunggu Persetujuan)"
-            . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s')
-            . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+        $qrText = 'Notulis Acara: ' . $namaNotulisAcara . "\nNomor Risalah: (Menunggu Persetujuan)" . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
         $qrService = new QRCodeService();
         $qrNotulisAcara = $qrService->generateWithLogo($qrText);
 
@@ -724,14 +680,7 @@ class RisalahController extends Controller
                 $target = $request->target[$index] ?? '';
                 $pic = $request->pic[$index] ?? '';
 
-                if (
-                    empty($projectEvent) &&
-                    empty($topik) &&
-                    empty($uraianPermasalahan) &&
-                    empty($pembahasanTindakLanjut) &&
-                    empty($target) &&
-                    empty($pic)
-                ) {
+                if (empty($projectEvent) && empty($topik) && empty($uraianPermasalahan) && empty($pembahasanTindakLanjut) && empty($target) && empty($pic)) {
                     continue;
                 }
 
@@ -748,18 +697,12 @@ class RisalahController extends Controller
 
                 if (isset($request->sub_topik[$index]) && is_array($request->sub_topik[$index])) {
                     foreach ($request->sub_topik[$index] as $subIndex => $subTopik) {
-                        $subPembahasan   = $request->sub_pembahasan[$index][$subIndex] ?? '';
+                        $subPembahasan = $request->sub_pembahasan[$index][$subIndex] ?? '';
                         $subTindakLanjut = $request->sub_tindak_lanjut[$index][$subIndex] ?? '';
-                        $subTarget       = $request->sub_target[$index][$subIndex] ?? '';
-                        $subPic          = $request->sub_pic[$index][$subIndex] ?? '';
+                        $subTarget = $request->sub_target[$index][$subIndex] ?? '';
+                        $subPic = $request->sub_pic[$index][$subIndex] ?? '';
 
-                        if (
-                            empty($subTopik) &&
-                            empty($subPembahasan) &&
-                            empty($subTindakLanjut) &&
-                            empty($subTarget) &&
-                            empty($subPic)
-                        ) {
+                        if (empty($subTopik) && empty($subPembahasan) && empty($subTindakLanjut) && empty($subTarget) && empty($subPic)) {
                             continue;
                         }
 
@@ -782,40 +725,36 @@ class RisalahController extends Controller
             return back()->withErrors(['nama_bertandatangan' => 'Nama penerima tidak ditemukan.']);
         }
 
-        $sudahDikirim = Kirim_Document::where('id_document', $risalah->id_risalah)
-            ->where('jenis_document', 'risalah')
-            ->where('id_pengirim', Auth::id())
-            ->where('id_penerima', $penerima->id)
-            ->exists();
+        $sudahDikirim = Kirim_Document::where('id_document', $risalah->id_risalah)->where('jenis_document', 'risalah')->where('id_pengirim', Auth::id())->where('id_penerima', $penerima->id)->exists();
 
         $push = new NotifApiController();
 
         if (!$sudahDikirim) {
-            Kirim_Document::firstOrCreate([
-                'id_document' => $risalah->id_risalah,
-                'jenis_document' => 'risalah',
-                'id_pengirim' => Auth::id(),
-                'id_penerima' => $penerima->id,
-                'updated_at' => now(),
-            ], [
-                'status' => 'pending'
-            ]);
+            Kirim_Document::firstOrCreate(
+                [
+                    'id_document' => $risalah->id_risalah,
+                    'jenis_document' => 'risalah',
+                    'id_pengirim' => Auth::id(),
+                    'id_penerima' => $penerima->id,
+                    'updated_at' => now(),
+                ],
+                [
+                    'status' => 'pending',
+                ],
+            );
 
             Notifikasi::create([
-                'judul' => "Risalah Menunggu Persetujuan",
+                'judul' => 'Risalah Menunggu Persetujuan',
                 'judul_document' => $risalah->judul,
                 'id_user' => $penerima->id,
-                'updated_at' => now()
+                'updated_at' => now(),
             ]);
 
-            $push->sendToUser(
-                $penerima->id,
-                "Risalah Menunggu Persetujuan",
-                $risalah->judul
-            );
+            $push->sendToUser($penerima->id, 'Risalah Menunggu Persetujuan', $risalah->judul);
         }
 
-        return redirect()->route(Auth::user()->role->nm_role . '.risalah.index')
+        return redirect()
+            ->route(Auth::user()->role->nm_role . '.risalah.index')
             ->with('success', 'Risalah berhasil ditambahkan dan menunggu persetujuan');
     }
 
@@ -843,7 +782,7 @@ class RisalahController extends Controller
     {
         $risalah->update([
             'status' => 'approve',
-            'tanggal_disahkan' => now() // Set tanggal disahkan
+            'tanggal_disahkan' => now(), // Set tanggal disahkan
         ]);
 
         return redirect()->back()->with('success', 'Dokumen berhasil disetujui.');
@@ -853,7 +792,7 @@ class RisalahController extends Controller
     {
         $risalah->update([
             'status' => 'reject',
-            'tanggal_disahkan' => now() // Set tanggal disahkan
+            'tanggal_disahkan' => now(), // Set tanggal disahkan
         ]);
 
         return redirect()->back()->with('error', 'Dokumen ditolak.');
@@ -869,7 +808,8 @@ class RisalahController extends Controller
         $departmentId = $user->department_id_department;
         $divisiId = $user->divisi_id_divisi;
 
-        $undangan = DB::select("
+        $undangan = DB::select(
+            "
         SELECT *
         FROM undangan
         WHERE judul NOT IN (
@@ -886,7 +826,9 @@ class RisalahController extends Controller
                     (users.department_id_department IS NULL AND users.divisi_id_divisi = ?)
                 )
         )
-    ", [$departmentId, $divisiId]);
+    ",
+            [$departmentId, $divisiId],
+        );
 
         if ($risalah->with_undangan) {
             $invite = Undangan::where('judul', $risalah->judul)->first();
@@ -896,15 +838,8 @@ class RisalahController extends Controller
             $users = User::orderBy('firstname')->get();
         }
 
-
-        $risalah->pemimpin = User::whereRaw("CONCAT_WS(' ',firstname, lastname) = ?", [
-            $risalah->nama_pemimpin_acara
-        ])->first() ?? "";
-        $risalah->notulis = User::whereRaw("CONCAT_WS(' ', firstname, lastname) = ?", [
-            $risalah->nama_notulis_acara
-        ])->first() ?? "";
-
-
+        $risalah->pemimpin = User::whereRaw("CONCAT_WS(' ',firstname, lastname) = ?", [$risalah->nama_pemimpin_acara])->first() ?? '';
+        $risalah->notulis = User::whereRaw("CONCAT_WS(' ', firstname, lastname) = ?", [$risalah->nama_notulis_acara])->first() ?? '';
 
         $lampiranData = [];
         if ($risalah->lampiran) {
@@ -928,68 +863,59 @@ class RisalahController extends Controller
         // kode_bagian
         $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
 
-        return view('admin.risalah.edit', compact(
-            'risalah',
-            'divisi',
-            'seri',
-            'undangan',
-            'users',
-            'lampiranData',
-            'orgTree',
-            'jsTreeData',
-            'mainDirector',
-            'tujuanArray',
-            'bagianKerja'
-        ));
+        return view('admin.risalah.edit', compact('risalah', 'divisi', 'seri', 'undangan', 'users', 'lampiranData', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'bagianKerja'));
     }
 
     public function update(Request $request, $id)
     {
-        $request->validate([
-            'judul' => 'required',
-            'agenda' => 'required',
-            'tempat' => 'required',
-            'kode_bagian' => 'required|string|exists:bagian_kerja,kode_bagian',
-            'waktu_mulai' => 'required',
-            'waktu_selesai' => 'required',
+        $request->validate(
+            [
+                'judul' => 'required',
+                'agenda' => 'required',
+                'tempat' => 'required',
+                'kode_bagian' => 'required|string|exists:bagian_kerja,kode_bagian',
+                'waktu_mulai' => 'required',
+                'waktu_selesai' => 'required',
 
-            'nomor' => 'nullable|array',
-            'project_event' => 'nullable|array',
-            'topik' => 'nullable|array',
-            'uraian_permasalahan' => 'nullable|array',
-            'pembahasan_tindak_lanjut' => 'nullable|array',
-            'target' => 'nullable|array',
-            'pic' => 'nullable|array',
+                'nomor' => 'nullable|array',
+                'project_event' => 'nullable|array',
+                'topik' => 'nullable|array',
+                'uraian_permasalahan' => 'nullable|array',
+                'pembahasan_tindak_lanjut' => 'nullable|array',
+                'target' => 'nullable|array',
+                'pic' => 'nullable|array',
 
-            'lampiran' => 'nullable',
-            'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
-            'sub_topik' => 'nullable|array',
-            'sub_topik.*' => 'nullable|array',
-            'sub_topik.*.*' => 'nullable|string',
+                'lampiran' => 'nullable',
+                'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
+                'sub_topik' => 'nullable|array',
+                'sub_topik.*' => 'nullable|array',
+                'sub_topik.*.*' => 'nullable|string',
 
-            'sub_pembahasan' => 'nullable|array',
-            'sub_pembahasan.*' => 'nullable|array',
-            'sub_pembahasan.*.*' => 'nullable|string',
+                'sub_pembahasan' => 'nullable|array',
+                'sub_pembahasan.*' => 'nullable|array',
+                'sub_pembahasan.*.*' => 'nullable|string',
 
-            'sub_tindak_lanjut' => 'nullable|array',
-            'sub_tindak_lanjut.*' => 'nullable|array',
-            'sub_tindak_lanjut.*.*' => 'nullable|string',
+                'sub_tindak_lanjut' => 'nullable|array',
+                'sub_tindak_lanjut.*' => 'nullable|array',
+                'sub_tindak_lanjut.*.*' => 'nullable|string',
 
-            'sub_target' => 'nullable|array',
-            'sub_target.*' => 'nullable|array',
-            'sub_target.*.*' => 'nullable|string',
+                'sub_target' => 'nullable|array',
+                'sub_target.*' => 'nullable|array',
+                'sub_target.*.*' => 'nullable|string',
 
-            'sub_pic' => 'nullable|array',
-            'sub_pic.*' => 'nullable|array',
-            'sub_pic.*.*' => 'nullable|string',
-        ], [
-            'lampiran.*' => 'Lampiran gagal diunggah. Pastikan format dan ukuran file sesuai ketentuan.',
-            'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
-            'kode_bagian.required' => 'Bagian kerja wajib dipilih.',
-            'kode_bagian.exists' => 'Kode bagian tidak valid.',
-            'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
-            'lampiran.*.max' => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
-        ]);
+                'sub_pic' => 'nullable|array',
+                'sub_pic.*' => 'nullable|array',
+                'sub_pic.*.*' => 'nullable|string',
+            ],
+            [
+                'lampiran.*' => 'Lampiran gagal diunggah. Pastikan format dan ukuran file sesuai ketentuan.',
+                'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
+                'kode_bagian.required' => 'Bagian kerja wajib dipilih.',
+                'kode_bagian.exists' => 'Kode bagian tidak valid.',
+                'tujuan.required_without' => 'Minimal satu peserta acara harus dipilih.',
+                'lampiran.*.max' => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
+            ],
+        );
 
         $risalah = Risalah::findOrFail($id);
 
@@ -1039,7 +965,7 @@ class RisalahController extends Controller
             // =============================
             // PEMIMPIN & NOTULIS
             // =============================
-            $notulis  = User::findOrFail($request->notulis_acara);
+            $notulis = User::findOrFail($request->notulis_acara);
             $pemimpin = User::findOrFail($request->pemimpin_acara);
 
             // =============================
@@ -1056,10 +982,7 @@ class RisalahController extends Controller
             // QR NOTULIS (pakai nomor lama / placeholder)
             // =============================
             $nomorRisalahText = $risalah->nomor_risalah ?? '(Menunggu Persetujuan)';
-            $qrText = "Notulis Acara: " . $notulis->fullname
-                . "\nNomor Risalah: " . $nomorRisalahText
-                . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s')
-                . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+            $qrText = 'Notulis Acara: ' . $notulis->fullname . "\nNomor Risalah: " . $nomorRisalahText . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
 
             $qrService = new \App\Services\QrCodeService();
             $qrNotulisAcara = $qrService->generateWithLogo($qrText);
@@ -1098,14 +1021,7 @@ class RisalahController extends Controller
                     $target = $request->target[$index] ?? '';
                     $pic = $request->pic[$index] ?? '';
 
-                    if (
-                        empty($projectEvent) &&
-                        empty($topik) &&
-                        empty($uraianPermasalahan) &&
-                        empty($pembahasanTindakLanjut) &&
-                        empty($target) &&
-                        empty($pic)
-                    ) {
+                    if (empty($projectEvent) && empty($topik) && empty($uraianPermasalahan) && empty($pembahasanTindakLanjut) && empty($target) && empty($pic)) {
                         continue;
                     }
 
@@ -1121,18 +1037,12 @@ class RisalahController extends Controller
 
                     if (isset($request->sub_topik[$index]) && is_array($request->sub_topik[$index])) {
                         foreach ($request->sub_topik[$index] as $subIndex => $subTopik) {
-                            $subPembahasan   = $request->sub_pembahasan[$index][$subIndex] ?? '';
+                            $subPembahasan = $request->sub_pembahasan[$index][$subIndex] ?? '';
                             $subTindakLanjut = $request->sub_tindak_lanjut[$index][$subIndex] ?? '';
-                            $subTarget       = $request->sub_target[$index][$subIndex] ?? '';
-                            $subPic          = $request->sub_pic[$index][$subIndex] ?? '';
+                            $subTarget = $request->sub_target[$index][$subIndex] ?? '';
+                            $subPic = $request->sub_pic[$index][$subIndex] ?? '';
 
-                            if (
-                                empty($subTopik) &&
-                                empty($subPembahasan) &&
-                                empty($subTindakLanjut) &&
-                                empty($subTarget) &&
-                                empty($subPic)
-                            ) {
+                            if (empty($subTopik) && empty($subPembahasan) && empty($subTindakLanjut) && empty($subTarget) && empty($subPic)) {
                                 continue;
                             }
 
@@ -1171,7 +1081,7 @@ class RisalahController extends Controller
                 [
                     'status' => 'pending',
                     'updated_at' => now(),
-                ]
+                ],
             );
 
             // =============================
@@ -1180,28 +1090,14 @@ class RisalahController extends Controller
             $notifService = app(NotifService::class);
 
             // ambil semua approver (penerima di kirim_document risalah)
-            $approverIds = Kirim_Document::where('id_document', $risalah->id_risalah)
-                ->where('jenis_document', 'risalah')
-                ->pluck('id_penerima')
-                ->map(fn($v) => (int) $v)
-                ->unique()
-                ->filter(fn($v) => $v > 0)
-                ->values();
+            $approverIds = Kirim_Document::where('id_document', $risalah->id_risalah)->where('jenis_document', 'risalah')->pluck('id_penerima')->map(fn($v) => (int) $v)->unique()->filter(fn($v) => $v > 0)->values();
 
             foreach ($approverIds as $approverId) {
-                $notifService->createAndPush(
-                    $approverId,
-                    'Risalah Diedit, Menunggu Persetujuan',
-                    $risalah->judul
-                );
+                $notifService->createAndPush($approverId, 'Risalah Diedit, Menunggu Persetujuan', $risalah->judul);
             }
 
             // notif ke pembuat
-            $notifService->createAndPush(
-                (int) $risalah->pembuat,
-                'Risalah Diedit, Menunggu Persetujuan',
-                $risalah->judul
-            );
+            $notifService->createAndPush((int) $risalah->pembuat, 'Risalah Diedit, Menunggu Persetujuan', $risalah->judul);
 
             DB::commit();
 
@@ -1209,13 +1105,12 @@ class RisalahController extends Controller
             // REDIRECT
             // =============================
             if (Auth::user()->role->id_role == 3) {
-                return redirect()->route('manager.risalah.index')
-                    ->with('success', 'Risalah berhasil diperbarui dan dikirim ulang untuk persetujuan.');
+                return redirect()->route('manager.risalah.index')->with('success', 'Risalah berhasil diperbarui dan dikirim ulang untuk persetujuan.');
             }
 
-            return redirect()->route(Auth::user()->role->nm_role . '.risalah.index')
+            return redirect()
+                ->route(Auth::user()->role->nm_role . '.risalah.index')
                 ->with('success', 'Risalah berhasil diperbarui dan dikirim ulang untuk persetujuan.');
-
         } catch (\Throwable $e) {
             DB::rollBack();
             Log::error('Risalah update error: ' . $e->getMessage());
@@ -1240,11 +1135,9 @@ class RisalahController extends Controller
 
         return response()->json([
             'success' => true,
-            'message' => 'Risalah berhasil dihapus.'
+            'message' => 'Risalah berhasil dihapus.',
         ]);
     }
-
-
 
     private function convertToRoman($number)
     {
@@ -1260,7 +1153,7 @@ class RisalahController extends Controller
             9 => 'IX',
             10 => 'X',
             11 => 'XI',
-            12 => 'XII'
+            12 => 'XII',
         ];
         return $map[$number] ?? '';
     }
@@ -1280,10 +1173,7 @@ class RisalahController extends Controller
             if ($risalah->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
                 $risalah->final_status = $risalah->status;
             } else {
-                $statusKirim = Kirim_Document::where('id_document', $risalah->id_risalah)
-                    ->where('jenis_document', 'risalah')
-                    ->where('id_penerima', $userId)
-                    ->first();
+                $statusKirim = Kirim_Document::where('id_document', $risalah->id_risalah)->where('jenis_document', 'risalah')->where('id_penerima', $userId)->first();
                 $risalah->final_status = $statusKirim ? $statusKirim->status : '-';
             }
             return $risalah;
@@ -1309,12 +1199,11 @@ class RisalahController extends Controller
                 })
                 ->values();
 
-            $tujuanUsernames = $listNama->map(function ($user, $index) {
-                return ($index + 1) . '. '
-                    . $user->position->nm_position . ' '
-                    . $user->bagian_text . ' '
-                    . '(' . $user->firstname . ' ' . $user->lastname . ')';
-            })->implode("\n");
+            $tujuanUsernames = $listNama
+                ->map(function ($user, $index) {
+                    return $index + 1 . '. ' . $user->position->nm_position . ' ' . $user->bagian_text . ' ' . '(' . $user->firstname . ' ' . $user->lastname . ')';
+                })
+                ->implode("\n");
         } else {
             $tujuanUsernames = null;
         }
@@ -1331,7 +1220,6 @@ class RisalahController extends Controller
                 $lampiranData = [];
             }
         }
-
 
         return view(Auth::user()->role->nm_role . '.risalah.view', compact('risalah', 'undangan', 'tujuanUsernames', 'lampiranData'));
     }
@@ -1357,10 +1245,7 @@ class RisalahController extends Controller
 
             // Update status
             $risalah->status = $request->status;
-            $currentKirim = Kirim_document::where('id_document', $id)
-                ->where('jenis_document', 'risalah')
-                ->where('id_penerima', $userId)
-                ->first();
+            $currentKirim = Kirim_document::where('id_document', $id)->where('jenis_document', 'risalah')->where('id_penerima', $userId)->first();
 
             if ($currentKirim) {
                 $currentKirim->status = $request->status;
@@ -1387,24 +1272,14 @@ class RisalahController extends Controller
                             $kodeBagian = $risalah->kode_bagian;
 
                             // Get last seri_tahun untuk kode bagian ini di tahun ini
-                            $lastSeriTahun = CounterNomorSurat::getLastSeriTahun(
-                                $tahun,
-                                'RIS',
-                                $kodeBagian
-                            );
+                            $lastSeriTahun = CounterNomorSurat::getLastSeriTahun($tahun, 'RIS', $kodeBagian);
 
                             $nextSeriTahun = $lastSeriTahun + 1;
                             $seriTahunanPadded = str_pad($nextSeriTahun, 2, '0', STR_PAD_LEFT);
 
                             // Format nomor: RIS-{seri_tahun}/REKA/{kode_bagian}/{BULAN_ROMAWI}/{TAHUN}
                             // Contoh: RIS-07/REKA/SEC/II/2025
-                            $nomorRisalah = sprintf(
-                                "RIS-%s/REKA/%s/%s/%d",
-                                $seriTahunanPadded,
-                                strtoupper($kodeBagian),
-                                $bulanRomawi,
-                                $tahun
-                            );
+                            $nomorRisalah = sprintf('RIS-%s/REKA/%s/%s/%d', $seriTahunanPadded, strtoupper($kodeBagian), $bulanRomawi, $tahun);
 
                             // Simpan counter ke database
                             // PENTING: seri_bulan diisi dengan '00' atau NULL karena tidak digunakan
@@ -1421,7 +1296,7 @@ class RisalahController extends Controller
                                 'jenis' => 'Risalah',
                                 'perihal' => $risalah->judul,
                                 'nomor_surat_generated' => $nomorRisalah,
-                                'is_used' => true
+                                'is_used' => true,
                             ]);
 
                             // Update risalah dengan nomor yang baru di-generate
@@ -1429,7 +1304,6 @@ class RisalahController extends Controller
                             $risalah->seri_surat = $nextSeriTahun;
 
                             break; // Success
-
                         } catch (\Illuminate\Database\QueryException $e) {
                             if ($e->getCode() == '23000') {
                                 // Duplicate - hapus dan retry
@@ -1453,19 +1327,13 @@ class RisalahController extends Controller
                 $risalah->tgl_disahkan = now();
 
                 // Generate QR Code Pemimpin Acara dengan nomor risalah yang sudah ada
-                $qrText = "Pemimpin Acara: " . Auth::user()->firstname . ' ' . Auth::user()->lastname
-                    . "\nNomor Risalah: " . $risalah->nomor_risalah
-                    . "\nTanggal Pengesahan: " . $risalah->tgl_disahkan->translatedFormat('l, d F Y H:i:s')
-                    . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+                $qrText = 'Pemimpin Acara: ' . Auth::user()->firstname . ' ' . Auth::user()->lastname . "\nNomor Risalah: " . $risalah->nomor_risalah . "\nTanggal Pengesahan: " . $risalah->tgl_disahkan->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
                 $qrService = new QRCodeService();
                 $qrBase64 = $qrService->generateWithLogo($qrText);
                 $risalah->qr_pemimpin_acara = $qrBase64;
 
                 // Update QR Code Notulis dengan nomor risalah yang baru
-                $qrTextNotulis = "Notulis Acara: " . $risalah->nama_notulis_acara
-                    . "\nNomor Risalah: " . $risalah->nomor_risalah
-                    . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s')
-                    . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
+                $qrTextNotulis = 'Notulis Acara: ' . $risalah->nama_notulis_acara . "\nNomor Risalah: " . $risalah->nomor_risalah . "\nTanggal: " . now()->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
                 $qrNotulisAcara = $qrService->generateWithLogo($qrTextNotulis);
                 $risalah->qr_notulis_acara = $qrNotulisAcara;
 
@@ -1474,81 +1342,67 @@ class RisalahController extends Controller
 
                 foreach ($tujuanArray as $idTujuan) {
                     $idTujuan = trim($idTujuan);
-                    if (!$idTujuan) continue;
+                    if (!$idTujuan) {
+                        continue;
+                    }
 
                     $users = User::where('id', $idTujuan)->get();
 
                     foreach ($users as $user) {
-                        Kirim_Document::firstOrCreate([
-                            'id_document' => $risalah->id_risalah,
-                            'jenis_document' => 'risalah',
-                            'id_pengirim' => $currentKirim->id_pengirim,
-                            'id_penerima' => $user->id,
-                            'updated_at' => now()
-                        ], [
-                            'status' => 'approve'
-                        ]);
+                        Kirim_Document::firstOrCreate(
+                            [
+                                'id_document' => $risalah->id_risalah,
+                                'jenis_document' => 'risalah',
+                                'id_pengirim' => $currentKirim->id_pengirim,
+                                'id_penerima' => $user->id,
+                                'updated_at' => now(),
+                            ],
+                            [
+                                'status' => 'approve',
+                            ],
+                        );
 
                         Notifikasi::create([
-                            'judul' => "Risalah Masuk",
+                            'judul' => 'Risalah Masuk',
                             'judul_document' => $risalah->judul,
                             'id_user' => $user->id,
-                            'updated_at' => now()
+                            'updated_at' => now(),
                         ]);
 
-                        $push->sendToUser(
-                            $user->id,
-                            "Risalah Masuk",
-                            $risalah->judul
-                        );
+                        $push->sendToUser($user->id, 'Risalah Masuk', $risalah->judul);
                     }
                 }
 
                 Notifikasi::create([
-                    'judul' => "Risalah Disetujui",
+                    'judul' => 'Risalah Disetujui',
                     'judul_document' => $risalah->judul,
                     'id_user' => $risalah->pembuat,
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
 
-                $push->sendToUser(
-                    $risalah->pembuat,
-                    "Risalah Disetujui",
-                    $risalah->judul
-                );
-
+                $push->sendToUser($risalah->pembuat, 'Risalah Disetujui', $risalah->judul);
             } elseif ($request->status == 'reject') {
                 $risalah->tgl_disahkan = now();
 
                 Notifikasi::create([
-                    'judul' => "Risalah Ditolak",
+                    'judul' => 'Risalah Ditolak',
                     'judul_document' => $risalah->judul,
                     'id_user' => $risalah->pembuat,
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
 
-                $push->sendToUser(
-                    $risalah->pembuat,
-                    "Risalah Ditolak",
-                    $risalah->judul
-                );
-
+                $push->sendToUser($risalah->pembuat, 'Risalah Ditolak', $risalah->judul);
             } elseif ($request->status == 'correction') {
                 $risalah->tgl_disahkan = now();
 
                 Notifikasi::create([
-                    'judul' => "Risalah Perlu Revisi",
+                    'judul' => 'Risalah Perlu Revisi',
                     'judul_document' => $risalah->judul,
                     'id_user' => $risalah->pembuat,
-                    'updated_at' => now()
+                    'updated_at' => now(),
                 ]);
 
-                $push->sendToUser(
-                    $risalah->pembuat,
-                    "Risalah Perlu Revisi",
-                    $risalah->judul
-                );
-
+                $push->sendToUser($risalah->pembuat, 'Risalah Perlu Revisi', $risalah->judul);
             } else {
                 $risalah->tgl_disahkan = null;
             }
@@ -1560,10 +1414,11 @@ class RisalahController extends Controller
             $risalah->save();
 
             return redirect()->back()->with('success', 'Status risalah berhasil diperbarui.');
-
         } catch (\Exception $e) {
             Log::error('Error updating risalah status: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
+            return redirect()
+                ->back()
+                ->with('error', 'Terjadi kesalahan: ' . $e->getMessage());
         }
     }
 
@@ -1590,7 +1445,7 @@ class RisalahController extends Controller
         $validMimeTypes = [
             'application/pdf' => 'pdf',
             'image/jpeg' => 'jpg',
-            'image/png' => 'png'
+            'image/png' => 'png',
         ];
 
         if (!isset($validMimeTypes[$mimeType])) {
@@ -1641,9 +1496,13 @@ class RisalahController extends Controller
         $mimeType = finfo_buffer(finfo_open(), $fileData, FILEINFO_MIME_TYPE);
         $extension = $this->getExtension($mimeType);
 
-        return response()->streamDownload(function () use ($fileData) {
-            echo $fileData;
-        }, "risalah_{$id}.$extension", ['Content-Type' => $mimeType]);
+        return response()->streamDownload(
+            function () use ($fileData) {
+                echo $fileData;
+            },
+            "risalah_{$id}.$extension",
+            ['Content-Type' => $mimeType],
+        );
     }
 
     public function deleteLampiranExisting($id, $index)
@@ -1696,8 +1555,8 @@ class RisalahController extends Controller
             'judul' => "Risalah {$request->status}",
             'jenis_document' => 'risalah',
             'id_user' => $risalah->pembuat,
-            'dibaca'         => false,
-            'updated_at' => now()
+            'dibaca' => false,
+            'updated_at' => now(),
         ]);
 
         return redirect()->back()->with('success', 'Status memo berhasil diperbarui.');

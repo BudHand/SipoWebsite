@@ -17,7 +17,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('manager.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('memo.diterima') }}" class="text-decoration-none text-primary">Memo Masuk</a>
+                            <a href="{{ route(Auth::user()->role->nm_role . '.memo.diterima') }}" class="text-decoration-none text-primary">Memo Masuk</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Detail Memo Masuk</span>
                         </div>
@@ -44,18 +44,18 @@
 
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">No Surat</div>
-                                    <div class="info-value">{{ $memo->memo->nomor_memo }}</div>
+                                    <div class="info-value">{{ $memo->nomor_memo }}</div>
                                 </div>
 
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">Perihal</div>
-                                    <div class="info-value">{{ $memo->memo->judul }}</div>
+                                    <div class="info-value">{{ $memo->judul }}</div>
                                 </div>
 
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">Hari, Tanggal</div>
                                     <div class="info-value">
-                                        {{ \Carbon\Carbon::parse($memo->memo->tgl_dibuat)->translatedFormat('l, d F Y') }}
+                                        {{ \Carbon\Carbon::parse($memo->tgl_dibuat)->translatedFormat('l, d F Y') }}
                                     </div>
                                 </div>
 
@@ -63,16 +63,14 @@
                                     <div class="info-label">Kepada</div>
                                     <div class="info-value">
                                         @php
-                                            $rawTujuanIds = collect(explode(';', (string) $memo->memo->tujuan))
+                                            $rawTujuanIds = collect(explode(';', (string) $memo->tujuan))
                                                 ->map(fn($id) => trim($id))
                                                 ->filter(fn($id) => $id !== '' && is_numeric($id))
                                                 ->map(fn($id) => (int) $id)
                                                 ->unique()
                                                 ->values();
 
-                                            $legacyTujuanNames = collect(
-                                                explode(';', (string) $memo->memo->tujuan_string),
-                                            )
+                                            $legacyTujuanNames = collect(explode(';', (string) $memo->tujuan_string))
                                                 ->map(fn($name) => trim($name))
                                                 ->filter(fn($name) => $name !== '')
                                                 ->values()
@@ -531,26 +529,18 @@
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">Status</div>
                                     <div class="info-value">
-                                        @if ($memo->memo->kode != $divDeptKode)
-                                            @if ($memo->memo->final_status == 'reject')
-                                                <span class="badge bg-danger">Ditolak</span>
-                                            @elseif ($memo->memo->final_status == 'pending')
-                                                <span class="badge bg-info">Diproses</span>
-                                            @elseif ($memo->memo->final_status == 'correction')
-                                                <span class="badge bg-warning">Dikoreksi</span>
-                                            @else
-                                                <span class="badge bg-success">Diterima</span>
-                                            @endif
+                                        @php
+                                            $status = $memo->status;
+                                        @endphp
+
+                                        @if ($status == 'reject')
+                                            <span class="badge bg-danger">Ditolak</span>
+                                        @elseif ($status == 'pending')
+                                            <span class="badge bg-info">Diproses</span>
+                                        @elseif ($status == 'correction')
+                                            <span class="badge bg-warning">Dikoreksi</span>
                                         @else
-                                            @if ($memo->memo->status == 'reject')
-                                                <span class="badge bg-danger">Ditolak</span>
-                                            @elseif ($memo->memo->status == 'pending')
-                                                <span class="badge bg-info">Diproses</span>
-                                            @elseif ($memo->memo->status == 'correction')
-                                                <span class="badge bg-warning">Dikoreksi</span>
-                                            @else
-                                                <span class="badge bg-success">Diterima</span>
-                                            @endif
+                                            <span class="badge bg-success">Diterima</span>
                                         @endif
                                     </div>
                                 </div>
@@ -558,12 +548,12 @@
                                 <div class="info-row d-flex flex-column flex-sm-row">
                                     <div class="info-label">File</div>
                                     <div class="info-value">
-                                        <a href="{{ route('view-memoPDF', $memo->memo->id_memo) }}" target="_blank"
+                                        <a href="{{ route('view-memoPDF', $memo->id_memo) }}" target="_blank"
                                             rel="noopener noreferrer" class="btn btn-sm btn-custom me-2 rounded-2">
                                             <i class="fa fa-eye me-1"></i> Lihat
                                         </a>
 
-                                        <a href="{{ route('cetakmemo', ['id' => $memo->memo->id_memo]) }}"
+                                        <a href="{{ route('cetakmemo', ['id' => $memo->id_memo]) }}"
                                             class="btn btn-sm btn-custom rounded-2">
                                             <i class="fa fa-download me-1"></i> Unduh
                                         </a>
@@ -575,7 +565,7 @@
                                         <div class="info-value w-100">
                                             <div class="d-flex align-items-center justify-content-between mb-3">
                                                 <span class="fw-semibold">Daftar Lampiran</span>
-                                                <a href="{{ route('download-semua-lampiran', $memo->memo->id_memo) }}"
+                                                <a href="{{ route('download-semua-lampiran', $memo->id_memo) }}"
                                                     class="btn btn-sm btn-success rounded-2">
                                                     <i class="fas fa-download me-1"></i> Unduh Semua
                                                 </a>
@@ -615,7 +605,7 @@
                         </div>
                     </div>
                 </div> {{-- /row --}}
-                @if ($memo->memo->status === 'approve')
+                @if ($memo->status === 'approve')
                     <div class="row">
                         <div class="col-md-12">
                             <div class="card border-0 shadow-sm rounded-3">
@@ -665,7 +655,7 @@
                                             <p class="mb-0">Belum ada memo balasan.</p>
 
                                             {{-- Tombol Balas Memo --}}
-                                            <a href="{{ route('memo-manager/add2', ['reply_to' => $memo->memo->id_memo]) }}"
+                                            <a href="{{ route('memo-manager/add2', ['reply_to' => $memo->id_memo]) }}"
                                                 class="btn rounded-3 text-white"
                                                 style="background-color:#1E4178; border-color:#1E4178;">
                                                 <i class="fas fa-reply me-1"></i>Balas Memo
@@ -679,9 +669,8 @@
                             </div>
                         </div>
                     </div>
-                @elseif ($memo->memo->status === 'pending' && $memo->memo->nama_bertandatangan == Auth::user()->fullname)
-                    <form id="approvalForm" method="POST"
-                        action="{{ route('memo.updateStatus', $memo->memo->id_memo) }}">
+                @elseif ($memo->status === 'pending' && $memo->nama_bertandatangan == Auth::user()->fullname)
+                    <form id="approvalForm" method="POST" action="{{ route('memo.updateStatus', $memo->id_memo) }}">
                         @csrf
                         @method('PUT')
 

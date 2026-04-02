@@ -128,10 +128,10 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
     // Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
     // Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAllAsRead'])->name('notifications.markAsRead');
     // notifikasi
-Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
-Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
-Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAsRead'])->name('notifications.markAsRead');
-Route::post('/notifications/read-all', [NotifController::class, 'markAllAsRead'])->name('notifications.readAll');
+    Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
+    Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
+    Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAsRead'])->name('notifications.markAsRead');
+    Route::post('/notifications/read-all', [NotifController::class, 'markAllAsRead'])->name('notifications.readAll');
 
     Route::get('/risalah/edit/{id}', [RisalahController::class, 'edit'])->name('risalah.edit');
     Route::put('/risalah/{id}', [RisalahController::class, 'update'])->name('risalah.update');
@@ -262,7 +262,8 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
     Route::get('/kirim-memoAdmin/{id}', [KirimController::class, 'index'])->name('kirim-memoAdmin.admin');
     Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
-    Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
+    Route::get('/admin/memo-diterima', [KirimController::class, 'memoDiterima'])->name('admin.memo.diterima');
+    // Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
     Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
 
     // coba memo dengan TinyMCE
@@ -281,7 +282,7 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/risalah/admin', [RisalahController::class, 'index'])->name('admin.risalah.index');
     Route::get('/risalah/tambah', [RisalahController::class, 'create'])->name('admin.risalah.add');
     Route::get('/risalah/tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('admin.risalah-custom.add');
-    Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
+    // Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
     Route::get('/risalah/view/{id}', [RisalahController::class, 'view'])->name('view.risalahAdmin');
 
     Route::get('/risalah/{id}/preview', [RisalahController::class, 'showFile'])->name('risalah.preview');
@@ -295,14 +296,15 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     // memo
     Route::get('/manager/memo', [KirimController::class, 'memo'])->name('memo.manager');
     Route::get('/memo-terkirim', [KirimController::class, 'memoTerkirim'])->name('memo.terkirim');
-    Route::get('/memo-diterima', [KirimController::class, 'memoDiterima'])->name('memo.diterima');
+    // Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('memo.diterima');
+    Route::get('/memo-diterima', [KirimController::class, 'memoDiterima'])->name('manager.memo.diterima');
     // Route::get('memo-manager/add', [MemoController::class, 'create'])->name('memo-manager/add');
 
     Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');
 
     Route::put('/memo/{id}/update-status', [MemoController::class, 'updateStatus'])->name('memo.updateStatus');
     Route::get('/view-memoTerkirim/{id}', [MemoController::class, 'showTerkirim'])->name('view.memo-terkirim');
-    Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
+    // Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
 
     //undangan
     Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.undangan');
@@ -316,7 +318,7 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     Route::get('/manager/risalah', [KirimController::class, 'risalah'])->name('manager.risalah.index');
     Route::get('/risalah-tambah', [RisalahController::class, 'create'])->name('add-risalah.manager');
     Route::get('/risalah-tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('add-risalah.custom.manager');
-    Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
+    // Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
     // Route::post('/risalah-store', [KirimController::class, 'store'])->name('risalah.store.manager');
     Route::get('/persetujuan-risalah/{id}', [KirimController::class, 'viewRisalah'])->name('persetujuan.risalah');
     // Route::put('/risalah/{id}/update-status', [RisalahController::class, 'updateStatus'])->name('risalah.updateStatus');
@@ -324,6 +326,8 @@ Route::middleware(['auth', 'role:3'])->group(function () {
 
 Route::middleware(['auth', 'role:2,3'])->group(function () {
     // memo
+    Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
+
     //Edit Memo Baru
     Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
     Route::put('/memo/update-baru/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo/update-baru');
@@ -340,4 +344,5 @@ Route::middleware(['auth', 'role:2,3'])->group(function () {
 
     //risalah karena ternyata staff juga bisa approval :sob:
     Route::put('/risalah/{id}/update-status', [RisalahController::class, 'updateStatus'])->name('risalah.updateStatus');
+    Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
 });

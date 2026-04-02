@@ -274,14 +274,21 @@ class MemoController extends Controller
 
         // Query memo dengan filter + hanya yang datang dari kode yang BUKAN kode user (diterima)
         $userKode = $this->getDivDeptKode(Auth::user());
+        $userId = Auth::id();
         $query = Memo::with('divisi')
             ->whereNotIn('id_memo', $memoDiarsipkan)
-            ->whereHas('kirimDocument', function ($q) use ($userKode) {
+            ->whereHas('kirimDocument', function ($q) use ($userKode, $userId) {
                 // only consider kirim_document rows that are approved
                 $q->where('jenis_document', 'memo')
                     //->where('id_pengirim', Auth::user()->id)
                     ->where('status', 'approve')
-                    ->where('id_penerima', Auth::user()->id);
+                    ->where('id_penerima', Auth::user()->id)
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('tembusan', 'like', $userId . ';%') // 21;% or 21;... or ...;21;... or ...;21
+                            ->orWhere('tembusan', 'like', '%;' . $userId . ';%') // ...;21;... pattern
+                            ->orWhere('tembusan', 'like', '%;' . $userId) // ...;21 pattern
+                            ->orWhere('tembusan', '=', (string) $userId); // tembusan hanya 21 saja
+                    });
             });
 
         // same filter logic as index
@@ -2175,63 +2182,138 @@ class MemoController extends Controller
 
     public function showDiterima($id)
     {
-        $userId = Auth::id(); // Ambil ID user yang sedang login (Manager divisi)
+        $userId = Auth::id();
 
-        $memo = Kirim_Document::where('jenis_document', 'memo')
-            ->where('id_penerima', $userId)
-            ->where('id_document', $id)
-            ->whereHas('memo')
-            ->with('memo') // Pastikan ada relasi 'memo' di model Kirim_Document
+        $memo = Memo::with(['divisi', 'kirimDocument'])
+            ->where('id_memo', $id)
+            ->where('status', 'approve')
+            ->where(function ($query) use ($userId) {
+                $query->whereHas('kirimDocument', function ($sub) use ($userId) {
+                    $sub->where('jenis_document', 'memo')
+                        ->where('id_penerima', $userId);
+                })->orWhere(function ($sub) use ($userId) {
+                    $sub->where('tembusan', 'like', $userId . ';%')
+                        ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
+                        ->orWhere('tembusan', 'like', '%;' . $userId)
+                        ->orWhere('tembusan', '=', (string) $userId);
+                });
+            })
             ->firstOrFail();
 
-        $pembuat = User::where('id', $memo->memo->pembuat)->withTrashed()->first();
+        $pembuat = User::where('id', $memo->pembuat)->withTrashed()->first();
         $divDeptKode = $this->getDivDeptKode($pembuat);
 
-        $memo2 = Memo::where('id_memo', $id)->firstOrFail();
-
         $lampiranData = [];
-        if ($memo2->lampiran) {
-            $jsonData = json_decode($memo2->lampiran, true);
+        if ($memo->lampiran) {
+            $jsonData = json_decode($memo->lampiran, true);
             if ($jsonData !== null && is_array($jsonData)) {
                 $lampiranData = $jsonData;
-            } else {
-                $lampiranData = [];
             }
         }
 
         $memoRujukan = null;
-        if (!is_null($memo2->feedback)) {
-            $memoRujukan = Memo::find($memo2->feedback);
+        if (!is_null($memo->feedback)) {
+            $memoRujukan = Memo::find($memo->feedback);
         }
 
-        $parentCreatorId = $memo2->pembuat;
+        $parentCreatorId = $memo->pembuat;
 
-        $balasanMemos = Memo::where('feedback', $memo2->id_memo)
+        $balasanMemos = Memo::where('feedback', $memo->id_memo)
             ->where('status', 'approve')
             ->get()
             ->filter(function ($reply) use ($userId, $parentCreatorId) {
-                // tujuan disimpan sebagai "1;2;3"
                 $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
-
-                // Pembuat memo balasan
                 $replyCreatorId = $reply->pembuat;
 
-                // boleh lihat jika:
-                return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
-                    $userId == $parentCreatorId || // 2. ia pembuat memo lama
-                    $userId == $replyCreatorId; // 3. ia pembuat memo balasan
+                return in_array($userId, $tujuanArray)
+                    || $userId == $parentCreatorId
+                    || $userId == $replyCreatorId;
             })
             ->values();
 
-        $canViewBcc = $userId === (int) $memo2->pembuat;
+        $canViewBcc = $userId === (int) $memo->pembuat;
         $bccDisplayList = [];
         if ($canViewBcc) {
-            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+            $bccUserIds = $this->parseRecipientUserIds($memo->bcc);
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
-        return view('manager.memo.view-memoDiterima', compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList'));
+        $sumberDiterima = $memo->kirimDocument
+            ->where('jenis_document', 'memo')
+            ->where('id_penerima', $userId)
+            ->isNotEmpty() ? 'penerima' : 'tembusan';
+
+        return view('manager.memo.view-memoDiterima', compact(
+            'memo',
+            'pembuat',
+            'divDeptKode',
+            'lampiranData',
+            'balasanMemos',
+            'memoRujukan',
+            'canViewBcc',
+            'bccDisplayList',
+            'sumberDiterima'
+        ));
     }
+    // public function showDiterima($id)
+    // {
+    //     $userId = Auth::id(); // Ambil ID user yang sedang login (Manager divisi)
+
+    //     $memo = Kirim_Document::where('jenis_document', 'memo')
+    //         ->where('id_penerima', $userId)
+    //         ->where('id_document', $id)
+    //         ->whereHas('memo')
+    //         ->with('memo') // Pastikan ada relasi 'memo' di model Kirim_Document
+    //         ->firstOrFail();
+
+    //     $pembuat = User::where('id', $memo->memo->pembuat)->withTrashed()->first();
+    //     $divDeptKode = $this->getDivDeptKode($pembuat);
+
+    //     $memo2 = Memo::where('id_memo', $id)->firstOrFail();
+
+    //     $lampiranData = [];
+    //     if ($memo2->lampiran) {
+    //         $jsonData = json_decode($memo2->lampiran, true);
+    //         if ($jsonData !== null && is_array($jsonData)) {
+    //             $lampiranData = $jsonData;
+    //         } else {
+    //             $lampiranData = [];
+    //         }
+    //     }
+
+    //     $memoRujukan = null;
+    //     if (!is_null($memo2->feedback)) {
+    //         $memoRujukan = Memo::find($memo2->feedback);
+    //     }
+
+    //     $parentCreatorId = $memo2->pembuat;
+
+    //     $balasanMemos = Memo::where('feedback', $memo2->id_memo)
+    //         ->where('status', 'approve')
+    //         ->get()
+    //         ->filter(function ($reply) use ($userId, $parentCreatorId) {
+    //             // tujuan disimpan sebagai "1;2;3"
+    //             $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
+
+    //             // Pembuat memo balasan
+    //             $replyCreatorId = $reply->pembuat;
+
+    //             // boleh lihat jika:
+    //             return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
+    //                 $userId == $parentCreatorId || // 2. ia pembuat memo lama
+    //                 $userId == $replyCreatorId; // 3. ia pembuat memo balasan
+    //         })
+    //         ->values();
+
+    //     $canViewBcc = $userId === (int) $memo2->pembuat;
+    //     $bccDisplayList = [];
+    //     if ($canViewBcc) {
+    //         $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+    //         $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
+    //     }
+
+    //     return view('manager.memo.view-memoDiterima', compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList'));
+    // }
 
     public function view($id)
     {
@@ -2656,26 +2738,26 @@ class MemoController extends Controller
         // Daftar manager yang satu divisi, department, section, dan unit dengan admin yg membuat suratnya
         if ($user->role_id_role !== 1) {
             $managers = User::with('position:id_position,nm_position')
-            ->where('role_id_role', 3)
-            ->orderBy('firstname')
-            ->get(['id', 'firstname', 'lastname', 'position_id_position']);
-                // ->where('role_id_role', 3)
-                // // ->where('position_id_position', '!=', 9)
-                // // ->where(function ($q) use ($user) {
-                // //     $q->where(function ($q2) use ($user) {
-                // //         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
-                // //     })
-                // //         ->orWhere(function ($q2) use ($user) {
-                // //             $q2->whereNotNull('department_id_department')->where('department_id_department', $user->department_id_department);
-                // //         })
-                // //         ->orWhere(function ($q2) use ($user) {
-                // //             $q2->whereNotNull('section_id_section')->where('section_id_section', $user->section_id_section);
-                // //         })
-                // //         ->orWhere(function ($q2) use ($user) {
-                // //             $q2->whereNotNull('unit_id_unit')->where('unit_id_unit', $user->unit_id_unit);
-                // //         });
-                // // })
-                // ->get(['id', 'firstname', 'lastname', 'position_id_position']);
+                ->where('role_id_role', 3)
+                ->orderBy('firstname')
+                ->get(['id', 'firstname', 'lastname', 'position_id_position']);
+            // ->where('role_id_role', 3)
+            // // ->where('position_id_position', '!=', 9)
+            // // ->where(function ($q) use ($user) {
+            // //     $q->where(function ($q2) use ($user) {
+            // //         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
+            // //     })
+            // //         ->orWhere(function ($q2) use ($user) {
+            // //             $q2->whereNotNull('department_id_department')->where('department_id_department', $user->department_id_department);
+            // //         })
+            // //         ->orWhere(function ($q2) use ($user) {
+            // //             $q2->whereNotNull('section_id_section')->where('section_id_section', $user->section_id_section);
+            // //         })
+            // //         ->orWhere(function ($q2) use ($user) {
+            // //             $q2->whereNotNull('unit_id_unit')->where('unit_id_unit', $user->unit_id_unit);
+            // //         });
+            // // })
+            // ->get(['id', 'firstname', 'lastname', 'position_id_position']);
         } else {
             $managers = User::with('position:id_position,nm_position')
                 ->where('role_id_role', 3)

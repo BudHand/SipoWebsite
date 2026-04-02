@@ -20,7 +20,7 @@
                 </div>
 
                 {{-- Row Filter --}}
-                <form class="row g-2 align-items-center" method="GET" action="{{ route('manager.memo.diterima') }}">
+                <form class="row g-2 align-items-center" method="GET" action="{{ route('memo.diterima') }}">
                     <div class="col-auto">
                         <select name="per_page" class="form-select rounded-3" style="max-width:100px;">
                             <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
@@ -86,90 +86,78 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if ($memoDiterima->isEmpty())
+                            @if($memoDiterima->isEmpty())
                                 <tr>
                                     <td colspan="8" class="text-center">Belum ada memo yang diterima.</td>
                                 </tr>
                             @else
-                                @foreach ($memoDiterima as $index => $memo)
-                                    @php
-                                        $status =
-                                            $memo->final_status === 'tembusan'
-                                                ? $memo->status
-                                                : $memo->final_status ?? $memo->status;
-
-                                        $statusClass = match ($status) {
-                                            'reject' => 'text-danger',
-                                            'correction' => 'text-warning',
-                                            'approve' => 'text-success',
-                                            default => '',
-                                        };
-
-                                        $statusStyle = $status === 'pending' ? 'color: #0dcaf0;' : '';
-
-                                        $badge = match ($status) {
-                                            'reject' => ['class' => 'bg-danger', 'text' => 'Ditolak'],
-                                            'pending' => ['class' => 'bg-info', 'text' => 'Diproses'],
-                                            'correction' => ['class' => 'bg-warning', 'text' => 'Dikoreksi'],
-                                            'approve' => ['class' => 'bg-success', 'text' => 'Diterima'],
-                                            'tembusan' => ['class' => 'bg-secondary', 'text' => 'Tembusan'],
-                                            default => ['class' => 'bg-secondary', 'text' => ucfirst($status ?? '-')],
-                                        };
-                                    @endphp
-
-                                    <tr>
-                                        <td class="nomor">{{ ($memoDiterima->firstItem() ?? 0) + $index }}</td>
-
-                                        <td class="nama-dokumen {{ $statusClass }}" style="{{ $statusStyle }}">
-                                            {{ Str::limit($memo->judul, 35, '...') }}
+                            @foreach ($memoDiterima as $index => $kirim)
+                                <tr>
+                                    <td class="nomor">{{ ($memoDiterima->firstItem() ?? 0) + $index }}</td>
+                                    @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
+                                        <td class="nama-dokumen
+                        {{ $kirim->memo->status == 'reject' ? 'text-danger' : ($kirim->memo->status == 'correction' ? 'text-warning' : ($kirim->memo->status == 'approve' ? 'text-success' : '')) }}"
+                                            style="{{ $kirim->memo->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
+                                            {{ Str::limit($kirim->memo->judul, 35, '...') }}
                                         </td>
-
-                                        <td>
-                                            {{ $memo->tgl_dibuat ? \Carbon\Carbon::parse($memo->tgl_dibuat)->format('d-m-Y') : '-' }}
+                                    @else
+                                        <td class="nama-dokumen {{ $kirim->status == 'reject' || $kirim->status == 'correction' ? 'text-danger' : ($kirim->status == 'pending' ? '' : 'text-success') }}"
+                                            style="{{ $kirim->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
+                                            {{ Str::limit($kirim->memo->judul, 35, '...') }}
                                         </td>
+                                    @endif
 
-                                        <td>{{ $memo->nomor_memo }}</td>
-
-                                        <td>
-                                            {{ $memo->tgl_disahkan ? \Carbon\Carbon::parse($memo->tgl_disahkan)->format('d-m-Y') : '-' }}
-                                        </td>
-
-                                        <td class="text-center">{{ $memo->kode ?? ($memo->kode_bagian ?? '-') }}</td>
-
-                                        <td class="text-center">
-                                            <span class="badge {{ $badge['class'] }}">
-                                                {{ $badge['text'] }}
-                                            </span>
-
-                                            @if (($memo->sumber_diterima ?? null) === 'tembusan')
-                                                <div class="mt-1">
-                                                    <small class="text-muted">via tembusan</small>
-                                                </div>
+                                    <!-- <td>{{ $kirim->memo->tgl_dibuat }}</td> -->
+                                    <td>{{ $kirim->memo->tgl_dibuat ? \Carbon\Carbon::parse($kirim->memo->tgl_dibuat)->format('d-m-Y') : '-' }}
+                                    </td>
+                                    <td>{{ $kirim->memo->nomor_memo }}</td>
+                                    <td>{{ $kirim->memo->tgl_disahkan ? \Carbon\Carbon::parse($kirim->memo->tgl_disahkan)->format('d-m-Y') : '-' }}
+                                    </td>
+                                    <td class="text-center">{{ $kirim->memo->kode_bagian ?? '-' }}</td>
+                                    <td class="text-center">
+                                        @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
+                                            @if ($kirim->memo->status == 'reject')
+                                                <span class="badge bg-danger">Ditolak</span>
+                                            @elseif ($kirim->memo->status == 'pending')
+                                                <span class="badge bg-info">Diproses</span>
+                                            @elseif ($kirim->memo->status == 'correction')
+                                                <span class="badge bg-warning">Dikoreksi</span>
+                                            @else
+                                                <span class="badge bg-success">Diterima</span>
                                             @endif
-                                        </td>
-
-                                        <td>
-                                            <div class="d-flex justify-content-center gap-2">
-                                                <button title="Detail"
-                                                    class="btn btn-sm rounded-circle text-white border-0 bg-info"
-                                                    style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                    onclick="window.location.href='{{ route('view.memo-diterima', ['id' => $memo->id_memo]) }}'">
-                                                    <i class="fas fa-eye" alt="Detail"></i>
+                                        @else
+                                            @if ($kirim->status == 'reject')
+                                                <span class="badge bg-danger">Ditolak</span>
+                                            @elseif ($kirim->status == 'pending')
+                                                <span class="badge bg-info">Diproses</span>
+                                            @elseif ($kirim->status == 'correction')
+                                                <span class="badge bg-warning">Dikoreksi</span>
+                                            @else
+                                                <span class="badge bg-success">Diterima</span>
+                                            @endif
+                                        @endif
+                                    </td>
+                                    <td>
+                                        <div class="d-flex justify-content-center gap-2">
+                                            <button title="Detail"
+                                                class="btn btn-sm rounded-circle text-white border-0 bg-info"
+                                                style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
+                                                onclick="window.location.href='{{ route('view.memo-diterima', ['id' => $kirim->memo->id_memo]) }}'">
+                                                <i class="fas fa-eye" alt="Detail"></i>
+                                            </button>
+                                            @if ($kirim->memo->status == 'approve' || $kirim->memo->status == 'reject')
+                                                {{-- Button Arsip untuk status approve reject --}}
+                                                <button type="button" class="btn btn-sm rounded-circle text-white border-0"
+                                                    style="background-color:#FFAD46; width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
+                                                    onclick="showArsipConfirmation({{ $kirim->memo->id_memo }}, '{{ $kirim->memo->judul ?? $kirim->memo->nama_dokumen }}')"
+                                                    title="Arsip">
+                                                    <i class="fa-solid fa-archive fa-lg"></i>
                                                 </button>
-
-                                                @if (in_array($memo->status, ['approve', 'reject']))
-                                                    <button type="button"
-                                                        class="btn btn-sm rounded-circle text-white border-0"
-                                                        style="background-color:#FFAD46; width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                        onclick="showArsipConfirmation({{ $memo->id_memo }}, '{{ $memo->judul ?? $memo->nama_dokumen }}')"
-                                                        title="Arsip">
-                                                        <i class="fa-solid fa-archive fa-lg"></i>
-                                                    </button>
-                                                @endif
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforeach
+                                            @endif
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforeach
                             @endif
                         </tbody>
                     </table>

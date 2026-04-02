@@ -244,8 +244,8 @@
                                     <span class="sub-item">Memo Keluar</span>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('memo.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('memo.diterima') }}">
+                            <li class="{{ request()->routeIs('manager.memo.diterima') ? 'active' : '' }}">
+                                <a href="{{ route('manager.memo.diterima') }}">
                                     <span class="sub-item">Memo Masuk</span>
                                 </a>
                             </li>
