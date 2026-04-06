@@ -300,7 +300,7 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     Route::get('/memo-diterima', [KirimController::class, 'memoDiterima'])->name('manager.memo.diterima');
     // Route::get('memo-manager/add', [MemoController::class, 'create'])->name('memo-manager/add');
 
-    Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');
+    // Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');
 
     Route::put('/memo/{id}/update-status', [MemoController::class, 'updateStatus'])->name('memo.updateStatus');
     Route::get('/view-memoTerkirim/{id}', [MemoController::class, 'showTerkirim'])->name('view.memo-terkirim');
@@ -327,6 +327,7 @@ Route::middleware(['auth', 'role:3'])->group(function () {
 Route::middleware(['auth', 'role:2,3'])->group(function () {
     // memo
     Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
+    Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');
 
     //Edit Memo Baru
     Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
