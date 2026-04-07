@@ -4,10 +4,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Undangan rapat</title>
+    <title>Undangan Rapat</title>
 
     <style>
-        /* ====== FIX UTAMA: SAMAKAN DENGAN MEMO ====== */
         @page {
             margin-top: 120px;
             margin-bottom: 120px;
@@ -16,11 +15,15 @@
         }
 
         body {
-            font-family: Arial, "Noto Color Emoji", "Apple Color Emoji", "Segoe UI Emoji", sans-serif;
-            font-size: 12px;
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 12;
             padding: 0;
-            margin: 0;
             line-height: 1.5;
+        }
+
+        .pdf-mode,
+        .pdf-mode * {
+            font-family: 'DejaVu Sans', sans-serif !important;
         }
 
         header {
@@ -29,7 +32,6 @@
             left: 0;
             right: 0;
             width: 100%;
-            z-index: 0;
         }
 
         footer {
@@ -38,23 +40,18 @@
             left: 0;
             right: 0;
             width: 100%;
-            z-index: 0;
         }
 
         main {
-            margin-top: 0;
-            margin-bottom: 0;
+            margin-top: 0px;
+            margin-bottom: 0px;
             text-align: center;
-            position: relative;
-            z-index: 1;
         }
 
         .content {
             width: 100%;
-            margin: 0;
+            margin: auto;
             text-align: center;
-            position: relative;
-            z-index: 1;
         }
 
         .letter {
@@ -65,71 +62,38 @@
             z-index: 1;
         }
 
-        /* ====== KHUSUS HALAMAN 1 (PDF): NAIKKAN KONTEN, HEADER TETAP ====== */
-        .first-page-adjust {
-            display: none;
-        }
-
-        .pdf-mode .first-page-adjust {
-            display: block;
-            height: 0;
-            margin-top: -85px; /* <-- UBAH INI: -15px / -20px / -30px */
-        }
-
-        /* ====== KOMPONEN UTAMA ====== */
+        /* Date styling */
         .date {
             text-align: right;
             width: 89%;
             margin-right: 20px;
-            margin-top: 10%;
-            justify-items: end;
+            margin-bottom: 10px;
+        }
+
+        .date p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Header table */
+        .header1 {
+            width: 100%;
+            margin-bottom: 15px;
         }
 
         .header1 tr td:first-child {
-            width: 20%;
+            /* width: 20%; */
+            width: auto;
         }
 
         .header1 tr td {
-            line-height: 1.2;
+            line-height: 1.5;
+            padding: 2px 0;
         }
 
-        .header2 table {
-            margin-top: 15px;
-            border-collapse: collapse;
-            width: 100%;
-            table-layout: auto;
-        }
-
-        .header2 th {
-            width: 50%;
-            border-top: 3px solid black;
-            border-bottom: 3px solid black;
-            text-align: left;
-            font-weight: normal;
-            padding: 10px;
-            word-wrap: break-word;
-            overflow: hidden;
-        }
-
-        .header2 th+th {
-            border-left: 3px solid black;
-        }
-
-        .header2 td {
-            padding: 0;
-            margin: 0;
-            text-align: left;
-            white-space: nowrap;
-        }
-
-        .header2 td:first-child {
-            width: 1%;
-            text-align: left;
-            padding-right: 10px;
-        }
-
+        /* Content area */
         .fill {
-            margin-top: 1px;
+            margin-top: 5px;
             width: 95%;
             margin: 0 auto;
         }
@@ -139,76 +103,7 @@
             line-height: 1.5;
         }
 
-        .fill table {
-            border-collapse: collapse;
-            width: 100%;
-            table-layout: fixed;
-            background-color: white;
-            margin-left: 20px;
-        }
-
-        .fill table td {
-            border: none;
-            text-align: left;
-            padding: 0;
-            vertical-align: top;
-        }
-
-        .fill table tr td:first-child {
-            width: 15%;
-        }
-
-        .fill table tr td:nth-child(2) {
-            width: 3%;
-            text-align: center;
-        }
-
-        .fill table tr td:nth-child(3) {
-            width: 82%;
-        }
-
-        .contents {
-            text-align: justify;
-        }
-
-        /* Agenda cell styling */
-        .agenda-cell {
-            text-align: justify !important;
-            padding-right: 20px !important;
-            word-wrap: break-word !important;
-            word-break: break-word !important;
-            white-space: normal !important;
-            line-height: 1.5 !important;
-            page-break-inside: auto !important;
-        }
-
-        /* ====== SIGNATURE ====== */
-        .signature-position {
-            text-align: center;
-            margin: 10px 0 !important;
-            font-weight: bold;
-        }
-
-        .signature-name {
-            margin: 15px 0 0 0 !important;
-            text-align: center;
-            font-weight: bold;
-        }
-
-        /* QR Code container */
-        .qr-container {
-            margin: 12px 0 8px 0 !important;
-            text-align: center;
-            page-break-inside: avoid;
-            padding: 5px 0;
-        }
-
-        .qr-container img {
-            max-width: 150px;
-            height: auto;
-        }
-
-        /* ====== VIEW MODE (PREVIEW) ====== */
+        /* View Mode Styles */
         .view-mode header img,
         .view-mode footer img,
         .view-mode .content {
@@ -238,106 +133,94 @@
         }
 
         .view-mode .header1 {
-            position: fixed;
+            position: relative;
             top: 150px;
             left: 50%;
             transform: translateX(-50%);
             width: 40%;
             background-color: white;
-            padding: 0;
+            padding: 10px;
             text-align: left;
             z-index: 1000;
         }
 
-        .view-mode .header2 {
-            position: relative;
-            padding: 0;
-            width: 39.5%;
-            text-align: left;
-        }
-
         .view-mode .fill {
             position: relative;
-            width: 100%;
+            width: 95%;
             margin-left: auto;
             margin-right: auto;
             text-align: justify;
-            padding: 0;
         }
 
-        .view-mode .collab {
-            position: relative;
-            margin-top: 1cm;
-            width: 100%;
-            margin-left: auto;
-            margin-right: auto;
-            text-align: justify;
-            overflow-y: visible !important;
-            max-height: none !important;
-        }
-
-        /* ====== PDF MODE ====== */
+        /* PDF Mode Styles */
         .pdf-mode header img,
         .pdf-mode footer img,
         .pdf-mode .content {
             width: 100%;
         }
 
-        .pdf-mode .date {
-            text-align: right;
-            width: 89%;
+        /* ============================================
+           TinyMCE Editor Content - Table Styling
+           ============================================ */
+
+        /* Tabel dari TinyMCE - biarkan inline width bekerja */
+        .fill .editor-content table {
+            border-collapse: collapse !important;
+            margin: 10px 0;
+            /* JANGAN set width atau table-layout di sini */
         }
 
-        .pdf-mode .header2 {
-            margin-left: 2.5px;
-        }
-
-        .pdf-mode .header2 h4,
-        .pdf-mode .header2 p {
-            text-align: left;
-            margin-left: 0;
-        }
-
-        .pdf-mode .fill {
-            position: relative;
-            width: 100%;
-            margin-left: auto;
-            margin-right: auto;
-            text-align: justify;
-            padding: 0;
-            margin-top: 0;
-        }
-
-        .pdf-mode .collab {
-            position: relative;
-            width: 100%;
-            margin-left: 2.5px;
-            margin-right: auto;
-            text-align: justify;
-            overflow-y: visible !important;
-            max-height: none !important;
-            padding: 0;
-            margin-top: 0;
-        }
-
-        .header2 h4,
-        .header2 p,
-        .header2 table td {
+        /* Cell styling - HANYA visual, bukan layout */
+        .fill .editor-content td,
+        .fill .editor-content th {
+            padding: 8px 10px;
+            vertical-align: top;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
             line-height: 1.5;
         }
 
-        /* PRINT MEDIA QUERIES */
-        @media print {
-            .agenda-cell {
-                page-break-inside: auto !important;
-            }
+        /* Border handling - respect user setting */
+        .fill .editor-content table[border="0"] td,
+        .fill .editor-content table[border="0"] th {
+            border: none;
         }
 
-        /* CLEAR FLOAT UTILITY */
-        .clearfix::after {
-            content: "";
-            display: table;
-            clear: both;
+        .fill .editor-content table:not([border="0"]) td,
+        .fill .editor-content table:not([border="0"]) th {
+            border: 1px solid #000;
+        }
+
+        /* Background untuk header cells */
+        .fill .editor-content th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        /* Paragraph dalam cell - no margin */
+        .fill .editor-content td p,
+        .fill .editor-content th p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Watermark Overlay */
+        ._wm_overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.4;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        ._wm_overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
     </style>
 </head>
@@ -361,26 +244,6 @@
     @endphp
 
     @if ($needsWatermark && $wmBase64)
-        <style>
-            /* Overlay full-page di atas semua konten */
-            ._wm_overlay {
-                position: fixed;
-                inset: 0;
-                z-index: 9999;
-                opacity: 0.4;
-                pointer-events: none;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            ._wm_overlay img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-            }
-        </style>
-
         <div class="_wm_overlay">
             <img src="{{ $wmBase64 }}" alt="watermark">
         </div>
@@ -399,14 +262,10 @@
     </footer>
 
     <main>
-        <!-- KHUSUS HALAMAN 1: angkat konten tanpa menggeser header -->
-        <div class="first-page-adjust"></div>
-
-        <div class="content no-page-break ttd">
+        <div class="content">
             <div class="date">
                 <p>Madiun, {{ $undangan->tgl_dibuat?->translatedFormat('d F Y') }}</p>
             </div>
-            <br>
 
             <div class="letter">
                 <table class="header1">
@@ -423,9 +282,96 @@
                 </table>
 
                 <div class="collab">
-                    <div class="header2">
-                        <div class="agenda-cell" style="margin-top: 6px;">
-                            {!! $undangan->isi_undangan !!}
+                    @php
+                        $isiUndangan = $undangan->isi_undangan;
+
+                        // Jika mode PDF, convert colgroup ke inline width di td
+                        if (isset($isPdf) && $isPdf) {
+                            $isiUndangan = preg_replace_callback(
+                                '/<table([^>]*)>(.*?)<\/table>/is',
+                                function($tableMatch) {
+                                    $tableAttrs = $tableMatch[1];
+                                    $tableContent = $tableMatch[2];
+                                    $widths = [];
+
+                                    // Extract width dari colgroup
+                                    if (preg_match('/<colgroup>(.*?)<\/colgroup>/is', $tableContent, $colgroupMatch)) {
+                                        // Ambil semua width dari <col style="width: ...">
+                                        preg_match_all('/<col[^>]*style="[^"]*width:\s*([^;"]+)[^"]*"[^>]*>/i', $colgroupMatch[1], $widthMatches);
+                                        if (!empty($widthMatches[1])) {
+                                            $widths = array_map('trim', $widthMatches[1]);
+                                        }
+
+                                        // Hapus colgroup dari table content
+                                        $tableContent = preg_replace('/<colgroup>.*?<\/colgroup>/is', '', $tableContent);
+                                    }
+
+                                    // Jika ada width yang di-extract, apply ke setiap row
+                                    if (!empty($widths)) {
+                                        $tableContent = preg_replace_callback(
+                                            '/<tr([^>]*)>(.*?)<\/tr>/is',
+                                            function($rowMatch) use ($widths) {
+                                                $rowAttrs = $rowMatch[1];
+                                                $rowContent = $rowMatch[2];
+                                                $cellIndex = 0;
+
+                                                // Apply width ke setiap td/th
+                                                $rowContent = preg_replace_callback(
+                                                    '/<(td|th)([^>]*)>/i',
+                                                    function($cellMatch) use ($widths, &$cellIndex) {
+                                                        $tag = $cellMatch[1];
+                                                        $attrs = $cellMatch[2];
+
+                                                        // Hitung colspan untuk skip cells
+                                                        $colspan = 1;
+                                                        if (preg_match('/colspan\s*=\s*["\']?(\d+)["\']?/i', $attrs, $colspanMatch)) {
+                                                            $colspan = (int)$colspanMatch[1];
+                                                        }
+
+                                                        // Apply width jika ada
+                                                        if (isset($widths[$cellIndex])) {
+                                                            $width = $widths[$cellIndex];
+
+                                                            // Cek apakah sudah ada style attribute
+                                                            if (preg_match('/style\s*=\s*"([^"]*)"/i', $attrs, $styleMatch)) {
+                                                                $existingStyle = $styleMatch[1];
+
+                                                                // Cek apakah sudah ada width di style
+                                                                if (!preg_match('/width\s*:/i', $existingStyle)) {
+                                                                    $newStyle = rtrim($existingStyle, '; ') . '; width: ' . $width . ';';
+                                                                    $attrs = preg_replace('/style\s*=\s*"[^"]*"/i', 'style="' . $newStyle . '"', $attrs);
+                                                                }
+                                                            } else {
+                                                                // Tambah style baru
+                                                                $attrs .= ' style="width: ' . $width . ';"';
+                                                            }
+                                                        }
+
+                                                        // Increment index berdasarkan colspan
+                                                        $cellIndex += $colspan;
+
+                                                        return '<' . $tag . $attrs . '>';
+                                                    },
+                                                    $rowContent
+                                                );
+
+                                                return '<tr' . $rowAttrs . '>' . $rowContent . '</tr>';
+                                            },
+                                            $tableContent
+                                        );
+                                    }
+
+                                    return '<table' . $tableAttrs . '>' . $tableContent . '</table>';
+                                },
+                                $isiUndangan
+                            );
+                        }
+                    @endphp
+
+                    <div class="fill">
+                        <div class="editor-content"
+                             style="text-align: justify; width: 100%; max-width: 100%; overflow-x: auto; line-height: 1.5;">
+                            {!! $isiUndangan !!}
                         </div>
                     </div>
 
@@ -442,11 +388,6 @@
                             is_null($manager->department_id_department) &&
                             is_null($manager->section_id_section) &&
                             is_null($manager->unit_id_unit);
-
-                        $agendaLength = strlen($cleanTag ?? '');
-                        $tujuanCount = count($tujuanUsers ?? []);
-                        $totalContent = $agendaLength + $tujuanCount * 60;
-                        $needsPageBreak = $totalContent > 1500 || $tujuanCount > 12 || $agendaLength > 800;
                     @endphp
 
                     <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
@@ -456,27 +397,133 @@
                                 <p style="text-align: center; margin-bottom: 5px;"><b>Hormat kami,</b></p>
 
                                 @if ($isDirektur)
-                                    <p class="signature-position">
+                                    <p style="text-align: center; margin: 0; font-weight: bold;">
                                         {{ optional($manager->director)->name_director }}
                                     </p>
                                 @else
-                                    <p class="signature-position">
+                                    <p style="text-align: center; margin: 0; font-weight: bold;">
                                         {{ preg_replace('/^\([A-Z]+\)\s*/', '', $manager->position->nm_position) }}
                                         {{ $bagian }}
                                     </p>
                                 @endif
 
                                 @if (!empty($undangan->qr_approved_by))
-                                    <div class="qr-container">
-                                        <img src="data:image/png;base64,{{ $undangan->qr_approved_by }}" width="150" alt="QR Code">
+                                    <div style="margin: 10px 0; text-align: center;">
+                                        <img src="data:image/png;base64,{{ $undangan->qr_approved_by }}" width="150">
                                     </div>
+                                @else
+                                    <br>
                                 @endif
 
-                                <p class="signature-name"><u>{{ $undangan->nama_bertandatangan }}</u></p>
+                                <p style="margin: 0; text-align: center;">
+                                    <b><u>{{ $undangan->nama_bertandatangan }}</u></b>
+                                </p>
                             </td>
                         </tr>
                     </table>
 
+                    @php
+                        $buildGroupedRecipientList = function (?string $rawRecipients) {
+                            $parsedValues = array_values(
+                                array_filter(explode(';', (string) $rawRecipients), fn($t) => trim($t) !== ''),
+                            );
+
+                            if (empty($parsedValues)) {
+                                return [];
+                            }
+
+                            $selectedUserIds = collect($parsedValues)
+                                ->filter(fn($t) => is_numeric($t))
+                                ->map(fn($t) => (int) $t)
+                                ->unique()
+                                ->values();
+
+                            $legacyRecipients = collect($parsedValues)->filter(fn($t) => !is_numeric($t))->values()->all();
+
+                            if ($selectedUserIds->isEmpty()) {
+                                return array_values(array_filter($legacyRecipients));
+                            }
+
+                            $selectedUsers = \App\Models\User::whereIn('id', $selectedUserIds)
+                                ->get([
+                                    'id',
+                                    'firstname',
+                                    'lastname',
+                                    'director_id_director',
+                                    'divisi_id_divisi',
+                                    'department_id_department',
+                                    'section_id_section',
+                                    'unit_id_unit',
+                                ]);
+
+                            if ($selectedUsers->isEmpty()) {
+                                return array_values(array_filter($legacyRecipients));
+                            }
+
+                            $selectedIdSet = $selectedUsers->pluck('id')->flip();
+                            $remainingIds = $selectedUsers->pluck('id')->all();
+
+                            $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
+                            $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
+                            $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                            $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
+                            $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
+
+                            $result = [];
+                            $scopes = [
+                                ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
+                                ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
+                                ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
+                                ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
+                                ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
+                            ];
+
+                            foreach ($scopes as $scope) {
+                                $groupIds = $selectedUsers
+                                    ->whereIn('id', $remainingIds)
+                                    ->pluck($scope['col'])
+                                    ->filter()
+                                    ->unique()
+                                    ->values();
+
+                                foreach ($groupIds as $groupId) {
+                                    $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+                                    if ($allMemberIds->isEmpty()) {
+                                        continue;
+                                    }
+
+                                    $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                                    if ($allSelected) {
+                                        $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                        $result[] = $scope['label'] . ': ' . $scopeName;
+                                        $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                    }
+                                }
+                            }
+
+                            foreach ($selectedUsers->whereIn('id', $remainingIds)->sortBy(fn($u) => trim(($u->firstname ?? '') . ' ' . ($u->lastname ?? ''))) as $user) {
+                                $fullName = trim(($user->firstname ?? '') . ' ' . ($user->lastname ?? ''));
+                                if ($fullName !== '') {
+                                    $result[] = $fullName;
+                                }
+                            }
+
+                            return array_values(array_filter(array_merge($result, $legacyRecipients)));
+                        };
+
+                        $tembusanList = $buildGroupedRecipientList($undangan->tembusan ?? null);
+                    @endphp
+
+                    @if (!empty($tembusanList))
+                        <div class="tembusan" style="margin-top: 30px; text-align: left;">
+                            <b>Tembusan :</b>
+                            @foreach ($tembusanList as $tembusan)
+                                <p style="margin: 0;">{{ $tembusan }}</p>
+                            @endforeach
+                        </div>
+                    @endif
+
+                    <div style="clear: both;"></div>
                 </div>
             </div>
         </div>

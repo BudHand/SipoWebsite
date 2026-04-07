@@ -15,10 +15,15 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            font-size: 12px;
+            font-family: 'DejaVu Sans', sans-serif;
+            font-size: 12;
             padding: 0;
             line-height: 1.5;
+        }
+
+        .pdf-mode,
+        .pdf-mode * {
+            font-family: 'DejaVu Sans', sans-serif !important;
         }
 
         header {
@@ -102,290 +107,6 @@
             line-height: 1.5;
         }
 
-        /* Tabel sistem (contoh: kategori barang) */
-        .fill table {
-            border-collapse: collapse;
-            width: 100%;
-        }
-
-        .fill table th,
-        .fill table td {
-            border: 1px solid black;
-            padding: 5px;
-        }
-
-        .fill table th:first-child,
-        .fill table td:first-child {
-            width: 5%;
-            min-width: 40px;
-        }
-
-        .fill table th:nth-child(3),
-        .fill table td:nth-child(3),
-        .fill table th:nth-child(4),
-        .fill table td:nth-child(4) {
-            width: 10%;
-            min-width: 100px;
-        }
-
-        /* =========================
-           CSS LAMA TinyMCE (DIBIARKAN) - sebagian dinonaktifkan
-           ========================= */
-
-        /* ===== NONAKTIFKAN: ini mengunci semua tabel dalam div jadi seragam =====
-        .fill div table {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            table-layout: auto !important;
-            margin: 10px 0 !important;
-        }
-
-        .fill div table td {
-            width: auto !important;
-        }
-        ===== END NONAKTIF ===== */
-
-        .fill div table th,
-        .fill div table td {
-            border: 1px solid #000 !important;
-            padding: 8px !important;
-            word-wrap: break-word !important;
-            overflow-wrap: break-word !important;
-            hyphens: auto !important;
-            vertical-align: top !important;
-            min-width: 80px !important;
-            max-width: 200px !important;
-        }
-
-        .fill div table th {
-            background-color: #f5f5f5 !important;
-            font-weight: bold !important;
-            text-align: inherit !important;
-        }
-
-        /* Khusus untuk tabel dengan banyak kolom */
-        .fill div table:has(th:nth-child(4)) th,
-        .fill div table:has(td:nth-child(4)) td {
-            font-size: 11px !important;
-            padding: 6px !important;
-            max-width: 150px !important;
-        }
-
-        .fill div table:has(th:nth-child(5)) th,
-        .fill div table:has(td:nth-child(5)) td {
-            font-size: 10px !important;
-            padding: 4px !important;
-            max-width: 120px !important;
-        }
-
-        .fill div table td p,
-        .fill div table th p {
-            margin: 0 !important;
-            padding: 0 !important;
-            line-height: 1.5 !important;
-        }
-
-        .fill div {
-            overflow-x: auto !important;
-        }
-
-        .fill div table td,
-        .fill div table th {
-            white-space: normal !important;
-            word-break: break-word !important;
-        }
-
-        .fill div table:has(th:nth-child(6)) th,
-        .fill div table:has(td:nth-child(6)) td {
-            font-size: 9px !important;
-            padding: 3px !important;
-            max-width: 100px !important;
-        }
-
-        .fill div table:has(th:nth-child(8)) th,
-        .fill div table:has(td:nth-child(8)) td {
-            font-size: 8px !important;
-            padding: 2px !important;
-            max-width: 80px !important;
-        }
-
-        .pdf-mode .fill div table {
-            page-break-inside: avoid !important;
-        }
-
-        .pdf-mode .fill div table th,
-        .pdf-mode .fill div table td {
-            page-break-inside: avoid !important;
-        }
-
-        div[style*="text-align: justify"] table,
-        .contents table,
-        .isi-memo table {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            table-layout: auto !important;
-            margin: 10px 0 !important;
-            font-size: 12px !important;
-        }
-
-        div[style*="text-align: justify"] table th,
-        div[style*="text-align: justify"] table td,
-        .contents table th,
-        .contents table td,
-        .isi-memo table th,
-        .isi-memo table td {
-            border: 1px solid #000 !important;
-            padding: 6px !important;
-            word-wrap: break-word !important;
-            overflow-wrap: break-word !important;
-            hyphens: auto !important;
-            vertical-align: top !important;
-        }
-
-        table:not([class]) {
-            border-collapse: collapse !important;
-            width: 100% !important;
-            margin: 10px 0 !important;
-        }
-
-        table:not([class]) th,
-        table:not([class]) td {
-            border: 1px solid #000 !important;
-            padding: 8px !important;
-            word-wrap: break-word !important;
-            vertical-align: top !important;
-        }
-
-        table:not([class]) th {
-            background-color: #f5f5f5 !important;
-            font-weight: bold !important;
-        }
-
-        /* ===== NONAKTIFKAN: ini membuang width kolom dari user (TinyMCE) =====
-        table[style*="width"] {
-            width: 100% !important;
-        }
-
-        td[style*="width"],
-        th[style*="width"] {
-            width: auto !important;
-            min-width: 80px !important;
-            max-width: 200px !important;
-        }
-        ===== END NONAKTIF ===== */
-
-        table tr td:nth-child(n+5),
-        table tr th:nth-child(n+5) {
-            font-size: 10px !important;
-            padding: 4px !important;
-            max-width: 120px !important;
-        }
-
-        table tr td:nth-child(n+7),
-        table tr th:nth-child(n+7) {
-            font-size: 9px !important;
-            padding: 3px !important;
-            max-width: 100px !important;
-        }
-
-        table * {
-            word-break: break-word !important;
-            overflow-wrap: break-word !important;
-            hyphens: auto !important;
-        }
-
-        div[style*="width: 600px"] table {
-            width: 100% !important;
-            max-width: 100% !important;
-        }
-
-        .fill table[style] {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            table-layout: auto !important;
-        }
-
-        .fill td[style],
-        .fill th[style] {
-            border: 1px solid #000 !important;
-            padding: 6px !important;
-            word-wrap: break-word !important;
-            vertical-align: top !important;
-        }
-
-        .fill table th[style*="text-align: center"],
-        .fill table td[style*="text-align: center"],
-        table:not([class]) th[style*="text-align: center"],
-        table:not([class]) td[style*="text-align: center"] {
-            text-align: center !important;
-        }
-
-        .fill table th[style*="text-align: left"],
-        .fill table td[style*="text-align: left"],
-        table:not([class]) th[style*="text-align: left"],
-        table:not([class]) td[style*="text-align: left"] {
-            text-align: left !important;
-        }
-
-        .fill table th[style*="text-align: right"],
-        .fill table td[style*="text-align: right"],
-        table:not([class]) th[style*="text-align: right"],
-        table:not([class]) td[style*="text-align: right"] {
-            text-align: right !important;
-        }
-
-        .fill table th[style*="text-align: justify"],
-        .fill table td[style*="text-align: justify"],
-        table:not([class]) th[style*="text-align: justify"],
-        table:not([class]) td[style*="text-align: justify"] {
-            text-align: justify !important;
-        }
-
-        .fill table th:not([style*="text-align"]),
-        table:not([class]) th:not([style*="text-align"]) {
-            text-align: left;
-        }
-
-        .fill table td:not([style*="text-align"]),
-        table:not([class]) td:not([style*="text-align"]) {
-            text-align: left;
-        }
-
-        @media print {
-            .fill table {
-                font-size: 11px !important;
-            }
-
-            .fill table td,
-            .fill table th {
-                padding: 4px !important;
-                font-size: 11px !important;
-                line-height: 1.5 !important;
-            }
-        }
-
-        .fill table tr:has(> :nth-child(4)) td,
-        .fill table tr:has(> :nth-child(4)) th {
-            font-size: 11px !important;
-            padding: 5px !important;
-        }
-
-        .fill table tr:has(> :nth-child(6)) td,
-        .fill table tr:has(> :nth-child(6)) th {
-            font-size: 10px !important;
-            padding: 4px !important;
-        }
-
-        .fill table tr:has(> :nth-child(8)) td,
-        .fill table tr:has(> :nth-child(8)) th {
-            font-size: 9px !important;
-            padding: 3px !important;
-        }
-
-        .contents {
-            text-align: justify;
-        }
-
         .signature {
             margin-top: 5%;
             text-align: left !important;
@@ -399,6 +120,7 @@
             margin: 0;
         }
 
+        /* View Mode Styles */
         .view-mode header img,
         .view-mode footer img,
         .view-mode .content {
@@ -453,72 +175,75 @@
             text-align: justify;
         }
 
-        .view-mode .collab {
-            position: relative;
-            margin-top: 5.2cm;
-            width: 95%;
-            margin-left: auto;
-            margin-right: auto;
-            text-align: justify;
-            overflow-y: auto;
-            max-height: calc(100vh - 13cm);
-        }
-
+        /* PDF Mode Styles */
         .pdf-mode header img,
         .pdf-mode footer img,
         .pdf-mode .content {
             width: 100%;
         }
 
-        /* =========================================================
-           FIX FINAL: Tabel TinyMCE mengikuti ukuran user
-           ========================================================= */
+        /* ============================================
+           TinyMCE Editor Content - Table Styling
+           ============================================ */
 
-        /* Wajib lebih spesifik agar menang dari rule lama */
+        /* Tabel dari TinyMCE - biarkan inline width bekerja */
         .fill .editor-content table {
             border-collapse: collapse !important;
-            width: 100% !important;
-            table-layout: fixed !important;     /* mPDF lebih patuh pada width kolom */
-            margin: 10px 0 !important;
+            margin: 10px 0;
+            /* JANGAN set width atau table-layout di sini */
         }
 
-        /* Jika editor menghasilkan colgroup/col width, biarkan */
-        .fill .editor-content colgroup,
-        .fill .editor-content col {
-            width: auto;
-        }
-
-        .fill .editor-content col[style*="width"] {
-            width: revert !important;
-        }
-
-        /* Jika editor menghasilkan width per cell, biarkan (jangan di-auto-kan) */
-        .fill .editor-content td[style*="width"],
-        .fill .editor-content th[style*="width"] {
-            width: revert !important;
-            min-width: 0 !important;
-            max-width: none !important;
-        }
-
-        /* Tampilan tetap rapi */
+        /* Cell styling - HANYA visual, bukan layout */
         .fill .editor-content td,
         .fill .editor-content th {
-            border: 1px solid #000 !important;
-            padding: 6px !important;
-            vertical-align: top !important;
-            white-space: normal !important;
-            overflow-wrap: break-word !important;
-            word-break: break-word !important;
+            padding: 8px 10px;
+            vertical-align: top;
+            white-space: normal;
+            overflow-wrap: break-word;
+            word-break: break-word;
+            line-height: 1.5;
         }
 
-        /* Matikan efek rule global nth-child pada tabel editor */
-        .fill .editor-content table tr td:nth-child(n+5),
-        .fill .editor-content table tr th:nth-child(n+5),
-        .fill .editor-content table tr td:nth-child(n+7),
-        .fill .editor-content table tr th:nth-child(n+7) {
-            font-size: inherit !important;
-            padding: inherit !important;
-            max-width: none !important;
+        /* Border handling - respect user setting */
+        .fill .editor-content table[border="0"] td,
+        .fill .editor-content table[border="0"] th {
+            border: none;
+        }
+
+        .fill .editor-content table:not([border="0"]) td,
+        .fill .editor-content table:not([border="0"]) th {
+            border: 1px solid #000;
+        }
+
+        /* Background untuk header cells */
+        .fill .editor-content th {
+            background-color: #f5f5f5;
+            font-weight: bold;
+        }
+
+        /* Paragraph dalam cell - no margin */
+        .fill .editor-content td p,
+        .fill .editor-content th p {
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        /* Watermark Overlay */
+        ._wm_overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            opacity: 0.4;
+            pointer-events: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        ._wm_overlay img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
     </style>
 </head>
@@ -542,25 +267,6 @@
     @endphp
 
     @if ($needsWatermark && $wmBase64)
-        <style>
-            ._wm_overlay {
-                position: fixed;
-                inset: 0;
-                z-index: 9999;
-                opacity: 0.4;
-                pointer-events: none;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            ._wm_overlay img {
-                width: 100%;
-                height: 100%;
-                object-fit: contain;
-            }
-        </style>
-
         <div class="_wm_overlay">
             <img src="{{ $wmBase64 }}" alt="watermark">
         </div>
@@ -583,22 +289,23 @@
             <h3 class="memo-title">Memo</h3>
 
             <div class="letter">
-                <table class="header1">
+                {{-- Header --}}
+                <table class="header">
                     @if ($memo->tgl_dibuat != null)
-                        <tr>
-                            <td>Tanggal</td>
-                            <td>:</td>
+                        <tr style="vertical-align: top">
+                            <td style="padding-right: 16px">Tanggal</td>
+                            <td style="padding-right: 8px">:</td>
                             <td>{{ $memo->tgl_dibuat->translatedFormat('d F Y') }}</td>
                         </tr>
                     @endif
-                    <tr>
-                        <td>Nomor</td>
-                        <td>:</td>
+                    <tr style="vertical-align: top">
+                        <td style="padding-right: 16px">Nomor</td>
+                        <td style="padding-right: 8px">:</td>
                         <td>{{ $memo->nomor_memo }}</td>
                     </tr>
-                    <tr>
-                        <td>Perihal</td>
-                        <td>:</td>
+                    <tr style="vertical-align: top">
+                        <td style="padding-right: 16px">Perihal</td>
+                        <td style="padding-right: 8px">:</td>
                         <td><b>{{ $memo->judul }}</b></td>
                     </tr>
                 </table>
@@ -606,20 +313,186 @@
                 <div class="header2">
                     <table>
                         <tr>
-                            <th style="text-align: left; vertical-align: top;">
+                            {{-- <th style="text-align: left; vertical-align: top;">
                                 Dari :
                                 {{ $memo->user->unit->name_unit ?? ($memo->user->section->name_section ?? ($memo->user->department->name_department ?? ($memo->user->divisi->nm_divisi ?? ($memo->user->director->name_director ?? ' ')))) }}
+                            </th> --}}
+                            <th style="text-align: left; vertical-align: top;">
+                                Dari :
+                                @if ($manager)
+                                    {{ $manager->unit->name_unit ??
+                                        ($manager->section->name_section ??
+                                            ($manager->department->name_department ??
+                                                ($manager->divisi->nm_divisi ?? ($manager->director->name_director ?? $memo->nama_bertandatangan)))) }}
+                                @else
+                                    {{ $memo->nama_bertandatangan ?? '-' }}
+                                @endif
                             </th>
                             <th style="text-align: left; vertical-align: top;">
                                 Kepada :
-                                @if (count($tujuanNames) === 1)
-                                    <span style="display: inline;">{{ $tujuanNames[0] }}</span>
-                                @else
+                                @php
+                                    $rawTujuanIds = collect(explode(';', (string) $memo->tujuan))
+                                        ->map(fn($id) => trim($id))
+                                        ->filter(fn($id) => $id !== '' && is_numeric($id))
+                                        ->map(fn($id) => (int) $id)
+                                        ->unique()
+                                        ->values();
+
+                                    $legacyTujuanNames = collect(explode(';', (string) $memo->tujuan_string))
+                                        ->map(fn($name) => trim($name))
+                                        ->filter(fn($name) => $name !== '')
+                                        ->values()
+                                        ->all();
+
+                                    $tujuanRingkas = [];
+
+                                    if ($rawTujuanIds->isNotEmpty()) {
+                                        $selectedUsers = \App\Models\User::with([
+                                            'position:id_position,nm_position',
+                                            'department:id_department,name_department',
+                                        ])
+                                            ->whereIn('id', $rawTujuanIds)
+                                            ->get([
+                                                'id',
+                                                'firstname',
+                                                'lastname',
+                                                'position_id_position',
+                                                'director_id_director',
+                                                'divisi_id_divisi',
+                                                'department_id_department',
+                                                'section_id_section',
+                                                'unit_id_unit',
+                                            ]);
+
+                                        $selectedIdSet = $selectedUsers->pluck('id')->flip();
+                                        $remainingIds = $selectedUsers->pluck('id')->all();
+
+                                        $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
+                                        $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
+                                        $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                                        $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
+                                        $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
+
+                                        $scopes = [
+                                            ['col' => 'director_id_director', 'map' => $directorMap],
+                                            ['col' => 'divisi_id_divisi', 'map' => $divisionMap],
+                                            ['col' => 'department_id_department', 'map' => $departmentMap],
+                                            ['col' => 'section_id_section', 'map' => $sectionMap],
+                                            ['col' => 'unit_id_unit', 'map' => $unitMap],
+                                        ];
+
+                                        $sectionToDepartmentMap = \App\Models\Section::pluck('department_id_department', 'id_section');
+                                        $unitToSectionMap = \App\Models\Unit::pluck('section_id_section', 'id_unit');
+                                        $groupedDepartmentIds = [];
+                                        $groupedSectionIds = [];
+
+                                        foreach ($scopes as $scope) {
+                                            $groupIds = $selectedUsers
+                                                ->whereIn('id', $remainingIds)
+                                                ->pluck($scope['col'])
+                                                ->filter()
+                                                ->unique()
+                                                ->values();
+
+                                            foreach ($groupIds as $groupId) {
+                                                if ($scope['col'] === 'section_id_section') {
+                                                    $parentDeptId = $sectionToDepartmentMap[$groupId] ?? null;
+                                                    if (!empty($parentDeptId) && in_array((int) $parentDeptId, $groupedDepartmentIds, true)) {
+                                                        $coveredUserIds = $selectedUsers->where('section_id_section', $groupId)->pluck('id')->all();
+                                                        $remainingIds = array_values(array_diff($remainingIds, $coveredUserIds));
+                                                        continue;
+                                                    }
+                                                }
+
+                                                if ($scope['col'] === 'unit_id_unit') {
+                                                    $parentSectionId = $unitToSectionMap[$groupId] ?? null;
+                                                    $parentDeptId = $parentSectionId ? ($sectionToDepartmentMap[$parentSectionId] ?? null) : null;
+
+                                                    if ((!empty($parentSectionId) && in_array((int) $parentSectionId, $groupedSectionIds, true)) ||
+                                                        (!empty($parentDeptId) && in_array((int) $parentDeptId, $groupedDepartmentIds, true))) {
+                                                        $coveredUserIds = $selectedUsers->where('unit_id_unit', $groupId)->pluck('id')->all();
+                                                        $remainingIds = array_values(array_diff($remainingIds, $coveredUserIds));
+                                                        continue;
+                                                    }
+                                                }
+
+                                                $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+                                                if ($allMemberIds->isEmpty()) {
+                                                    continue;
+                                                }
+
+                                                $allSelected = $allMemberIds->every(fn($memberId) => $selectedIdSet->has($memberId));
+                                                if ($allSelected) {
+                                                    $scopeName = $scope['map'][$groupId] ?? ('ID ' . $groupId);
+                                                    $tujuanRingkas[] = $scopeName;
+
+                                                    if ($scope['col'] === 'department_id_department') {
+                                                        $groupedDepartmentIds[] = (int) $groupId;
+                                                    }
+                                                    if ($scope['col'] === 'section_id_section') {
+                                                        $groupedSectionIds[] = (int) $groupId;
+                                                    }
+
+                                                    $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                                }
+                                            }
+                                        }
+
+                                        $remainingUsers = $selectedUsers
+                                            ->whereIn('id', $remainingIds)
+                                            ->sortBy(fn($u) => trim($u->firstname . ' ' . $u->lastname));
+
+                                        foreach ($remainingUsers as $user) {
+                                            $fullName = trim($user->firstname . ' ' . $user->lastname);
+                                            $positionName = $user->position->nm_position ?? '-';
+                                            $positionLower = strtolower($positionName);
+                                            $isStaff = str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+
+                                            $bagianKerja = '-';
+                                            if ($isStaff) {
+                                                if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                                    $bagianKerja = $unitMap[$user->unit_id_unit];
+                                                } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                                    $bagianKerja = $sectionMap[$user->section_id_section];
+                                                } elseif (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                                    $bagianKerja = $departmentMap[$user->department_id_department];
+                                                } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                                    $bagianKerja = $divisionMap[$user->divisi_id_divisi];
+                                                } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                                    $bagianKerja = $directorMap[$user->director_id_director];
+                                                }
+                                            } else {
+                                                if (!empty($user->department_id_department) && isset($departmentMap[$user->department_id_department])) {
+                                                    $bagianKerja = $departmentMap[$user->department_id_department];
+                                                } elseif (!empty($user->divisi_id_divisi) && isset($divisionMap[$user->divisi_id_divisi])) {
+                                                    $bagianKerja = $divisionMap[$user->divisi_id_divisi];
+                                                } elseif (!empty($user->section_id_section) && isset($sectionMap[$user->section_id_section])) {
+                                                    $bagianKerja = $sectionMap[$user->section_id_section];
+                                                } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                                    $bagianKerja = $unitMap[$user->unit_id_unit];
+                                                } elseif (!empty($user->director_id_director) && isset($directorMap[$user->director_id_director])) {
+                                                    $bagianKerja = $directorMap[$user->director_id_director];
+                                                }
+                                            }
+
+                                            $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
+                                            $tujuanRingkas[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
+                                        }
+                                    }
+
+                                    $tujuanList = $rawTujuanIds->isNotEmpty()
+                                                ? array_values(array_filter($tujuanRingkas))
+                                                : array_values(array_filter($legacyTujuanNames));
+                                @endphp
+
+                                @if (!empty($tujuanList))
                                     <ol style="margin: 0; padding-left: 20px;">
-                                        @foreach ($tujuanNames as $name)
+                                        @foreach ($tujuanList as $name)
                                             <li>{{ $name }}</li>
                                         @endforeach
                                     </ol>
+                                @else
+                                    <span style="display: inline;">-</span>
                                 @endif
                             </th>
                         </tr>
@@ -627,33 +500,125 @@
                 </div>
 
                 <div class="collab">
-                    <div class="fill">
-                        <!-- FIX: wrapper khusus untuk konten TinyMCE -->
-                        <div class="editor-content"
-                             style="text-align: justify; width: 100%; max-width: 100%; overflow-x: auto; line-height: 1.5;">
-                            {!! $memo->isi_memo !!}
-                        </div>
+                    @php
+                        $isiMemo = $memo->isi_memo;
 
-                        {{--
-                        @if ($memo->kategoriBarang && $memo->kategoriBarang->isNotEmpty())
-                            <table>
-                                <tr>
-                                    <th>No</th>
-                                    <th>Barang</th>
-                                    <th>Qty</th>
-                                    <th>Satuan</th>
-                                </tr>
-                                @foreach ($memo->kategoriBarang as $index => $barang)
-                                    <tr>
-                                        <td>{{ $index + 1 }}</td>
-                                        <td>{{ $barang->barang }}</td>
-                                        <td>{{ $barang->qty }}</td>
-                                        <td>{{ $barang->satuan }}</td>
-                                    </tr>
-                                @endforeach
-                            </table>
-                        @endif
-                        --}}
+                        // Jika mode PDF, convert colgroup ke inline width di td
+                        if (isset($isPdf) && $isPdf) {
+                            $isiMemo = preg_replace_callback(
+                                '/<table([^>]*)>(.*?)<\/table>/is',
+                                function ($tableMatch) {
+                                    $tableAttrs = $tableMatch[1];
+                                    $tableContent = $tableMatch[2];
+                                    $widths = [];
+
+                                    // Extract width dari colgroup
+                                    if (preg_match('/<colgroup>(.*?)<\/colgroup>/is', $tableContent, $colgroupMatch)) {
+                                        // Ambil semua width dari <col style="width: ...">
+                                        preg_match_all(
+                                            '/<col[^>]*style="[^"]*width:\s*([^;"]+)[^"]*"[^>]*>/i',
+                                            $colgroupMatch[1],
+                                            $widthMatches,
+                                        );
+                                        if (!empty($widthMatches[1])) {
+                                            $widths = array_map('trim', $widthMatches[1]);
+                                        }
+
+                                        // Hapus colgroup dari table content
+                                        $tableContent = preg_replace(
+                                            '/<colgroup>.*?<\/colgroup>/is',
+                                            '',
+                                            $tableContent,
+                                        );
+                                    }
+
+                                    // Jika ada width yang di-extract, apply ke setiap row
+                                    if (!empty($widths)) {
+                                        $tableContent = preg_replace_callback(
+                                            '/<tr([^>]*)>(.*?)<\/tr>/is',
+                                            function ($rowMatch) use ($widths) {
+                                                $rowAttrs = $rowMatch[1];
+                                                $rowContent = $rowMatch[2];
+                                                $cellIndex = 0;
+
+                                                // Apply width ke setiap td/th
+                                                $rowContent = preg_replace_callback(
+                                                    '/<(td|th)([^>]*)>/i',
+                                                    function ($cellMatch) use ($widths, &$cellIndex) {
+                                                        $tag = $cellMatch[1];
+                                                        $attrs = $cellMatch[2];
+
+                                                        // Hitung colspan untuk skip cells
+                                                        $colspan = 1;
+                                                        if (
+                                                            preg_match(
+                                                                '/colspan\s*=\s*["\']?(\d+)["\']?/i',
+                                                                $attrs,
+                                                                $colspanMatch,
+                                                            )
+                                                        ) {
+                                                            $colspan = (int) $colspanMatch[1];
+                                                        }
+
+                                                        // Apply width jika ada
+                                                        if (isset($widths[$cellIndex])) {
+                                                            $width = $widths[$cellIndex];
+
+                                                            // Cek apakah sudah ada style attribute
+                                                            if (
+                                                                preg_match(
+                                                                    '/style\s*=\s*"([^"]*)"/i',
+                                                                    $attrs,
+                                                                    $styleMatch,
+                                                                )
+                                                            ) {
+                                                                $existingStyle = $styleMatch[1];
+
+                                                                // Cek apakah sudah ada width di style
+                                                                if (!preg_match('/width\s*:/i', $existingStyle)) {
+                                                                    $newStyle =
+                                                                        rtrim($existingStyle, '; ') .
+                                                                        '; width: ' .
+                                                                        $width .
+                                                                        ';';
+                                                                    $attrs = preg_replace(
+                                                                        '/style\s*=\s*"[^"]*"/i',
+                                                                        'style="' . $newStyle . '"',
+                                                                        $attrs,
+                                                                    );
+                                                                }
+                                                            } else {
+                                                                // Tambah style baru
+                                                                $attrs .= ' style="width: ' . $width . ';"';
+                                                            }
+                                                        }
+
+                                                        // Increment index berdasarkan colspan
+                                                        $cellIndex += $colspan;
+
+                                                        return '<' . $tag . $attrs . '>';
+                                                    },
+                                                    $rowContent,
+                                                );
+
+                                                return '<tr' . $rowAttrs . '>' . $rowContent . '</tr>';
+                                            },
+                                            $tableContent,
+                                        );
+                                    }
+
+                                    return '<table' . $tableAttrs . '>' . $tableContent . '</table>';
+                                },
+                                $isiMemo,
+                            );
+                        }
+                    @endphp
+
+                    <div class="fill">
+                        <div class="editor-content"
+                            style="text-align: justify; width: 100%; max-width: 100%; overflow-x: auto; line-height: 1.5;">
+                            {!! $isiMemo !!}
+                        </div>
                     </div>
 
                     @php
@@ -674,7 +639,8 @@
                     <table style="width: 100%; table-layout: fixed; border-collapse: collapse;">
                         <tr>
                             <td style="width: 60%;"></td>
-                            <td style="width: 40%; text-align: center; vertical-align: top; padding: 10px; border: none;">
+                            <td
+                                style="width: 40%; text-align: center; vertical-align: top; padding: 10px; border: none;">
                                 <p style="text-align: center; margin-bottom: 5px;"><b>Hormat kami,</b></p>
 
                                 @if ($isDirektur)
@@ -704,7 +670,159 @@
                     </table>
 
                     @php
-                        $tembusanList = explode(';', $memo->tembusan ?? '');
+                        $rawTembusan = array_values(
+                            array_filter(explode(';', $memo->tembusan ?? ''), fn($t) => trim($t) !== ''),
+                        );
+
+                        // Pisahkan data baru (id user) vs data lama (nama teks)
+                        $tembusanUserIds = collect($rawTembusan)
+                            ->filter(fn($t) => is_numeric($t))
+                            ->map(fn($t) => (int) $t)
+                            ->unique()
+                            ->values();
+
+                        $legacyTembusan = collect($rawTembusan)->filter(fn($t) => !is_numeric($t))->values()->all();
+
+                        $tembusanRingkas = [];
+
+                        if ($tembusanUserIds->isNotEmpty()) {
+                            $selectedUsers = \App\Models\User::with([
+                                'position:id_position,nm_position',
+                                'department:id_department,name_department',
+                            ])
+                                ->whereIn('id', $tembusanUserIds)
+                                ->get([
+                                    'id',
+                                    'firstname',
+                                    'lastname',
+                                    'position_id_position',
+                                    'director_id_director',
+                                    'divisi_id_divisi',
+                                    'department_id_department',
+                                    'section_id_section',
+                                    'unit_id_unit',
+                                ]);
+
+                            $selectedIdSet = $selectedUsers->pluck('id')->flip();
+                            $remainingIds = $selectedUsers->pluck('id')->all();
+
+                            $directorMap = \App\Models\Director::pluck('name_director', 'id_director');
+                            $divisionMap = \App\Models\Divisi::pluck('nm_divisi', 'id_divisi');
+                            $departmentMap = \App\Models\Department::pluck('name_department', 'id_department');
+                            $sectionMap = \App\Models\Section::pluck('name_section', 'id_section');
+                            $unitMap = \App\Models\Unit::pluck('name_unit', 'id_unit');
+
+                            // Prioritas dari scope paling besar ke kecil agar hasil ringkas.
+                            $scopes = [
+                                ['col' => 'director_id_director', 'label' => 'Direktur', 'map' => $directorMap],
+                                ['col' => 'divisi_id_divisi', 'label' => 'Divisi', 'map' => $divisionMap],
+                                ['col' => 'department_id_department', 'label' => 'Departemen', 'map' => $departmentMap],
+                                ['col' => 'section_id_section', 'label' => 'Bagian', 'map' => $sectionMap],
+                                ['col' => 'unit_id_unit', 'label' => 'Unit', 'map' => $unitMap],
+                            ];
+
+                            foreach ($scopes as $scope) {
+                                $groupIds = $selectedUsers
+                                    ->whereIn('id', $remainingIds)
+                                    ->pluck($scope['col'])
+                                    ->filter()
+                                    ->unique()
+                                    ->values();
+
+                                foreach ($groupIds as $groupId) {
+                                    $allMemberIds = \App\Models\User::where($scope['col'], $groupId)->pluck('id');
+
+                                    if ($allMemberIds->isEmpty()) {
+                                        continue;
+                                    }
+
+                                    $allSelected = $allMemberIds->every(
+                                        fn($memberId) => $selectedIdSet->has($memberId),
+                                    );
+
+                                    if ($allSelected) {
+                                        $scopeName = $scope['map'][$groupId] ?? 'ID ' . $groupId;
+                                        $tembusanRingkas[] = $scope['label'] . ': ' . $scopeName;
+
+                                        // Hapus anggota scope ini dari sisa perorangan agar tidak duplikat
+                                        $remainingIds = array_values(array_diff($remainingIds, $allMemberIds->all()));
+                                    }
+                                }
+                            }
+
+                            // Sisa user yang tidak bisa diringkas ditampilkan per-orang
+                            $remainingUsers = $selectedUsers
+                                ->whereIn('id', $remainingIds)
+                                ->sortBy(fn($u) => trim($u->firstname . ' ' . $u->lastname));
+
+                            foreach ($remainingUsers as $user) {
+                                $fullName = trim($user->firstname . ' ' . $user->lastname);
+                                $positionName = $user->position->nm_position ?? '-';
+                                $positionLower = strtolower($positionName);
+                                $isStaff =
+                                    str_contains($positionLower, 'staff') || str_contains($positionLower, 'staf');
+
+                                // Tentukan label bagian kerja dari hierarchy user
+                                $bagianKerja = '-';
+                                if ($isStaff) {
+                                    // Staff: pakai hierarchy paling spesifik
+                                    if (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                        $bagianKerja = $unitMap[$user->unit_id_unit];
+                                    } elseif (
+                                        !empty($user->section_id_section) &&
+                                        isset($sectionMap[$user->section_id_section])
+                                    ) {
+                                        $bagianKerja = $sectionMap[$user->section_id_section];
+                                    } elseif (
+                                        !empty($user->department_id_department) &&
+                                        isset($departmentMap[$user->department_id_department])
+                                    ) {
+                                        $bagianKerja = $departmentMap[$user->department_id_department];
+                                    } elseif (
+                                        !empty($user->divisi_id_divisi) &&
+                                        isset($divisionMap[$user->divisi_id_divisi])
+                                    ) {
+                                        $bagianKerja = $divisionMap[$user->divisi_id_divisi];
+                                    } elseif (
+                                        !empty($user->director_id_director) &&
+                                        isset($directorMap[$user->director_id_director])
+                                    ) {
+                                        $bagianKerja = $directorMap[$user->director_id_director];
+                                    }
+                                } else {
+                                    // Di atas staff: pakai hierarchy jabatan yang lebih representatif
+                                    if (
+                                        !empty($user->department_id_department) &&
+                                        isset($departmentMap[$user->department_id_department])
+                                    ) {
+                                        $bagianKerja = $departmentMap[$user->department_id_department];
+                                    } elseif (
+                                        !empty($user->divisi_id_divisi) &&
+                                        isset($divisionMap[$user->divisi_id_divisi])
+                                    ) {
+                                        $bagianKerja = $divisionMap[$user->divisi_id_divisi];
+                                    } elseif (
+                                        !empty($user->section_id_section) &&
+                                        isset($sectionMap[$user->section_id_section])
+                                    ) {
+                                        $bagianKerja = $sectionMap[$user->section_id_section];
+                                    } elseif (!empty($user->unit_id_unit) && isset($unitMap[$user->unit_id_unit])) {
+                                        $bagianKerja = $unitMap[$user->unit_id_unit];
+                                    } elseif (
+                                        !empty($user->director_id_director) &&
+                                        isset($directorMap[$user->director_id_director])
+                                    ) {
+                                        $bagianKerja = $directorMap[$user->director_id_director];
+                                    }
+                                }
+
+                                $positionClean = preg_replace('/^\s*\([^)]*\)\s*/', '', $positionName) ?: $positionName;
+                                $tembusanRingkas[] = $fullName . ' - ' . $bagianKerja . ' (' . $positionClean . ')';
+                            }
+                        }
+
+                        // Gabungkan fallback data lama agar tetap kompatibel.
+                        $tembusanList = array_values(array_filter(array_merge($tembusanRingkas, $legacyTembusan)));
                     @endphp
 
                     @if ($memo->tembusan)
