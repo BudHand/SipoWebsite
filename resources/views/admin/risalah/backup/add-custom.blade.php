@@ -14,9 +14,9 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route(Auth::user()->role->nm_role . '.risalah.index') }}"
+                            <a href="{{ route('admin.risalah.index') }}"
                                 class="text-decoration-none text-primary">Risalah</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Tambah Risalah</span>
@@ -25,17 +25,16 @@
                 </div>
 
                 <div class="row">
+                    @if ($errors->any())
+                        <div class="alert alert-danger mb-3">
+                            <ul class="mb-0">
+                                @foreach ($errors->all() as $error)
+                                    <li>{{ $error }}</li>
+                                @endforeach
+                            </ul>
+                        </div>
+                    @endif
                     <div class="col-md-12">
-                        @if ($errors->any())
-                            <div class="alert alert-danger mb-3">
-                                <ul class="mb-0">
-                                    @foreach ($errors->all() as $error)
-                                        <li>{{ $error }}</li>
-                                    @endforeach
-                                </ul>
-                            </div>
-                        @endif
-
                         <form action="{{ route('risalah.store') }}" method="POST" enctype="multipart/form-data"
                             id="risalahForm">
                             @csrf
@@ -52,7 +51,7 @@
                                 <div class="card-body">
                                     <div class="row g-3">
                                         {{-- Kode Bagian Kerja --}}
-                                        <div class="col-12">
+                                        <div class="col-md-6">
                                             <label for="kode_bagian" class="form-label">
                                                 <i class="fas fa-building text-primary me-1"></i>
                                                 Kode Bagian Kerja <span class="text-danger">*</span>
@@ -78,11 +77,9 @@
                                                 Tanggal Surat <span class="text-danger">*</span>
                                             </label>
                                             <input type="date" name="tgl_dibuat" class="form-control"
-                                                value="{{ date('Y-m-d') }}" required>
+                                                {{-- value="{{ date('Y-m-d') }}" required> --}} value="{{ old('tgl_dibuat', date('Y-m-d')) }}"
+                                                required>
                                             <input type="hidden" name="tgl_disahkan">
-                                            @error('tgl_dibuat')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
                                         </div>
 
                                         <input type="hidden" name="pembuat" value="{{ auth()->user()->id }}">
@@ -93,23 +90,8 @@
                                                 <i class="fas fa-tag text-primary me-1"></i>
                                                 Judul <span class="text-danger">*</span>
                                             </label>
-                                            <select name="judul" id="judul" class="select2" required>
-                                                <option value="" disabled selected>Pilih Judul</option>
-                                                @foreach ($undangan as $u)
-                                                    <option value="{{ $u->judul }}" data-tempat="{{ $u->tempat }}"
-                                                        data-waktu_mulai="{{ $u->waktu_mulai }}"
-                                                        data-waktu_selesai="{{ $u->waktu_selesai }}"
-                                                        data-tujuan="{{ $u->tujuan }}"
-                                                        data-fullname='@json($users)'
-                                                        data-id="{{ $u->id_undangan }}" data-self-id="{{ $self->id }}"
-                                                        data-self-name="{{ $self->fullname }}">
-                                                        {{ $u->judul }}
-                                                    </option>
-                                                @endforeach
-                                            </select>
-                                            @error('judul')
-                                                <div class="invalid-feedback">{{ $message }}</div>
-                                            @enderror
+                                            <input type="text" name="judul" id="judul" class="form-control"
+                                                value="{{ old('judul') }}" placeholder="Masukkan judul risalah">
                                         </div>
 
                                         <div class="col-md-6">
@@ -117,18 +99,20 @@
                                                 <i class="fas fa-edit text-primary me-1"></i>
                                                 Agenda <span class="text-danger">*</span>
                                             </label>
-                                            <input type="text" name="agenda" class="form-control" required>
+                                            <input type="text" name="agenda" class="form-control"
+                                                value="{{ old('agenda') }}" required placeholder="Masukkan agenda risalah">
                                         </div>
 
                                         <div class="col-md-6">
                                             <label for="tempat" class="form-label">
                                                 <i class="fas fa-map-marker-alt text-primary me-1"></i>
-                                                Tempat Rapat <span class="text-danger">*</span>
+                                                Tempat Acara <span class="text-danger">*</span>
                                             </label>
                                             <input type="text" name="tempat" id="tempat" class="form-control"
-                                                required>
+                                                value="{{ old('tempat') }}" required placeholder="Masukkan tempat acara">
                                         </div>
 
+                                        <!-- Waktu -->
                                         <div class="col-md-6">
                                             <label class="form-label">
                                                 <i class="fas fa-clock text-primary me-1"></i>
@@ -136,13 +120,16 @@
                                             </label>
                                             <div class="input-group">
                                                 <input type="text" name="waktu_mulai" id="waktu_mulai"
-                                                    class="form-control" placeholder="09.00" required>
+                                                    class="form-control" placeholder="09.00"
+                                                    value="{{ old('waktu_mulai') }}" required>
                                                 <span class="input-group-text">s/d</span>
                                                 <input type="text" name="waktu_selesai" id="waktu_selesai"
-                                                    class="form-control" placeholder="Selesai" required>
+                                                    class="form-control" placeholder="Selesai"
+                                                    value="{{ old('waktu_selesai') }}" required>
                                             </div>
                                         </div>
 
+                                        <!-- Lampiran -->
                                         <div class="col-md-6">
                                             <label for="lampiran-input" class="form-label">
                                                 <i class="fas fa-paperclip text-primary me-1"></i>
@@ -155,11 +142,72 @@
                                             </div>
                                             <div id="lampiran-list" class="mt-2"></div>
                                             <small class="form-text text-muted">
-                                                Format: PDF, JPG, JPEG, PNG (Maks. 2MB).
+                                                Format yang diizinkan: PDF, JPG, JPEG, PNG (Max: 2MB).
+                                                File akan dikirim saat Anda klik tombol <b>Simpan</b>.
                                             </small>
                                             @error('lampiran')
                                                 <div class="invalid-feedback">{{ $message }}</div>
                                             @enderror
+                                        </div>
+
+                                        <!-- Pilih Peserta -->
+                                        <div class="col-12">
+                                            <div class="form-group">
+                                                <label for="kepada" class="form-label">
+                                                    <i class="fas fa-user text-primary me-1"></i>
+                                                    Pilih Peserta Acara
+                                                    <span class="text-danger">*</span>
+                                                </label>
+                                                <small class="text-danger" style="font-size: x-small"> Pilih user atau
+                                                    struktur, semua user di bawah struktur akan otomatis terpilih</small>
+                                                <div class="border rounded p-2"
+                                                    style="max-height: 300px; overflow-y: auto;">
+                                                    <div style="font-size: small" class="form-label" id="org-tree">
+                                                    </div>
+                                                    <style>
+                                                        #org-tree .jstree-anchor {
+                                                            color: #1f4178;
+                                                            font-weight: 500;
+                                                        }
+                                                    </style>
+                                                    <small id="tujuanError" class="text-danger"
+                                                        style="display:none;">Minimal pilih satu tujuan!</small>
+                                                </div>
+                                                <div id="tujuan-container"></div>
+                                                @error('tujuan')
+                                                    <div class="text-danger small mt-1 d-block">{{ $message }}</div>
+                                                @enderror
+
+                                                @error('tujuan.*')
+                                                    <div class="text-danger small mt-1 d-block">{{ $message }}</div>
+                                                @enderror
+                                            </div>
+                                        </div>
+
+                                        <div class="col-12">
+                                            <div style="display: none;" id="selected-section">
+                                                <label style="font-size: small;" class="form-label">
+                                                    Daftar Penerima:
+                                                </label>
+                                                <div class="border rounded p-2"
+                                                    style="max-height: 300px; overflow-y: auto;">
+                                                    <ul id="selected-recipients"
+                                                        style="font-size: small; padding-left: 15px; margin: 0; counter-reset: item; list-style-type: none;">
+                                                    </ul>
+                                                    <style>
+                                                        #selected-recipients li {
+                                                            display: block;
+                                                            margin-bottom: 0.2em;
+                                                        }
+
+                                                        #selected-recipients li:before {
+                                                            content: counter(item, decimal) ". ";
+                                                            counter-increment: item;
+                                                            font-weight: bold;
+                                                        }
+                                                    </style>
+                                                </div>
+                                            </div>
                                         </div>
 
                                         <div class="col-md-6">
@@ -170,7 +218,10 @@
                                             <select name="pemimpin_acara" id="pemimpin_acara" class="select2" required>
                                                 <option value="" disabled selected>--Pilih Pemimpin Acara--</option>
                                                 @foreach ($users as $user)
-                                                    <option value="{{ $user->id }}">{{ $user->fullname }}</option>
+                                                    <option value="{{ $user->id }}"
+                                                        {{ old('pemimpin_acara') == $user->id ? 'selected' : '' }}>
+                                                        {{ $user->fullname }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -183,10 +234,14 @@
                                             <select name="notulis_acara" id="notulis_acara" class="select2" required>
                                                 <option value="" disabled selected>--Pilih Notulis Acara--</option>
                                                 @foreach ($users as $user)
-                                                    <option value="{{ $user->id }}">{{ $user->fullname }}</option>
+                                                    <option value="{{ $user->id }}"
+                                                        {{ old('notulis_acara') == $user->id ? 'selected' : '' }}>
+                                                        {{ $user->fullname }}
+                                                    </option>
                                                 @endforeach
                                             </select>
                                         </div>
+
                                     </div>
 
                                     {{-- ===================== ISI RISALAH SECTION ===================== --}}
@@ -203,7 +258,6 @@
 
                                         <div id="risalahContainer"></div>
 
-                                        {{-- Tombol Tambah --}}
                                         <button type="button" class="btn w-100 mt-2" id="tambahRisalahBtn"
                                             style="background:#eff6ff; color:#2563eb; border:1.5px dashed #93c5fd; border-radius:8px; font-weight:600; font-size:.9rem; padding:10px;">
                                             <i class="fas fa-plus-circle me-2"></i> Tambah Isi Risalah
@@ -222,8 +276,7 @@
                                     <button type="submit" id="submitBtn" class="btn btn-primary">Simpan</button>
                                 </div>
                             </div>
-
-                            <input type="hidden" id="with_undangan" name="with_undangan">
+                            <input type="hidden" id="with_undangan" name="with_undangan" value="">
                         </form>
                     </div>
                 </div>
@@ -235,197 +288,46 @@
 @push('scripts')
     <script>
         document.addEventListener('DOMContentLoaded', function() {
-            // =========================
-            // OLD VALUES DARI SERVER
-            // =========================
-            const oldJudul = @json(old('judul'));
-            const oldAgenda = @json(old('agenda'));
-            const oldTempat = @json(old('tempat'));
-            const oldWaktuMulai = @json(old('waktu_mulai'));
-            const oldWaktuSelesai = @json(old('waktu_selesai'));
-            const oldPemimpin = @json(old('pemimpin_acara'));
-            const oldNotulis = @json(old('notulis_acara'));
-            const oldWithUndangan = @json(old('with_undangan'));
-
-            const oldProjectEvent = @json(old('project_event', []));
-            const oldTopik = @json(old('topik', []));
-            const oldUraianPermasalahan = @json(old('uraian_permasalahan', []));
-            const oldPembahasanTindakLanjut = @json(old('pembahasan_tindak_lanjut', []));
-            const oldTarget = @json(old('target', []));
-            const oldPic = @json(old('pic', []));
-
-            const oldSubTopik = @json(old('sub_topik', []));
-            const oldSubPembahasan = @json(old('sub_pembahasan', []));
-            const oldSubTindakLanjut = @json(old('sub_tindak_lanjut', []));
-            const oldSubTarget = @json(old('sub_target', []));
-            const oldSubPic = @json(old('sub_pic', []));
-
-            // =========================
-            // HELPER UMUM
-            // =========================
-            function escapeHtml(value) {
-                if (value === null || value === undefined) return '';
-                return String(value)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-            }
-
-            function safeValue(arr, index) {
-                return Array.isArray(arr) && arr[index] !== undefined && arr[index] !== null ? arr[index] : '';
-            }
-
-            function safeNestedValue(arr, parentIndex, childIndex) {
-                if (!Array.isArray(arr)) return '';
-                if (!Array.isArray(arr[parentIndex])) return '';
-                return arr[parentIndex][childIndex] !== undefined && arr[parentIndex][childIndex] !== null ?
-                    arr[parentIndex][childIndex] :
-                    '';
-            }
 
             // =========================
             // SELECT2
             // =========================
-            $('#judul').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Pilih Judul',
-                allowClear: true,
-                width: '100%'
-            });
-
             $('#pemimpin_acara').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Pilih Pemimpin Acara',
+                theme: "bootstrap-5",
+                placeholder: "Pilih Pemimpin Acara",
                 allowClear: true,
-                width: '100%'
+                width: "100%"
             });
-
             $('#notulis_acara').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Pilih Notulis Acara',
+                theme: "bootstrap-5",
+                placeholder: "Pilih Notulis Acara",
                 allowClear: true,
-                width: '100%'
+                width: "100%"
             });
 
             // =========================
-            // REFERENSI ELEMENT
+            // REFERENSI CONTAINER
             // =========================
-            const judulSelect = document.getElementById('judul');
-            const agendaInput = document.querySelector('input[name="agenda"]');
-            const tempatInput = document.getElementById('tempat');
-            const waktuMulaiInput = document.getElementById('waktu_mulai');
-            const waktuSelesaiInput = document.getElementById('waktu_selesai');
-            const withUndanganInput = document.getElementById('with_undangan');
-
             const risalahContainer = document.getElementById('risalahContainer');
             const tambahRisalahBtn = document.getElementById('tambahRisalahBtn');
-            const risalahForm = document.getElementById('risalahForm');
-            const submitBtn = document.getElementById('submitBtn');
 
             // =========================
-            // RESTORE FIELD STATIS
-            // =========================
-            function applySelectedUndanganData(optionEl, preserveManualValue = false) {
-                if (!optionEl) return;
-
-                const tempat = optionEl.getAttribute('data-tempat') || '';
-                const waktuMulai = optionEl.getAttribute('data-waktu_mulai') || '';
-                const waktuSelesai = optionEl.getAttribute('data-waktu_selesai') || '';
-                const undanganId = optionEl.getAttribute('data-id') || '';
-
-                if (!preserveManualValue || !tempatInput.value) {
-                    tempatInput.value = oldTempat || tempat;
-                }
-
-                if (!preserveManualValue || !waktuMulaiInput.value) {
-                    waktuMulaiInput.value = oldWaktuMulai || waktuMulai;
-                }
-
-                if (!preserveManualValue || !waktuSelesaiInput.value) {
-                    waktuSelesaiInput.value = oldWaktuSelesai || waktuSelesai;
-                }
-
-                if (withUndanganInput) {
-                    withUndanganInput.value = oldWithUndangan || undanganId;
-                }
-            }
-
-            function restoreStaticFields() {
-                if (agendaInput && oldAgenda) {
-                    agendaInput.value = oldAgenda;
-                }
-
-                if (tempatInput && oldTempat) {
-                    tempatInput.value = oldTempat;
-                }
-
-                if (waktuMulaiInput && oldWaktuMulai) {
-                    waktuMulaiInput.value = oldWaktuMulai;
-                }
-
-                if (waktuSelesaiInput && oldWaktuSelesai) {
-                    waktuSelesaiInput.value = oldWaktuSelesai;
-                }
-
-                if (withUndanganInput && oldWithUndangan) {
-                    withUndanganInput.value = oldWithUndangan;
-                }
-
-                if (oldJudul) {
-                    $('#judul').val(oldJudul).trigger('change.select2');
-
-                    const selectedOption = judulSelect?.querySelector(
-                        `option[value="${CSS.escape(String(oldJudul))}"]`);
-                    if (selectedOption) {
-                        applySelectedUndanganData(selectedOption, true);
-                    }
-                }
-
-                if (oldPemimpin) {
-                    $('#pemimpin_acara').val(oldPemimpin).trigger('change.select2');
-                }
-
-                if (oldNotulis) {
-                    $('#notulis_acara').val(oldNotulis).trigger('change.select2');
-                }
-            }
-
-            restoreStaticFields();
-
-            // =========================
-            // EVENT JUDUL UNDANGAN
-            // =========================
-            $('#judul').on('change', function() {
-                const selected = $(this).find(':selected');
-                const selectedEl = selected.length ? selected[0] : null;
-                applySelectedUndanganData(selectedEl, false);
-            });
-
-            // =========================
-            // UPDATE NOMOR & NAME SUB
+            // HELPER: Update nomor urut & name attribute sub risalah
             // =========================
             function updateNomor() {
                 const items = risalahContainer.querySelectorAll('.risalah-item');
-
                 items.forEach((item, index) => {
                     item.dataset.index = index;
 
                     const noInput = item.querySelector('.no-auto');
                     const noDisplay = item.querySelector('.no-display');
-
                     if (noInput) noInput.value = index + 1;
                     if (noDisplay) noDisplay.textContent = index + 1;
 
                     item.querySelectorAll('.sub-risalah-row').forEach((subRow, subIndex) => {
-                        subRow.dataset.subIndex = subIndex;
-
                         const badge = subRow.querySelector('.sub-badge');
-                        if (badge) {
-                            badge.innerHTML =
-                                `<i class="fas fa-code-branch me-1"></i> Sub ${subIndex + 1}`;
-                        }
+                        if (badge) badge.innerHTML =
+                            `<i class="fas fa-code-branch me-1"></i> Sub ${subIndex + 1}`;
 
                         subRow.querySelectorAll('[data-sub-name]').forEach(el => {
                             el.name = `${el.dataset.subName}[${index}][]`;
@@ -435,9 +337,9 @@
             }
 
             // =========================
-            // TEMPLATE: SUB RISALAH
+            // TEMPLATE: Sub Risalah Row
             // =========================
-            function createSubRisalahRow(parentIndex, values = {}) {
+            function createSubRisalahRow(parentIndex) {
                 const subRow = document.createElement('div');
                 subRow.className = 'sub-risalah-row position-relative mt-3';
 
@@ -453,7 +355,6 @@
                             <i class="fas fa-trash me-1"></i> Hapus Sub
                         </button>
                     </div>
-
                     <div class="row g-3">
                         <div class="col-md-4">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Topik</label>
@@ -462,7 +363,7 @@
                                 name="sub_topik[${parentIndex}][]"
                                 placeholder="Masukkan sub topik..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_topik ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Pembahasan</label>
@@ -471,7 +372,7 @@
                                 name="sub_pembahasan[${parentIndex}][]"
                                 placeholder="Masukkan sub pembahasan..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_pembahasan ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Tindak Lanjut</label>
@@ -480,7 +381,7 @@
                                 name="sub_tindak_lanjut[${parentIndex}][]"
                                 placeholder="Masukkan sub tindak lanjut..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_tindak_lanjut ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Target</label>
@@ -489,7 +390,7 @@
                                 name="sub_target[${parentIndex}][]"
                                 placeholder="Masukkan sub target..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_target ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub PIC</label>
@@ -498,20 +399,19 @@
                                 name="sub_pic[${parentIndex}][]"
                                 placeholder="Masukkan sub PIC..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_pic ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                     </div>
                 </div>
             </div>
         `;
-
                 return subRow;
             }
 
             // =========================
-            // TEMPLATE: MAIN RISALAH
+            // TEMPLATE: Main Risalah Item
             // =========================
-            function createMainRisalahItem(itemIndex, values = {}) {
+            function createMainRisalahItem(itemIndex) {
                 const itemWrapper = document.createElement('div');
                 itemWrapper.className = 'risalah-item card mb-4 border-0 shadow-sm';
                 itemWrapper.dataset.index = itemIndex;
@@ -536,6 +436,7 @@
             <div class="card-body p-4">
                 <input type="hidden" class="no-auto" name="nomor[]" value="${itemIndex + 1}">
 
+                {{-- Baris 1: Proyek/Event + Topik --}}
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -543,7 +444,6 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="project_event[]"
-                            value="${escapeHtml(values.project_event ?? '')}"
                             placeholder="Nama proyek atau event..."
                             style="border-radius:6px; font-size:.87rem;">
                     </div>
@@ -553,13 +453,13 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="topik[]"
-                            value="${escapeHtml(values.topik ?? '')}"
                             placeholder="Topik pembahasan..."
                             required
                             style="border-radius:6px; font-size:.87rem;">
                     </div>
                 </div>
 
+                {{-- Baris 2: Pembahasan + Tindak Lanjut --}}
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -570,7 +470,7 @@
                             placeholder="Uraikan hasil pembahasan rapat..."
                             rows="3"
                             required
-                            style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.uraian_permasalahan ?? '')}</textarea>
+                            style="resize:vertical; border-radius:6px; font-size:.87rem;"></textarea>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -578,13 +478,14 @@
                         </label>
                         <textarea class="form-control form-control-sm"
                             name="pembahasan_tindak_lanjut[]"
-                            placeholder="Pembahasan / Tindakan yang perlu dilakukan..."
+                            placeholder="Tindakan yang perlu dilakukan..."
                             rows="3"
                             required
-                            style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.pembahasan_tindak_lanjut ?? '')}</textarea>
+                            style="resize:vertical; border-radius:6px; font-size:.87rem;"></textarea>
                     </div>
                 </div>
 
+                {{-- Baris 3: Target + PIC --}}
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -592,7 +493,6 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="target[]"
-                            value="${escapeHtml(values.target ?? '')}"
                             placeholder="Target penyelesaian (tanggal / deskripsi)..."
                             required
                             style="border-radius:6px; font-size:.87rem;">
@@ -603,13 +503,13 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="pic[]"
-                            value="${escapeHtml(values.pic ?? '')}"
                             placeholder="Person in charge..."
                             required
                             style="border-radius:6px; font-size:.87rem;">
                     </div>
                 </div>
 
+                {{-- Sub Risalah --}}
                 <div class="sub-risalah-wrapper mt-4 pt-3" style="border-top:1.5px dashed #cbd5e1;">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="fw-semibold text-muted" style="font-size:.82rem;">
@@ -634,68 +534,11 @@
             }
 
             // =========================
-            // RESTORE OLD RISALAH
-            // =========================
-            function restoreOldRisalah() {
-                const totalItems = Math.max(
-                    oldProjectEvent.length,
-                    oldTopik.length,
-                    oldUraianPermasalahan.length,
-                    oldPembahasanTindakLanjut.length,
-                    oldTarget.length,
-                    oldPic.length
-                );
-
-                if (totalItems > 0) {
-                    for (let i = 0; i < totalItems; i++) {
-                        const item = createMainRisalahItem(i, {
-                            project_event: safeValue(oldProjectEvent, i),
-                            topik: safeValue(oldTopik, i),
-                            uraian_permasalahan: safeValue(oldUraianPermasalahan, i),
-                            pembahasan_tindak_lanjut: safeValue(oldPembahasanTindakLanjut, i),
-                            target: safeValue(oldTarget, i),
-                            pic: safeValue(oldPic, i),
-                        });
-
-                        risalahContainer.appendChild(item);
-
-                        const subContainer = item.querySelector('.sub-risalah-container');
-                        const subTopikList = Array.isArray(oldSubTopik[i]) ? oldSubTopik[i] : [];
-
-                        if (subTopikList.length > 0) {
-                            const emptyState = subContainer.querySelector('.sub-empty-state');
-                            if (emptyState) emptyState.remove();
-
-                            for (let subIndex = 0; subIndex < subTopikList.length; subIndex++) {
-                                const subRow = createSubRisalahRow(i, {
-                                    sub_topik: safeNestedValue(oldSubTopik, i, subIndex),
-                                    sub_pembahasan: safeNestedValue(oldSubPembahasan, i, subIndex),
-                                    sub_tindak_lanjut: safeNestedValue(oldSubTindakLanjut, i, subIndex),
-                                    sub_target: safeNestedValue(oldSubTarget, i, subIndex),
-                                    sub_pic: safeNestedValue(oldSubPic, i, subIndex),
-                                });
-
-                                subContainer.appendChild(subRow);
-                            }
-                        }
-                    }
-
-                    updateNomor();
-                    return;
-                }
-
-                const defaultItem = createMainRisalahItem(0);
-                risalahContainer.appendChild(defaultItem);
-                updateNomor();
-            }
-
-            restoreOldRisalah();
-
-            // =========================
             // TAMBAH ITEM UTAMA
             // =========================
             if (tambahRisalahBtn && risalahContainer) {
-                tambahRisalahBtn.addEventListener('click', function() {
+                tambahRisalahBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
                     const itemIndex = risalahContainer.querySelectorAll('.risalah-item').length;
                     const item = createMainRisalahItem(itemIndex);
                     risalahContainer.appendChild(item);
@@ -708,51 +551,44 @@
             }
 
             // =========================
-            // EVENT DELEGATION
+            // EVENT DELEGATION — hapus item, tambah/hapus sub
             // =========================
             risalahContainer.addEventListener('click', function(e) {
+
+                // Hapus item utama
                 const hapusRisalahBtn = e.target.closest('.hapus-risalah-btn');
                 if (hapusRisalahBtn) {
                     const item = hapusRisalahBtn.closest('.risalah-item');
                     if (item) {
                         item.remove();
-
-                        if (!risalahContainer.querySelector('.risalah-item')) {
-                            const defaultItem = createMainRisalahItem(0);
-                            risalahContainer.appendChild(defaultItem);
-                        }
-
                         updateNomor();
                     }
                     return;
                 }
 
+                // Tambah sub risalah
                 const tambahSubBtn = e.target.closest('.tambah-sub-risalah-btn');
                 if (tambahSubBtn) {
                     const item = tambahSubBtn.closest('.risalah-item');
                     if (!item) return;
-
                     const parentIndex = parseInt(item.dataset.index ?? 0, 10);
                     const subContainer = item.querySelector('.sub-risalah-container');
                     if (!subContainer) return;
-
                     const emptyState = subContainer.querySelector('.sub-empty-state');
                     if (emptyState) emptyState.remove();
-
                     subContainer.appendChild(createSubRisalahRow(parentIndex));
                     updateNomor();
                     return;
                 }
 
+                // Hapus sub risalah
                 const hapusSubBtn = e.target.closest('.hapus-sub-risalah-btn');
                 if (hapusSubBtn) {
                     const subRow = hapusSubBtn.closest('.sub-risalah-row');
                     const subContainer = subRow ? subRow.closest('.sub-risalah-container') : null;
-
                     if (subRow) {
                         subRow.remove();
                         updateNomor();
-
                         if (subContainer && !subContainer.querySelector('.sub-risalah-row')) {
                             subContainer.insertAdjacentHTML('beforeend', `
                         <div class="sub-empty-state text-center py-3 rounded-2"
@@ -781,7 +617,6 @@
                     newInput.className = 'form-control';
                     newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
                     newInput.addEventListener('change', handleLampiranChange);
-
                     lampiranInputContainer.innerHTML = '';
                     lampiranInputContainer.appendChild(newInput);
                 }
@@ -789,9 +624,7 @@
                 function handleLampiranChange(e) {
                     const input = e.target;
                     if (!input.files || input.files.length === 0) return;
-
                     const file = input.files[0];
-
                     if (file.size > 2 * 1024 * 1024) {
                         Swal.fire({
                             icon: 'error',
@@ -802,33 +635,34 @@
                         input.value = '';
                         return;
                     }
-
                     const itemWrapper = document.createElement('div');
                     itemWrapper.className =
-                    'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
-
+                        'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
                     const infoWrapper = document.createElement('div');
                     infoWrapper.className = 'flex-grow-1';
-                    infoWrapper.innerHTML =
-                        `<span>${escapeHtml(file.name)}</span><div class="progress mt-1" style="height:4px;"><div class="progress-bar" style="width:100%"></div></div>`;
-
+                    const nameSpan = document.createElement('span');
+                    nameSpan.textContent = file.name;
+                    const progressOuter = document.createElement('div');
+                    progressOuter.className = 'progress mt-1';
+                    progressOuter.style.height = '4px';
+                    const progressInner = document.createElement('div');
+                    progressInner.className = 'progress-bar';
+                    progressInner.style.width = '100%';
+                    progressOuter.appendChild(progressInner);
+                    infoWrapper.appendChild(nameSpan);
+                    infoWrapper.appendChild(progressOuter);
                     const removeBtn = document.createElement('button');
                     removeBtn.type = 'button';
                     removeBtn.className = 'btn btn-sm btn-outline-danger';
                     removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
-
                     input.name = 'lampiran[]';
                     input.classList.add('d-none');
                     input.removeEventListener('change', handleLampiranChange);
-
                     itemWrapper.appendChild(infoWrapper);
                     itemWrapper.appendChild(removeBtn);
                     itemWrapper.appendChild(input);
-
                     lampiranList.appendChild(itemWrapper);
-
                     removeBtn.addEventListener('click', () => itemWrapper.remove());
-
                     createEmptyVisibleInput();
                 }
 
@@ -838,6 +672,9 @@
             // =========================
             // VALIDASI SUBMIT
             // =========================
+            const risalahForm = document.getElementById('risalahForm');
+            const submitBtn = document.getElementById('submitBtn');
+
             if (risalahForm && submitBtn) {
                 risalahForm.addEventListener('submit', function(e) {
                     if (submitBtn.disabled) {
@@ -863,11 +700,9 @@
                     }
 
                     if (risalahAlert) risalahAlert.style.display = 'none';
-
                     submitBtn.disabled = true;
                     submitBtn.innerHTML =
                         `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...`;
-
                     return true;
                 });
 
@@ -883,6 +718,98 @@
                         }, 500);
                     }
                 });
+            }
+        });
+
+        // =========================
+        // JSTREE — tetap di luar DOMContentLoaded
+        // =========================
+        $(document).ready(function() {
+            var treeData = @json(json_decode($jsTreeData));
+            if (!treeData || treeData.length === 0) {
+                $('#org-tree').html('<p class="text-danger">Data organisasi tidak tersedia</p>');
+                return;
+            }
+
+            try {
+                $('#org-tree').jstree({
+                    'core': {
+                        'data': treeData,
+                        'themes': {
+                            'dots': true
+                        }
+                    },
+                    'plugins': ['checkbox']
+                }).on('changed.jstree', function(e, data) {
+                    $('#tujuan-container').empty();
+
+                    let allSelectedNodes = data.instance.get_selected(true);
+                    let selectedNodes = [];
+                    let userIds = [];
+
+                    allSelectedNodes.forEach(function(node) {
+                        if (node.icon && node.icon === 'fa fa-user') {
+                            selectedNodes.push(node.text);
+                            userIds.push(node.id);
+                        }
+                        if (data.instance.is_selected(node.id)) {
+                            data.instance.open_node(node.id);
+                        }
+                    });
+
+                    userIds.forEach(function(nodeId) {
+                        $('#tujuan-container').append(
+                            '<input type="hidden" name="tujuan[]" value="' + nodeId + '">'
+                        );
+                    });
+
+                    selectedNodes.sort(function(a, b) {
+                        const positionOrder = {
+                            'Direktur': 1,
+                            'GM': 2,
+                            'General Manager': 2,
+                            'SM': 3,
+                            'Senior Manager': 3,
+                            'M': 4,
+                            'Manager': 4,
+                            'PJ SM': 5,
+                            'Penanggung Jawab Senior Manager': 5,
+                            'PJ M': 6,
+                            'Penanggung Jawab Manager': 6,
+                            'SPV': 7,
+                            'Supervisor': 7,
+                            'PJ SPV': 8,
+                            'Penanggung Jawab Supervisor': 8,
+                            'Staff': 9
+                        };
+                        const getPriority = function(text) {
+                            for (let pos in positionOrder) {
+                                if (text.startsWith(pos)) return positionOrder[pos];
+                            }
+                            return 999;
+                        };
+                        return getPriority(a) - getPriority(b);
+                    });
+
+                    let list = $('#selected-recipients');
+                    let section = $('#selected-section');
+                    list.empty();
+
+                    if (selectedNodes.length) {
+                        selectedNodes.forEach(function(name) {
+                            list.append('<li>' + name + '</li>');
+                        });
+                        section.show();
+                    } else {
+                        section.hide();
+                    }
+
+                    if (userIds.length > 0) $('#tujuanError').hide();
+                });
+
+            } catch (error) {
+                $('#org-tree').html('<p class="text-danger">Gagal memuat data organisasi. Error: ' + error.message +
+                    '</p>');
             }
         });
     </script>

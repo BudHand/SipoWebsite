@@ -16,8 +16,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route(Auth::user()->role->nm_role . '.risalah.index') }}"
-                                class="text-decoration-none text-primary">Risalah</a>
+                            <a href="{{ route(Auth::user()->role->nm_role . '.risalah.index') }}" class="text-decoration-none text-primary">Risalah</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Tambah Risalah</span>
                         </div>
@@ -36,8 +35,7 @@
                             </div>
                         @endif
 
-                        <form action="{{ route('risalah.store') }}" method="POST" enctype="multipart/form-data"
-                            id="risalahForm">
+                        <form action="{{ route('risalah.store') }}" method="POST" enctype="multipart/form-data" id="risalahForm">
                             @csrf
                             <div class="card">
                                 <div class="card-header">
@@ -96,12 +94,14 @@
                                             <select name="judul" id="judul" class="select2" required>
                                                 <option value="" disabled selected>Pilih Judul</option>
                                                 @foreach ($undangan as $u)
-                                                    <option value="{{ $u->judul }}" data-tempat="{{ $u->tempat }}"
+                                                    <option value="{{ $u->judul }}"
+                                                        data-tempat="{{ $u->tempat }}"
                                                         data-waktu_mulai="{{ $u->waktu_mulai }}"
                                                         data-waktu_selesai="{{ $u->waktu_selesai }}"
                                                         data-tujuan="{{ $u->tujuan }}"
                                                         data-fullname='@json($users)'
-                                                        data-id="{{ $u->id_undangan }}" data-self-id="{{ $self->id }}"
+                                                        data-id="{{ $u->id_undangan }}"
+                                                        data-self-id="{{ $self->id }}"
                                                         data-self-name="{{ $self->fullname }}">
                                                         {{ $u->judul }}
                                                     </option>
@@ -125,8 +125,7 @@
                                                 <i class="fas fa-map-marker-alt text-primary me-1"></i>
                                                 Tempat Rapat <span class="text-danger">*</span>
                                             </label>
-                                            <input type="text" name="tempat" id="tempat" class="form-control"
-                                                required>
+                                            <input type="text" name="tempat" id="tempat" class="form-control" required>
                                         </div>
 
                                         <div class="col-md-6">
@@ -209,16 +208,14 @@
                                             <i class="fas fa-plus-circle me-2"></i> Tambah Isi Risalah
                                         </button>
 
-                                        <div id="risalahAlert" class="mt-2 text-danger small" style="display:none;">
-                                        </div>
+                                        <div id="risalahAlert" class="mt-2 text-danger small" style="display:none;"></div>
                                     </div>
                                     {{-- ===================== END ISI RISALAH ===================== --}}
 
                                 </div>
 
                                 <div class="card-footer d-flex justify-content-end">
-                                    <a href="{{ route('admin.risalah.index') }}"
-                                        class="btn btn-outline-primary me-2">Batal</a>
+                                    <a href="{{ route('admin.risalah.index') }}" class="btn btn-outline-primary me-2">Batal</a>
                                     <button type="submit" id="submitBtn" class="btn btn-primary">Simpan</button>
                                 </div>
                             </div>
@@ -233,215 +230,62 @@
 @endsection
 
 @push('scripts')
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // =========================
-            // OLD VALUES DARI SERVER
-            // =========================
-            const oldJudul = @json(old('judul'));
-            const oldAgenda = @json(old('agenda'));
-            const oldTempat = @json(old('tempat'));
-            const oldWaktuMulai = @json(old('waktu_mulai'));
-            const oldWaktuSelesai = @json(old('waktu_selesai'));
-            const oldPemimpin = @json(old('pemimpin_acara'));
-            const oldNotulis = @json(old('notulis_acara'));
-            const oldWithUndangan = @json(old('with_undangan'));
+<script>
+document.addEventListener('DOMContentLoaded', function () {
 
-            const oldProjectEvent = @json(old('project_event', []));
-            const oldTopik = @json(old('topik', []));
-            const oldUraianPermasalahan = @json(old('uraian_permasalahan', []));
-            const oldPembahasanTindakLanjut = @json(old('pembahasan_tindak_lanjut', []));
-            const oldTarget = @json(old('target', []));
-            const oldPic = @json(old('pic', []));
+    // =========================
+    // SELECT2
+    // =========================
+    $('#judul').select2({ theme: "bootstrap-5", placeholder: "Pilih Judul", allowClear: true, width: "100%" });
+    $('#pemimpin_acara').select2({ theme: "bootstrap-5", placeholder: "Pilih Pemimpin Acara", allowClear: true, width: "100%" });
+    $('#notulis_acara').select2({ theme: "bootstrap-5", placeholder: "Pilih Notulis Acara", allowClear: true, width: "100%" });
 
-            const oldSubTopik = @json(old('sub_topik', []));
-            const oldSubPembahasan = @json(old('sub_pembahasan', []));
-            const oldSubTindakLanjut = @json(old('sub_tindak_lanjut', []));
-            const oldSubTarget = @json(old('sub_target', []));
-            const oldSubPic = @json(old('sub_pic', []));
+    $('#judul').on('change', function () {
+        const selected = $(this).find(':selected');
+        $('#tempat').val(selected.data('tempat') || '');
+        $('#waktu_mulai').val(selected.data('waktu_mulai') || '');
+        $('#waktu_selesai').val(selected.data('waktu_selesai') || '');
+        $('#with_undangan').val(selected.attr('data-id') || '');
+    });
 
-            // =========================
-            // HELPER UMUM
-            // =========================
-            function escapeHtml(value) {
-                if (value === null || value === undefined) return '';
-                return String(value)
-                    .replace(/&/g, '&amp;')
-                    .replace(/</g, '&lt;')
-                    .replace(/>/g, '&gt;')
-                    .replace(/"/g, '&quot;')
-                    .replace(/'/g, '&#039;');
-            }
+    // =========================
+    // REFERENSI CONTAINER
+    // =========================
+    const risalahContainer = document.getElementById('risalahContainer');
+    const tambahRisalahBtn  = document.getElementById('tambahRisalahBtn');
 
-            function safeValue(arr, index) {
-                return Array.isArray(arr) && arr[index] !== undefined && arr[index] !== null ? arr[index] : '';
-            }
+    // =========================
+    // HELPER: Update nomor urut & name attribute sub risalah
+    // =========================
+    function updateNomor() {
+        const items = risalahContainer.querySelectorAll('.risalah-item');
+        items.forEach((item, index) => {
+            item.dataset.index = index;
 
-            function safeNestedValue(arr, parentIndex, childIndex) {
-                if (!Array.isArray(arr)) return '';
-                if (!Array.isArray(arr[parentIndex])) return '';
-                return arr[parentIndex][childIndex] !== undefined && arr[parentIndex][childIndex] !== null ?
-                    arr[parentIndex][childIndex] :
-                    '';
-            }
+            const noInput   = item.querySelector('.no-auto');
+            const noDisplay = item.querySelector('.no-display');
+            if (noInput)   noInput.value       = index + 1;
+            if (noDisplay) noDisplay.textContent = index + 1;
 
-            // =========================
-            // SELECT2
-            // =========================
-            $('#judul').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Pilih Judul',
-                allowClear: true,
-                width: '100%'
-            });
-
-            $('#pemimpin_acara').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Pilih Pemimpin Acara',
-                allowClear: true,
-                width: '100%'
-            });
-
-            $('#notulis_acara').select2({
-                theme: 'bootstrap-5',
-                placeholder: 'Pilih Notulis Acara',
-                allowClear: true,
-                width: '100%'
-            });
-
-            // =========================
-            // REFERENSI ELEMENT
-            // =========================
-            const judulSelect = document.getElementById('judul');
-            const agendaInput = document.querySelector('input[name="agenda"]');
-            const tempatInput = document.getElementById('tempat');
-            const waktuMulaiInput = document.getElementById('waktu_mulai');
-            const waktuSelesaiInput = document.getElementById('waktu_selesai');
-            const withUndanganInput = document.getElementById('with_undangan');
-
-            const risalahContainer = document.getElementById('risalahContainer');
-            const tambahRisalahBtn = document.getElementById('tambahRisalahBtn');
-            const risalahForm = document.getElementById('risalahForm');
-            const submitBtn = document.getElementById('submitBtn');
-
-            // =========================
-            // RESTORE FIELD STATIS
-            // =========================
-            function applySelectedUndanganData(optionEl, preserveManualValue = false) {
-                if (!optionEl) return;
-
-                const tempat = optionEl.getAttribute('data-tempat') || '';
-                const waktuMulai = optionEl.getAttribute('data-waktu_mulai') || '';
-                const waktuSelesai = optionEl.getAttribute('data-waktu_selesai') || '';
-                const undanganId = optionEl.getAttribute('data-id') || '';
-
-                if (!preserveManualValue || !tempatInput.value) {
-                    tempatInput.value = oldTempat || tempat;
-                }
-
-                if (!preserveManualValue || !waktuMulaiInput.value) {
-                    waktuMulaiInput.value = oldWaktuMulai || waktuMulai;
-                }
-
-                if (!preserveManualValue || !waktuSelesaiInput.value) {
-                    waktuSelesaiInput.value = oldWaktuSelesai || waktuSelesai;
-                }
-
-                if (withUndanganInput) {
-                    withUndanganInput.value = oldWithUndangan || undanganId;
-                }
-            }
-
-            function restoreStaticFields() {
-                if (agendaInput && oldAgenda) {
-                    agendaInput.value = oldAgenda;
-                }
-
-                if (tempatInput && oldTempat) {
-                    tempatInput.value = oldTempat;
-                }
-
-                if (waktuMulaiInput && oldWaktuMulai) {
-                    waktuMulaiInput.value = oldWaktuMulai;
-                }
-
-                if (waktuSelesaiInput && oldWaktuSelesai) {
-                    waktuSelesaiInput.value = oldWaktuSelesai;
-                }
-
-                if (withUndanganInput && oldWithUndangan) {
-                    withUndanganInput.value = oldWithUndangan;
-                }
-
-                if (oldJudul) {
-                    $('#judul').val(oldJudul).trigger('change.select2');
-
-                    const selectedOption = judulSelect?.querySelector(
-                        `option[value="${CSS.escape(String(oldJudul))}"]`);
-                    if (selectedOption) {
-                        applySelectedUndanganData(selectedOption, true);
-                    }
-                }
-
-                if (oldPemimpin) {
-                    $('#pemimpin_acara').val(oldPemimpin).trigger('change.select2');
-                }
-
-                if (oldNotulis) {
-                    $('#notulis_acara').val(oldNotulis).trigger('change.select2');
-                }
-            }
-
-            restoreStaticFields();
-
-            // =========================
-            // EVENT JUDUL UNDANGAN
-            // =========================
-            $('#judul').on('change', function() {
-                const selected = $(this).find(':selected');
-                const selectedEl = selected.length ? selected[0] : null;
-                applySelectedUndanganData(selectedEl, false);
-            });
-
-            // =========================
-            // UPDATE NOMOR & NAME SUB
-            // =========================
-            function updateNomor() {
-                const items = risalahContainer.querySelectorAll('.risalah-item');
-
-                items.forEach((item, index) => {
-                    item.dataset.index = index;
-
-                    const noInput = item.querySelector('.no-auto');
-                    const noDisplay = item.querySelector('.no-display');
-
-                    if (noInput) noInput.value = index + 1;
-                    if (noDisplay) noDisplay.textContent = index + 1;
-
-                    item.querySelectorAll('.sub-risalah-row').forEach((subRow, subIndex) => {
-                        subRow.dataset.subIndex = subIndex;
-
-                        const badge = subRow.querySelector('.sub-badge');
-                        if (badge) {
-                            badge.innerHTML =
-                                `<i class="fas fa-code-branch me-1"></i> Sub ${subIndex + 1}`;
-                        }
-
-                        subRow.querySelectorAll('[data-sub-name]').forEach(el => {
-                            el.name = `${el.dataset.subName}[${index}][]`;
-                        });
-                    });
+            item.querySelectorAll('.sub-risalah-row').forEach((subRow, subIndex) => {
+                subRow.dataset.subIndex = subIndex;
+                subRow.querySelectorAll('[data-sub-name]').forEach(el => {
+                    el.name = `${el.dataset.subName}[${index}][]`;
                 });
-            }
+                const badge = subRow.querySelector('.sub-badge');
+                if (badge) badge.innerHTML = `<i class="fas fa-code-branch me-1"></i> Sub ${subIndex + 1}`;
+            });
+        });
+    }
 
-            // =========================
-            // TEMPLATE: SUB RISALAH
-            // =========================
-            function createSubRisalahRow(parentIndex, values = {}) {
-                const subRow = document.createElement('div');
-                subRow.className = 'sub-risalah-row position-relative mt-3';
+    // =========================
+    // TEMPLATE: Sub Risalah Row
+    // =========================
+    function createSubRisalahRow(parentIndex) {
+        const subRow = document.createElement('div');
+        subRow.className = 'sub-risalah-row position-relative mt-3';
 
-                subRow.innerHTML = `
+        subRow.innerHTML = `
             <div class="card border-0 shadow-sm" style="background:#f0f4ff; border-left:3px solid #4f6ef7 !important; border-radius:8px;">
                 <div class="card-body py-3 px-3">
                     <div class="d-flex align-items-center justify-content-between mb-3">
@@ -462,7 +306,7 @@
                                 name="sub_topik[${parentIndex}][]"
                                 placeholder="Masukkan sub topik..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_topik ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Pembahasan</label>
@@ -471,7 +315,7 @@
                                 name="sub_pembahasan[${parentIndex}][]"
                                 placeholder="Masukkan sub pembahasan..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_pembahasan ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-4">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Tindak Lanjut</label>
@@ -480,7 +324,7 @@
                                 name="sub_tindak_lanjut[${parentIndex}][]"
                                 placeholder="Masukkan sub tindak lanjut..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_tindak_lanjut ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub Target</label>
@@ -489,7 +333,7 @@
                                 name="sub_target[${parentIndex}][]"
                                 placeholder="Masukkan sub target..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_target ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold mb-1" style="font-size:.8rem; color:#555;">Sub PIC</label>
@@ -498,26 +342,25 @@
                                 name="sub_pic[${parentIndex}][]"
                                 placeholder="Masukkan sub PIC..."
                                 rows="2"
-                                style="resize:vertical; border-radius:6px; font-size:.85rem;">${escapeHtml(values.sub_pic ?? '')}</textarea>
+                                style="resize:vertical; border-radius:6px; font-size:.85rem;"></textarea>
                         </div>
                     </div>
                 </div>
             </div>
         `;
+        return subRow;
+    }
 
-                return subRow;
-            }
+    // =========================
+    // TEMPLATE: Main Risalah Item
+    // =========================
+    function createMainRisalahItem(itemIndex) {
+        const itemWrapper = document.createElement('div');
+        itemWrapper.className = 'risalah-item card mb-4 border-0 shadow-sm';
+        itemWrapper.dataset.index = itemIndex;
+        itemWrapper.style.cssText = 'border-radius:10px; overflow:hidden;';
 
-            // =========================
-            // TEMPLATE: MAIN RISALAH
-            // =========================
-            function createMainRisalahItem(itemIndex, values = {}) {
-                const itemWrapper = document.createElement('div');
-                itemWrapper.className = 'risalah-item card mb-4 border-0 shadow-sm';
-                itemWrapper.dataset.index = itemIndex;
-                itemWrapper.style.cssText = 'border-radius:10px; overflow:hidden;';
-
-                itemWrapper.innerHTML = `
+        itemWrapper.innerHTML = `
             <div class="card-header d-flex align-items-center justify-content-between py-2 px-3"
                 style="background:linear-gradient(90deg,#1e3a8a,#2563eb); border:none;">
                 <div class="d-flex align-items-center gap-2">
@@ -536,6 +379,7 @@
             <div class="card-body p-4">
                 <input type="hidden" class="no-auto" name="nomor[]" value="${itemIndex + 1}">
 
+                {{-- Baris 1: Proyek/Event + Topik --}}
                 <div class="row g-3 mb-3">
                     <div class="col-md-4">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -543,7 +387,6 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="project_event[]"
-                            value="${escapeHtml(values.project_event ?? '')}"
                             placeholder="Nama proyek atau event..."
                             style="border-radius:6px; font-size:.87rem;">
                     </div>
@@ -553,13 +396,13 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="topik[]"
-                            value="${escapeHtml(values.topik ?? '')}"
                             placeholder="Topik pembahasan..."
                             required
                             style="border-radius:6px; font-size:.87rem;">
                     </div>
                 </div>
 
+                {{-- Baris 2: Pembahasan + Tindak Lanjut --}}
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -570,7 +413,7 @@
                             placeholder="Uraikan hasil pembahasan rapat..."
                             rows="3"
                             required
-                            style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.uraian_permasalahan ?? '')}</textarea>
+                            style="resize:vertical; border-radius:6px; font-size:.87rem;"></textarea>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -581,10 +424,11 @@
                             placeholder="Pembahasan / Tindakan yang perlu dilakukan..."
                             rows="3"
                             required
-                            style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.pembahasan_tindak_lanjut ?? '')}</textarea>
+                            style="resize:vertical; border-radius:6px; font-size:.87rem;"></textarea>
                     </div>
                 </div>
 
+                {{-- Baris 3: Target + PIC --}}
                 <div class="row g-3">
                     <div class="col-md-6">
                         <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
@@ -592,7 +436,6 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="target[]"
-                            value="${escapeHtml(values.target ?? '')}"
                             placeholder="Target penyelesaian (tanggal / deskripsi)..."
                             required
                             style="border-radius:6px; font-size:.87rem;">
@@ -603,13 +446,13 @@
                         </label>
                         <input type="text" class="form-control form-control-sm"
                             name="pic[]"
-                            value="${escapeHtml(values.pic ?? '')}"
                             placeholder="Person in charge..."
                             required
                             style="border-radius:6px; font-size:.87rem;">
                     </div>
                 </div>
 
+                {{-- Sub Risalah --}}
                 <div class="sub-risalah-wrapper mt-4 pt-3" style="border-top:1.5px dashed #cbd5e1;">
                     <div class="d-flex align-items-center justify-content-between mb-2">
                         <span class="fw-semibold text-muted" style="font-size:.82rem;">
@@ -630,260 +473,149 @@
             </div>
         `;
 
-                return itemWrapper;
-            }
+        return itemWrapper;
+    }
 
-            // =========================
-            // RESTORE OLD RISALAH
-            // =========================
-            function restoreOldRisalah() {
-                const totalItems = Math.max(
-                    oldProjectEvent.length,
-                    oldTopik.length,
-                    oldUraianPermasalahan.length,
-                    oldPembahasanTindakLanjut.length,
-                    oldTarget.length,
-                    oldPic.length
-                );
+    // =========================
+    // TAMBAH ITEM UTAMA
+    // =========================
+    if (tambahRisalahBtn && risalahContainer) {
+        tambahRisalahBtn.addEventListener('click', function () {
+            const itemIndex = risalahContainer.querySelectorAll('.risalah-item').length;
+            const item = createMainRisalahItem(itemIndex);
+            risalahContainer.appendChild(item);
+            updateNomor();
+            // Smooth scroll ke item baru
+            item.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    }
 
-                if (totalItems > 0) {
-                    for (let i = 0; i < totalItems; i++) {
-                        const item = createMainRisalahItem(i, {
-                            project_event: safeValue(oldProjectEvent, i),
-                            topik: safeValue(oldTopik, i),
-                            uraian_permasalahan: safeValue(oldUraianPermasalahan, i),
-                            pembahasan_tindak_lanjut: safeValue(oldPembahasanTindakLanjut, i),
-                            target: safeValue(oldTarget, i),
-                            pic: safeValue(oldPic, i),
-                        });
+    // =========================
+    // EVENT DELEGATION
+    // =========================
+    risalahContainer.addEventListener('click', function (e) {
 
-                        risalahContainer.appendChild(item);
+        // Hapus item utama
+        const hapusRisalahBtn = e.target.closest('.hapus-risalah-btn');
+        if (hapusRisalahBtn) {
+            const item = hapusRisalahBtn.closest('.risalah-item');
+            if (item) { item.remove(); updateNomor(); }
+            return;
+        }
 
-                        const subContainer = item.querySelector('.sub-risalah-container');
-                        const subTopikList = Array.isArray(oldSubTopik[i]) ? oldSubTopik[i] : [];
+        // Tambah sub risalah
+        const tambahSubBtn = e.target.closest('.tambah-sub-risalah-btn');
+        if (tambahSubBtn) {
+            const item = tambahSubBtn.closest('.risalah-item');
+            if (!item) return;
+            const parentIndex  = parseInt(item.dataset.index ?? 0, 10);
+            const subContainer = item.querySelector('.sub-risalah-container');
+            if (!subContainer) return;
+            const emptyState = subContainer.querySelector('.sub-empty-state');
+            if (emptyState) emptyState.remove();
+            subContainer.appendChild(createSubRisalahRow(parentIndex));
+            updateNomor();
+            return;
+        }
 
-                        if (subTopikList.length > 0) {
-                            const emptyState = subContainer.querySelector('.sub-empty-state');
-                            if (emptyState) emptyState.remove();
-
-                            for (let subIndex = 0; subIndex < subTopikList.length; subIndex++) {
-                                const subRow = createSubRisalahRow(i, {
-                                    sub_topik: safeNestedValue(oldSubTopik, i, subIndex),
-                                    sub_pembahasan: safeNestedValue(oldSubPembahasan, i, subIndex),
-                                    sub_tindak_lanjut: safeNestedValue(oldSubTindakLanjut, i, subIndex),
-                                    sub_target: safeNestedValue(oldSubTarget, i, subIndex),
-                                    sub_pic: safeNestedValue(oldSubPic, i, subIndex),
-                                });
-
-                                subContainer.appendChild(subRow);
-                            }
-                        }
-                    }
-
-                    updateNomor();
-                    return;
-                }
-
-                const defaultItem = createMainRisalahItem(0);
-                risalahContainer.appendChild(defaultItem);
+        // Hapus sub risalah
+        const hapusSubBtn = e.target.closest('.hapus-sub-risalah-btn');
+        if (hapusSubBtn) {
+            const subRow      = hapusSubBtn.closest('.sub-risalah-row');
+            const subContainer = subRow ? subRow.closest('.sub-risalah-container') : null;
+            if (subRow) {
+                subRow.remove();
                 updateNomor();
-            }
-
-            restoreOldRisalah();
-
-            // =========================
-            // TAMBAH ITEM UTAMA
-            // =========================
-            if (tambahRisalahBtn && risalahContainer) {
-                tambahRisalahBtn.addEventListener('click', function() {
-                    const itemIndex = risalahContainer.querySelectorAll('.risalah-item').length;
-                    const item = createMainRisalahItem(itemIndex);
-                    risalahContainer.appendChild(item);
-                    updateNomor();
-                    item.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                });
-            }
-
-            // =========================
-            // EVENT DELEGATION
-            // =========================
-            risalahContainer.addEventListener('click', function(e) {
-                const hapusRisalahBtn = e.target.closest('.hapus-risalah-btn');
-                if (hapusRisalahBtn) {
-                    const item = hapusRisalahBtn.closest('.risalah-item');
-                    if (item) {
-                        item.remove();
-
-                        if (!risalahContainer.querySelector('.risalah-item')) {
-                            const defaultItem = createMainRisalahItem(0);
-                            risalahContainer.appendChild(defaultItem);
-                        }
-
-                        updateNomor();
-                    }
-                    return;
-                }
-
-                const tambahSubBtn = e.target.closest('.tambah-sub-risalah-btn');
-                if (tambahSubBtn) {
-                    const item = tambahSubBtn.closest('.risalah-item');
-                    if (!item) return;
-
-                    const parentIndex = parseInt(item.dataset.index ?? 0, 10);
-                    const subContainer = item.querySelector('.sub-risalah-container');
-                    if (!subContainer) return;
-
-                    const emptyState = subContainer.querySelector('.sub-empty-state');
-                    if (emptyState) emptyState.remove();
-
-                    subContainer.appendChild(createSubRisalahRow(parentIndex));
-                    updateNomor();
-                    return;
-                }
-
-                const hapusSubBtn = e.target.closest('.hapus-sub-risalah-btn');
-                if (hapusSubBtn) {
-                    const subRow = hapusSubBtn.closest('.sub-risalah-row');
-                    const subContainer = subRow ? subRow.closest('.sub-risalah-container') : null;
-
-                    if (subRow) {
-                        subRow.remove();
-                        updateNomor();
-
-                        if (subContainer && !subContainer.querySelector('.sub-risalah-row')) {
-                            subContainer.insertAdjacentHTML('beforeend', `
+                if (subContainer && !subContainer.querySelector('.sub-risalah-row')) {
+                    subContainer.insertAdjacentHTML('beforeend', `
                         <div class="sub-empty-state text-center py-3 rounded-2"
                             style="background:#f8fafc; border:1.5px dashed #e2e8f0; color:#94a3b8; font-size:.82rem;">
                             <i class="fas fa-layer-group me-1"></i> Belum ada sub isi risalah.
                         </div>
                     `);
-                        }
-                    }
-                    return;
                 }
-            });
-
-            // =========================
-            // LAMPIRAN
-            // =========================
-            const lampiranInputContainer = document.getElementById('lampiran-input-container');
-            const lampiranInput = document.getElementById('lampiran-input');
-            const lampiranList = document.getElementById('lampiran-list');
-
-            if (lampiranInputContainer && lampiranInput && lampiranList) {
-                function createEmptyVisibleInput() {
-                    const newInput = document.createElement('input');
-                    newInput.type = 'file';
-                    newInput.id = 'lampiran-input';
-                    newInput.className = 'form-control';
-                    newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
-                    newInput.addEventListener('change', handleLampiranChange);
-
-                    lampiranInputContainer.innerHTML = '';
-                    lampiranInputContainer.appendChild(newInput);
-                }
-
-                function handleLampiranChange(e) {
-                    const input = e.target;
-                    if (!input.files || input.files.length === 0) return;
-
-                    const file = input.files[0];
-
-                    if (file.size > 2 * 1024 * 1024) {
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'File Terlalu Besar',
-                            text: 'Ukuran file tidak boleh lebih dari 2MB',
-                            confirmButtonColor: '#1572e8'
-                        });
-                        input.value = '';
-                        return;
-                    }
-
-                    const itemWrapper = document.createElement('div');
-                    itemWrapper.className =
-                    'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
-
-                    const infoWrapper = document.createElement('div');
-                    infoWrapper.className = 'flex-grow-1';
-                    infoWrapper.innerHTML =
-                        `<span>${escapeHtml(file.name)}</span><div class="progress mt-1" style="height:4px;"><div class="progress-bar" style="width:100%"></div></div>`;
-
-                    const removeBtn = document.createElement('button');
-                    removeBtn.type = 'button';
-                    removeBtn.className = 'btn btn-sm btn-outline-danger';
-                    removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
-
-                    input.name = 'lampiran[]';
-                    input.classList.add('d-none');
-                    input.removeEventListener('change', handleLampiranChange);
-
-                    itemWrapper.appendChild(infoWrapper);
-                    itemWrapper.appendChild(removeBtn);
-                    itemWrapper.appendChild(input);
-
-                    lampiranList.appendChild(itemWrapper);
-
-                    removeBtn.addEventListener('click', () => itemWrapper.remove());
-
-                    createEmptyVisibleInput();
-                }
-
-                lampiranInput.addEventListener('change', handleLampiranChange);
             }
+            return;
+        }
+    });
 
-            // =========================
-            // VALIDASI SUBMIT
-            // =========================
-            if (risalahForm && submitBtn) {
-                risalahForm.addEventListener('submit', function(e) {
-                    if (submitBtn.disabled) {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        return false;
-                    }
+    // =========================
+    // LAMPIRAN
+    // =========================
+    const lampiranInputContainer = document.getElementById('lampiran-input-container');
+    const lampiranInput          = document.getElementById('lampiran-input');
+    const lampiranList           = document.getElementById('lampiran-list');
 
-                    const jumlahRisalah = risalahContainer.querySelectorAll('.risalah-item').length;
-                    const risalahAlert = document.getElementById('risalahAlert');
+    if (lampiranInputContainer && lampiranInput && lampiranList) {
+        function createEmptyVisibleInput() {
+            const newInput = document.createElement('input');
+            newInput.type = 'file';
+            newInput.id   = 'lampiran-input';
+            newInput.className = 'form-control';
+            newInput.setAttribute('accept', '.pdf,.jpg,.jpeg,.png');
+            newInput.addEventListener('change', handleLampiranChange);
+            lampiranInputContainer.innerHTML = '';
+            lampiranInputContainer.appendChild(newInput);
+        }
 
-                    if (jumlahRisalah < 1) {
-                        e.preventDefault();
-                        if (risalahAlert) {
-                            risalahAlert.style.display = 'block';
-                            risalahAlert.innerText = 'Minimal harus mengisi 1 risalah rapat!';
-                            risalahAlert.scrollIntoView({
-                                behavior: 'smooth',
-                                block: 'center'
-                            });
-                        }
-                        return false;
-                    }
-
-                    if (risalahAlert) risalahAlert.style.display = 'none';
-
-                    submitBtn.disabled = true;
-                    submitBtn.innerHTML =
-                        `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...`;
-
-                    return true;
-                });
-
-                window.addEventListener('load', function() {
-                    const errorElements = document.querySelectorAll(
-                        '.alert-danger, .invalid-feedback, .error, .text-danger');
-                    if (errorElements.length > 0) {
-                        setTimeout(function() {
-                            if (submitBtn.disabled) {
-                                submitBtn.disabled = false;
-                                submitBtn.innerHTML = 'Simpan';
-                            }
-                        }, 500);
-                    }
-                });
+        function handleLampiranChange(e) {
+            const input = e.target;
+            if (!input.files || input.files.length === 0) return;
+            const file = input.files[0];
+            if (file.size > 2 * 1024 * 1024) {
+                Swal.fire({ icon: 'error', title: 'File Terlalu Besar', text: 'Ukuran file tidak boleh lebih dari 2MB', confirmButtonColor: '#1572e8' });
+                input.value = '';
+                return;
             }
+            const itemWrapper = document.createElement('div');
+            itemWrapper.className = 'd-flex align-items-center justify-content-between mb-2 flex-wrap gap-2';
+            const infoWrapper = document.createElement('div');
+            infoWrapper.className = 'flex-grow-1';
+            infoWrapper.innerHTML = `<span>${file.name}</span><div class="progress mt-1" style="height:4px;"><div class="progress-bar" style="width:100%"></div></div>`;
+            const removeBtn = document.createElement('button');
+            removeBtn.type = 'button';
+            removeBtn.className = 'btn btn-sm btn-outline-danger';
+            removeBtn.innerHTML = '<i class="fas fa-trash"></i>';
+            input.name = 'lampiran[]';
+            input.classList.add('d-none');
+            input.removeEventListener('change', handleLampiranChange);
+            itemWrapper.appendChild(infoWrapper);
+            itemWrapper.appendChild(removeBtn);
+            itemWrapper.appendChild(input);
+            lampiranList.appendChild(itemWrapper);
+            removeBtn.addEventListener('click', () => itemWrapper.remove());
+            createEmptyVisibleInput();
+        }
+
+        lampiranInput.addEventListener('change', handleLampiranChange);
+    }
+
+    // =========================
+    // VALIDASI SUBMIT
+    // =========================
+    const risalahForm = document.getElementById('risalahForm');
+    const submitBtn   = document.getElementById('submitBtn');
+
+    if (risalahForm && submitBtn) {
+        risalahForm.addEventListener('submit', function (e) {
+            if (submitBtn.disabled) { e.preventDefault(); return false; }
+            const jumlahRisalah = risalahContainer.querySelectorAll('.risalah-item').length;
+            const risalahAlert  = document.getElementById('risalahAlert');
+            if (jumlahRisalah < 1) {
+                e.preventDefault();
+                if (risalahAlert) {
+                    risalahAlert.style.display = 'block';
+                    risalahAlert.innerText = 'Minimal harus mengisi 1 risalah rapat!';
+                    risalahAlert.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+                return false;
+            }
+            if (risalahAlert) risalahAlert.style.display = 'none';
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Menyimpan...`;
+            return true;
         });
-    </script>
+    }
+});
+</script>
 @endpush
