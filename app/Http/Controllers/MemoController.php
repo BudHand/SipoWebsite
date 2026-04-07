@@ -1635,10 +1635,15 @@ class MemoController extends Controller
                 $qrText = 'Disetujui oleh: ' . $authUser->firstname . ' ' . $authUser->lastname . "\nNomor Memo: " . ($memo->nomor_memo ?? '-') . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s') . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
 
                 try {
-                    $memo->qr_approved_by = new QrCodeService()->generateWithLogo($qrText);
+                    $memo->qr_approved_by = (new QrCodeService())->generateWithLogo($qrText);
                 } catch (\Exception $e) {
                     Log::error('Generate QR Code gagal: ' . $e->getMessage());
                 }
+                // try {
+                //     $memo->qr_approved_by = new QrCodeService()->generateWithLogo($qrText);
+                // } catch (\Exception $e) {
+                //     Log::error('Generate QR Code gagal: ' . $e->getMessage());
+                // }
 
                 // ----------------------------
                 // Kirim ke penerima (Memo Masuk) - idempotent
@@ -2188,15 +2193,16 @@ class MemoController extends Controller
             ->where('id_memo', $id)
             ->where('status', 'approve')
             ->where(function ($query) use ($userId) {
-                $query->whereHas('kirimDocument', function ($sub) use ($userId) {
-                    $sub->where('jenis_document', 'memo')
-                        ->where('id_penerima', $userId);
-                })->orWhere(function ($sub) use ($userId) {
-                    $sub->where('tembusan', 'like', $userId . ';%')
-                        ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
-                        ->orWhere('tembusan', 'like', '%;' . $userId)
-                        ->orWhere('tembusan', '=', (string) $userId);
-                });
+                $query
+                    ->whereHas('kirimDocument', function ($sub) use ($userId) {
+                        $sub->where('jenis_document', 'memo')->where('id_penerima', $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('tembusan', 'like', $userId . ';%')
+                            ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
+                            ->orWhere('tembusan', 'like', '%;' . $userId)
+                            ->orWhere('tembusan', '=', (string) $userId);
+                    });
             })
             ->firstOrFail();
 
@@ -2225,9 +2231,7 @@ class MemoController extends Controller
                 $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
                 $replyCreatorId = $reply->pembuat;
 
-                return in_array($userId, $tujuanArray)
-                    || $userId == $parentCreatorId
-                    || $userId == $replyCreatorId;
+                return in_array($userId, $tujuanArray) || $userId == $parentCreatorId || $userId == $replyCreatorId;
             })
             ->values();
 
@@ -2238,22 +2242,9 @@ class MemoController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
-        $sumberDiterima = $memo->kirimDocument
-            ->where('jenis_document', 'memo')
-            ->where('id_penerima', $userId)
-            ->isNotEmpty() ? 'penerima' : 'tembusan';
+        $sumberDiterima = $memo->kirimDocument->where('jenis_document', 'memo')->where('id_penerima', $userId)->isNotEmpty() ? 'penerima' : 'tembusan';
 
-        return view('manager.memo.view-memoDiterima', compact(
-            'memo',
-            'pembuat',
-            'divDeptKode',
-            'lampiranData',
-            'balasanMemos',
-            'memoRujukan',
-            'canViewBcc',
-            'bccDisplayList',
-            'sumberDiterima'
-        ));
+        return view('manager.memo.view-memoDiterima', compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList', 'sumberDiterima'));
     }
     // public function showDiterima($id)
     // {
