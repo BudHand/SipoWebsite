@@ -489,7 +489,7 @@
 
                                 {{-- Tampilan di header: ringkas jika > 3 --}}
                                 @if ($tujuanTerlampir)
-                                    Kepada : <em>Penerima terlampir</em>
+                                    Kepada : <em>(penerima dan tembusan surat terlampir)</em>
                                 @else
                                     Kepada :
                                     @if (!empty($tujuanList))
