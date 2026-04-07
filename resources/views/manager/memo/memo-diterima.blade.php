@@ -20,7 +20,7 @@
                 </div>
 
                 {{-- Row Filter --}}
-                <form class="row g-2 align-items-center" method="GET" action="{{ route('manager.memo.diterima') }}">
+                <form class="row g-2 align-items-center" method="GET" action="{{ route(auth()->user()->role->nm_role . '.memo.diterima') }}">
                     <div class="col-auto">
                         <select name="per_page" class="form-select rounded-3" style="max-width:100px;">
                             <option value="10" {{ request('per_page') == 10 ? 'selected' : '' }}>10</option>
