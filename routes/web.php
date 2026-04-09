@@ -135,6 +135,11 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
 
     Route::get('/risalah/edit/{id}', [RisalahController::class, 'edit'])->name('risalah.edit');
     Route::put('/risalah/{id}', [RisalahController::class, 'update'])->name('risalah.update');
+        //Delete Lampiran Memo
+    Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
+
+    //Delete Lampiran Risalah
+    Route::delete('/risalah/lampiran-existing/{id}/{index}', [RisalahController::class, 'deleteLampiranExisting'])->name('risalah.lampiran.delete-existing');
 });
 
 // SUPERADMIN
@@ -222,14 +227,14 @@ Route::middleware(['auth', 'role:1,2'])->group(function () {
     Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
     Route::put('/memo/update-baru/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo/update-baru');
 
-    //Delete Lampiran Memo
-    Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
+    // //Delete Lampiran Memo
+    // Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
+
+    // //Delete Lampiran Risalah
+    // Route::delete('/risalah/lampiran-existing/{id}/{index}', [RisalahController::class, 'deleteLampiranExisting'])->name('risalah.lampiran.delete-existing');
 
     //Delete Lampiran Risalah
-    Route::delete('/risalah/lampiran-existing/{id}/{index}', [RisalahController::class, 'deleteLampiranExisting'])->name('risalah.lampiran.delete-existing');
-
-    //Delete Lampiran Risalah
-    Route::delete('/risalah/lampiran-existing/{id}/{index}', [RisalahController::class, 'deleteLampiranExisting'])->name('risalah.lampiran.delete-existing');
+    // Route::delete('/risalah/lampiran-existing/{id}/{index}', [RisalahController::class, 'deleteLampiranExisting'])->name('risalah.lampiran.delete-existing');
 
     //laporan
     Route::get('/laporan-memo', function () {
