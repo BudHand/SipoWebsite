@@ -512,22 +512,22 @@
                             <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
                                 <i class="fas fa-project-diagram text-primary me-1"></i> Proyek / Event
                             </label>
-                            <input type="text" class="form-control form-control-sm"
+                            <textarea class="form-control form-control-sm"
                                 name="project_event[]"
-                                value="${escapeHtml(values.project_event ?? '')}"
                                 placeholder="Nama proyek atau event..."
-                                style="border-radius:6px; font-size:.87rem;">
+                                rows="2"
+                                style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.project_event ?? '')}</textarea>
                         </div>
                         <div class="col-md-8">
                             <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
                                 <i class="fas fa-tag text-primary me-1"></i> Topik <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="form-control form-control-sm"
+                            <textarea class="form-control form-control-sm"
                                 name="topik[]"
-                                value="${escapeHtml(values.topik ?? '')}"
                                 placeholder="Topik pembahasan..."
+                                rows="2"
                                 required
-                                style="border-radius:6px; font-size:.87rem;">
+                                style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.topik ?? '')}</textarea>
                         </div>
                     </div>
 
@@ -561,23 +561,23 @@
                             <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
                                 <i class="fas fa-calendar-check text-primary me-1"></i> Target <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="form-control form-control-sm"
+                            <textarea class="form-control form-control-sm"
                                 name="target[]"
-                                value="${escapeHtml(values.target ?? '')}"
                                 placeholder="Target penyelesaian (tanggal / deskripsi)..."
+                                rows="2"
                                 required
-                                style="border-radius:6px; font-size:.87rem;">
+                                style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.target ?? '')}</textarea>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label fw-semibold mb-1" style="font-size:.82rem; color:#374151;">
                                 <i class="fas fa-user-check text-primary me-1"></i> PIC <span class="text-danger">*</span>
                             </label>
-                            <input type="text" class="form-control form-control-sm"
+                            <textarea class="form-control form-control-sm"
                                 name="pic[]"
-                                value="${escapeHtml(values.pic ?? '')}"
                                 placeholder="Person in charge..."
+                                rows="2"
                                 required
-                                style="border-radius:6px; font-size:.87rem;">
+                                style="resize:vertical; border-radius:6px; font-size:.87rem;">${escapeHtml(values.pic ?? '')}</textarea>
                         </div>
                     </div>
 
