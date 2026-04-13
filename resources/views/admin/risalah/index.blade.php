@@ -13,7 +13,7 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="text-muted ms-1">/ Risalah</span>
                         </div>
                     </div>
