@@ -313,10 +313,6 @@
                 <div class="header2">
                     <table>
                         <tr>
-                            {{-- <th style="text-align: left; vertical-align: top;">
-                                Dari :
-                                {{ $memo->user->unit->name_unit ?? ($memo->user->section->name_section ?? ($memo->user->department->name_department ?? ($memo->user->divisi->nm_divisi ?? ($memo->user->director->name_director ?? ' ')))) }}
-                            </th> --}}
                             <th style="text-align: left; vertical-align: top;">
                                 Dari :
                                 @if ($manager)
@@ -329,7 +325,6 @@
                                 @endif
                             </th>
                             <th style="text-align: left; vertical-align: top;">
-                                Kepada :
                                 @php
                                     $rawTujuanIds = collect(explode(';', (string) $memo->tujuan))
                                         ->map(fn($id) => trim($id))
@@ -483,16 +478,29 @@
                                     $tujuanList = $rawTujuanIds->isNotEmpty()
                                                 ? array_values(array_filter($tujuanRingkas))
                                                 : array_values(array_filter($legacyTujuanNames));
+
+                                    // ── FITUR BARU ──────────────────────────────────────────
+                                    // Jika penerima lebih dari 3, header hanya tampilkan
+                                    // "Penerima terlampir". Daftar lengkap ditampilkan di bawah
+                                    // (sebelum tembusan) bersama-sama dengan blok terlampir.
+                                    $tujuanTerlampir = count($tujuanList) > 3;
+                                    // ────────────────────────────────────────────────────────
                                 @endphp
 
-                                @if (!empty($tujuanList))
-                                    <ol style="margin: 0; padding-left: 20px;">
-                                        @foreach ($tujuanList as $name)
-                                            <li>{{ $name }}</li>
-                                        @endforeach
-                                    </ol>
+                                {{-- Tampilan di header: ringkas jika > 3 --}}
+                                @if ($tujuanTerlampir)
+                                    Kepada : <em>(penerima dan tembusan surat terlampir)</em>
                                 @else
-                                    <span style="display: inline;">-</span>
+                                    Kepada :
+                                    @if (!empty($tujuanList))
+                                        <ol style="margin: 0; padding-left: 20px;">
+                                            @foreach ($tujuanList as $name)
+                                                <li>{{ $name }}</li>
+                                            @endforeach
+                                        </ol>
+                                    @else
+                                        <span style="display: inline;">-</span>
+                                    @endif
                                 @endif
                             </th>
                         </tr>
@@ -825,8 +833,27 @@
                         $tembusanList = array_values(array_filter(array_merge($tembusanRingkas, $legacyTembusan)));
                     @endphp
 
-                    @if ($memo->tembusan)
+                    {{-- ── FITUR BARU: Kepada terlampir ditampilkan di sini, paling atas ──────── --}}
+                    @if ($tujuanTerlampir)
                         <div class="tembusan" style="margin-top: 50px">
+                            <table>
+                                <tr>
+                                    <td style="text-align: left; vertical-align: top;">
+                                        <strong>Kepada :</strong>
+                                        <ol style="margin: 0; padding-left: 20px;">
+                                            @foreach ($tujuanList as $name)
+                                                <li>{{ $name }}</li>
+                                            @endforeach
+                                        </ol>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    @endif
+                    {{-- ─────────────────────────────────────────────────────────────────────── --}}
+
+                    @if ($memo->tembusan)
+                        <div class="tembusan" style="margin-top: {{ $tujuanTerlampir ? '20px' : '50px' }}">
                             <table>
                                 <tr>
                                     <td style="text-align: left; vertical-align: top;">

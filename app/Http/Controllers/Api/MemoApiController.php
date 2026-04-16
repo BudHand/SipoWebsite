@@ -53,6 +53,7 @@ class MemoApiController extends Controller
             'message' => $memos->isEmpty() ? 'Belum ada memo' : 'Daftar memo ditemukan',
         ]);
     }
+
     public function kodeFilter()
     {
         $kode = Memo::whereNotNull('kode')
@@ -66,6 +67,7 @@ class MemoApiController extends Controller
             'data' => $kode,
         ], 200);
     }
+
     public function getAll()
     {
         $memos = Memo::with('user')->latest()->get();
@@ -75,6 +77,7 @@ class MemoApiController extends Controller
             'message' => $memos->isEmpty() ? 'Belum ada memo' : 'Daftar memo ditemukan',
         ]);
     }
+
     // GET /api/memos/{id}
     public function show($id)
     {

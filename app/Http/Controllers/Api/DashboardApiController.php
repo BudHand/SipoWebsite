@@ -12,6 +12,186 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardApiController extends Controller
 {
+
+    // public function index()
+    // {
+    //     $user = Auth::user();
+    //     $userId = (int) $user->id;
+    //     $now = Carbon::now();
+
+    //     $archivedMemo = Arsip::query()
+    //         ->where('user_id', $userId)
+    //         ->where('jenis_document', Memo::class)
+    //         ->pluck('document_id')
+    //         ->toArray();
+
+    //     $archivedUndangan = Arsip::query()
+    //         ->where('user_id', $userId)
+    //         ->where('jenis_document', Undangan::class)
+    //         ->pluck('document_id')
+    //         ->toArray();
+
+    //     $archivedRisalah = Arsip::query()
+    //         ->where('user_id', $userId)
+    //         ->where('jenis_document', Risalah::class)
+    //         ->pluck('document_id')
+    //         ->toArray();
+
+    //     $memoCount = Memo::query()
+    //         ->whereNotIn('id_memo', $archivedMemo)
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where(function ($sub) use ($userId) {
+    //                 $sub->where('id_pengirim', $userId)
+    //                     ->orWhere('id_penerima', $userId);
+    //             });
+    //         })
+    //         ->count();
+
+    //     $undanganCount = Undangan::query()
+    //         ->whereNotIn('id_undangan', $archivedUndangan)
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where(function ($sub) use ($userId) {
+    //                 $sub->where('id_pengirim', $userId)
+    //                     ->orWhere('id_penerima', $userId);
+    //             });
+    //         })
+    //         ->count();
+
+    //     $risalahCount = Risalah::query()
+    //         ->whereNotIn('id_risalah', $archivedRisalah)
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where(function ($sub) use ($userId) {
+    //                 $sub->where('id_pengirim', $userId)
+    //                     ->orWhere('id_penerima', $userId);
+    //             });
+    //         })
+    //         ->count();
+
+    //     $undangan = Undangan::query()
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where(function ($sub) use ($userId) {
+    //                 $sub->where('id_penerima', $userId)
+    //                     ->orWhere('id_pengirim', $userId);
+    //             });
+    //         })
+    //         ->where('status', 'approve')
+    //         ->whereDate('tgl_rapat', '>=', $now)
+    //         ->selectRaw('*, DATEDIFF(tgl_rapat, ?) as selisih_hari', [$now->toDateString()])
+    //         ->orderByRaw('selisih_hari')
+    //         ->limit(5)
+    //         ->get();
+
+    //     foreach ($undangan as $u) {
+    //         $u->waktu = $u->waktu_mulai . ' - ' . $u->waktu_selesai;
+    //     }
+
+    //     $recentMemo = Memo::query()
+    //         ->with(['kirimDocument' => function ($query) use ($userId) {
+    //             $query->where('id_penerima', $userId)
+    //                 ->where('status', 'pending')
+    //                 ->orderBy('id_kirim_document', 'desc');
+    //         }])
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where('id_penerima', $userId)
+    //                 ->where('status', 'pending');
+    //         })
+    //         ->get()
+    //         ->map(function ($memo) {
+    //             $kirim = $memo->kirimDocument->sortByDesc('id_kirim_document')->first();
+
+    //             if (!$kirim) {
+    //                 return null;
+    //             }
+
+    //             $item = (object) $kirim->toArray();
+    //             $item->id = $memo->id_memo;
+    //             $item->judul = $memo->judul ?? 'Dokumen tidak ditemukan';
+    //             $item->tgl_dokumen = $memo->updated_at ?? $memo->tgl_dibuat;
+    //             $item->tipe = 'memo';
+
+    //             return $item;
+    //         })
+    //         ->filter();
+
+    //     $recentUndangan = Undangan::query()
+    //         ->with(['kirimDocument' => function ($query) use ($userId) {
+    //             $query->where('id_penerima', $userId)
+    //                 ->where('status', 'pending')
+    //                 ->orderBy('id_kirim_document', 'desc');
+    //         }])
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where('id_penerima', $userId)
+    //                 ->where('status', 'pending');
+    //         })
+    //         ->get()
+    //         ->map(function ($undangan) {
+    //             $kirim = $undangan->kirimDocument->sortByDesc('id_kirim_document')->first();
+
+    //             if (!$kirim) {
+    //                 return null;
+    //             }
+
+    //             $item = (object) $kirim->toArray();
+    //             $item->id = $undangan->id_undangan;
+    //             $item->judul = $undangan->judul ?? 'Dokumen tidak ditemukan';
+    //             $item->tgl_dokumen = $undangan->tgl_rapat ?? $undangan->tgl_dibuat;
+    //             $item->tipe = 'undangan';
+
+    //             return $item;
+    //         })
+    //         ->filter();
+
+    //     $recentRisalah = Risalah::query()
+    //         ->with(['kirimDocument' => function ($query) use ($userId) {
+    //             $query->where('id_penerima', $userId)
+    //                 ->where('status', 'pending')
+    //                 ->orderBy('id_kirim_document', 'desc');
+    //         }])
+    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
+    //             $query->where('id_penerima', $userId)
+    //                 ->where('status', 'pending');
+    //         })
+    //         ->get()
+    //         ->map(function ($risalah) {
+    //             $kirim = $risalah->kirimDocument->sortByDesc('id_kirim_document')->first();
+
+    //             if (!$kirim) {
+    //                 return null;
+    //             }
+
+    //             $item = (object) $kirim->toArray();
+    //             $item->id = $risalah->id_risalah;
+    //             $item->judul = $risalah->judul ?? 'Dokumen tidak ditemukan';
+    //             $item->tgl_dokumen = $risalah->updated_at ?? $risalah->tgl_dibuat;
+    //             $item->tipe = 'risalah';
+
+    //             return $item;
+    //         })
+    //         ->filter();
+
+    //     $recentDocs = collect()
+    //         ->merge($recentMemo)
+    //         ->merge($recentUndangan)
+    //         ->merge($recentRisalah)
+    //         ->sortByDesc('id_kirim_document')
+    //         ->take(10)
+    //         ->values();
+
+    //     return response()->json([
+    //         'status' => 'success',
+    //         'data' => [
+    //             'fullname' => $user->firstname,
+    //             'memo_count' => $memoCount,
+    //             'risalah_count' => $risalahCount,
+    //             'undangan_count' => $undanganCount,
+    //             'undangan' => $undangan,
+    //             'recent_docs' => $recentDocs,
+    //         ],
+    //     ]);
+    // }
+
+    //index lama dengan Kirim_Document
+
     public function index()
     {
         $user = Auth::user();

@@ -187,7 +187,7 @@ class NotifApiController extends Controller
     public function tesNotif()
     {
         // Misal kita tes untuk user id 1
-        $id_user = 38;
+        $id_user = 15;
 
         // Ambil token dari database
         $tokenData = NotifTokenModel::where('id_user', $id_user)->first();

@@ -256,7 +256,7 @@ class NotifController extends Controller
 
         return match ($type) {
             'memo-null', 'memo-terkirim' => route('memo.terkirim'),
-            'memo-diterima' => route('memo.diterima'),
+            'memo-diterima' => route('view.memo-diterima'),
             'undangan-null' => route('undangan.manager'),
             'risalah-null' => route('manager.risalah.index'),
             default => '#',

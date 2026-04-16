@@ -33,7 +33,7 @@ Route::get('/version', function () {
 Route::post('/login', [AuthApiController::class, 'login']);
 Route::post('/logout', [AuthApiController::class, 'logout'])->middleware('auth:sanctum');
 
-Route::get('/tesnotif', [NotifApiController::class, 'tesNotif']);
+Route::post('/tesnotif', [NotifApiController::class, 'tesNotif']);
 Route::post('/save-token-manual', [NotifApiController::class, 'saveTokenManual']);
 // Route::get('/tesnotif', function() {
 //     $token = 'ExponentPushToken[UJfuJXJLKsqDoZ8WOvpAeu]'; // token dari app user
