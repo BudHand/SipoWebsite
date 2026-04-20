@@ -654,8 +654,7 @@
                                             {{-- Keterangan --}}
                                             <p class="mb-0">Belum ada memo balasan.</p>
 
-                                            {{-- Tombol Balas Memo --}}
-                                            <a href="{{ route('memo-manager/add2', ['reply_to' => $memo->id_memo]) }}"
+                                            <a href="{{ route('admin.memo.create', ['reply_to' => $memo->id_memo]) }}"
                                                 class="btn rounded-3 text-white"
                                                 style="background-color:#1E4178; border-color:#1E4178;">
                                                 <i class="fas fa-reply me-1"></i>Balas Memo

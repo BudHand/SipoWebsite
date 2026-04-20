@@ -220,12 +220,9 @@ Route::middleware(['auth', 'role:1'])->group(function () {
 });
 
 Route::middleware(['auth', 'role:1,2'])->group(function () {
+    // Legacy route (dipertahankan untuk backward-compat).
     Route::get('/memo/edit/{id_memo}', [MemoController::class, 'edit'])->name('memo.edit');
     Route::put('/memo/update/{id_memo}', [MemoController::class, 'update'])->name('memo/update');
-
-    //Edit Memo Baru
-    Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
-    Route::put('/memo/update-baru/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo/update-baru');
 
     // //Delete Lampiran Memo
     // Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
@@ -270,12 +267,6 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/admin/memo-diterima', [KirimController::class, 'memoDiterima'])->name('admin.memo.diterima');
     // Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
     Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
-
-    // coba memo dengan TinyMCE
-    Route::get('memo-admin/add', [MemoController::class, 'createCoba'])->name('admin.memo.store2');
-    // Route::post('memo-admin/store-coba', [MemoController::class, 'storeCoba'])->name('admin.memo.store-coba');
-    // Route::get('memo-admin/add-coba', [MemoController::class, 'createCoba'])->name('admin.memo.add-coba');
-    // Route::post('memo-admin/store-coba', [MemoController::class, 'storeCoba'])->name('admin.memo.store-coba');
 
     //undangan
     Route::get('/admin/undangan', [UndanganController::class, 'index'])->name('admin.undangan.index');
@@ -332,16 +323,20 @@ Route::middleware(['auth', 'role:3'])->group(function () {
 Route::middleware(['auth', 'role:2,3'])->group(function () {
     // memo
     Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
-    Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');
+    // Memo form shared untuk admin + manager (jalur UI yang sama)
+    Route::get('/admin/memo/create', [MemoController::class, 'createCoba'])->name('admin.memo.create');
+    Route::post('/admin/memo', [MemoController::class, 'storeCoba'])->name('admin.memo.store');
+    Route::get('/admin/memo/{id_memo}/edit', [MemoController::class, 'editBaru'])->name('admin.memo.edit');
+    Route::put('/admin/memo/{id_memo}', [MemoController::class, 'updateBaru'])->name('admin.memo.update');
 
-    //Edit Memo Baru
+    // Alias legacy route name/path (agar view lama tidak langsung break).
+    Route::get('memo-admin/add', [MemoController::class, 'createCoba'])->name('admin.memo.store2');
+    Route::post('memo/add/doc2', [MemoController::class, 'storeCoba'])->name('admin-memo.store');
     Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
     Route::put('/memo/update-baru/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo/update-baru');
 
     //Delete Lampiran Memo
     Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
-    // Route::post('memo/add/doc', [MemoController::class, 'store'])->name('memo-admin.store');
-    Route::post('memo/add/doc2', [MemoController::class, 'storeCoba'])->name('admin-memo.store');
 
     // undangan
     Route::get('undangan/add', [UndanganController::class, 'create'])->name('undangan-admin/add');

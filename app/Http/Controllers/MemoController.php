@@ -29,7 +29,6 @@ use App\Services\QrCodeService;
 use ZipArchive;
 use Illuminate\Support\Facades\Log;
 use App\Services\NotifService;
-use Illuminate\Support\Facades\Cache;
 
 class MemoController extends Controller
 {
@@ -3673,32 +3672,14 @@ class MemoController extends Controller
                     ? 'Memo Anda Berhasil Diupdate'
                     : 'Memo Diupdate, Menunggu Persetujuan';
 
-                // Tetap anti-spam push singkat per memo+recipient, tanpa ubah kontrak API mobile.
-                $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$recipientId}";
-                if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
-                    $notifService->createAndPush(
-                        (int) $recipientId,
-                        $judulNotif,
-                        $memo->judul,
-                        (int) $memo->id_memo,
-                        'memo'
-                    );
-                } else {
-                    // Minimal: tetap sinkronkan record notifikasi walau push ditahan lock.
-                    Notifikasi::updateOrCreate(
-                        [
-                            'id_user' => (int) $recipientId,
-                            'judul' => $judulNotif,
-                            'judul_document' => $memo->judul,
-                            'id_document' => (int) $memo->id_memo,
-                            'jenis_document' => 'memo',
-                        ],
-                        [
-                            'dibaca' => 0,
-                            'updated_at' => now(),
-                        ]
-                    );
-                }
+                // Selalu simpan notif DB + push mobile saat edit disimpan.
+                $notifService->createAndPush(
+                    (int) $recipientId,
+                    $judulNotif,
+                    $memo->judul,
+                    (int) $memo->id_memo,
+                    'memo'
+                );
             }
 
             // ============================

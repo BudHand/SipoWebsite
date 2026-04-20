@@ -48,7 +48,7 @@
                             </div>
                             <div class="card-body">
                                 <!-- Form -->
-                                <form action="{{ route('admin-memo.store') }}" method="POST" enctype="multipart/form-data"
+                                <form action="{{ route('admin.memo.store') }}" method="POST" enctype="multipart/form-data"
                                     id="memoForm">
                                     @csrf
                                     <div id="tujuan-container"></div>

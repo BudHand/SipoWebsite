@@ -27,7 +27,7 @@
                 </div>
 
                 {{-- Form --}}
-                <form action="{{ route('memo/update-baru', $memo->id_memo) }}" id= "memoForm" method="POST"
+                <form action="{{ route('admin.memo.update', $memo->id_memo) }}" id= "memoForm" method="POST"
                     enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
