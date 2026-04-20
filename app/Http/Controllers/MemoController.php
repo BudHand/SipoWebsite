@@ -518,6 +518,57 @@ class MemoController extends Controller
         return array_values(array_filter($result));
     }
 
+    /**
+     * Tentukan approver untuk notifikasi dengan prioritas request -> memo -> fallback fullname.
+     */
+    private function resolveApproverUserId(Memo $memo, ?Request $request = null): ?int
+    {
+        if ($request && $request->filled('manager_user_id')) {
+            $candidate = (int) $request->manager_user_id;
+            if ($candidate > 0) {
+                return $candidate;
+            }
+        }
+
+        if (!empty($memo->manager_user_id)) {
+            $candidate = (int) $memo->manager_user_id;
+            if ($candidate > 0) {
+                return $candidate;
+            }
+        }
+
+        $penandatangan = User::findByFullname((string) $memo->nama_bertandatangan);
+        return $penandatangan ? (int) $penandatangan->id : null;
+    }
+
+    /**
+     * Recipient notifikasi workflow (create/edit/correction/reject): pembuat + approver.
+     */
+    private function getWorkflowNotificationRecipients(Memo $memo, ?Request $request = null): array
+    {
+        return collect([
+            (int) $memo->pembuat,
+            $this->resolveApproverUserId($memo, $request),
+        ])->filter(fn($id) => is_int($id) && $id > 0)->unique()->values()->all();
+    }
+
+    /**
+     * Recipient notifikasi final approve: pembuat + approver + tujuan + tembusan + bcc.
+     */
+    private function getFinalNotificationRecipients(Memo $memo, ?int $approverId = null): array
+    {
+        $base = collect([
+            (int) $memo->pembuat,
+            $approverId ?: $this->resolveApproverUserId($memo),
+        ]);
+
+        $tujuan = $this->parseRecipientUserIds((string) $memo->tujuan);
+        $tembusan = $this->parseRecipientUserIds((string) $memo->tembusan);
+        $bcc = $this->parseRecipientUserIds((string) $memo->bcc);
+
+        return $base->merge($tujuan)->merge($tembusan)->merge($bcc)->map(fn($id) => (int) $id)->filter(fn($id) => $id > 0)->unique()->values()->all();
+    }
+
     //== Fungsi Nomor Seri dan Dokumen Otomatis ==//
     // public function nextSeri()
     // {
@@ -1570,9 +1621,9 @@ class MemoController extends Controller
             ]);
         }
 
-        $push = new NotifApiController();
+        $notifService = app(NotifService::class);
 
-        return DB::transaction(function () use ($id, $request, $requestStatus, $authUser, $authId, $push) {
+        return DB::transaction(function () use ($id, $request, $requestStatus, $authUser, $authId, $notifService) {
             // LOCK memo row untuk cegah double-approve paralel
             $memo = Memo::where('id_memo', $id)->lockForUpdate()->firstOrFail();
 
@@ -1675,59 +1726,23 @@ class MemoController extends Controller
                         ],
                     );
 
-                    // Notif Memo Masuk: tidak dobel
-                    $notifMasuk = Notifikasi::firstOrCreate(
-                        [
-                            'judul' => 'Memo Masuk',
-                            'judul_document' => $memo->judul,
-                            'id_user' => $penerima->id,
-                        ],
-                        [
-                            'updated_at' => now(),
-                        ],
-                    );
-
-                    // Push hanya kalau notif baru dibuat (biar gak spam kalau double approve)
-                    if ($notifMasuk->wasRecentlyCreated) {
-                        $push->sendToUser($penerima->id, 'Memo Masuk', $memo->judul);
-                    }
+                    // Distribusi final tetap berjalan lewat kirim_document (jangan dihapus).
                 }
 
-                // ----------------------------
-                // Notif untuk pembuat: Memo Disetujui (idempotent)
-                // ----------------------------
-                $notifDisetujui = Notifikasi::firstOrCreate(
-                    [
-                        'judul' => 'Memo Disetujui',
-                        'judul_document' => $memo->judul,
-                        'id_user' => (int) $memo->pembuat,
-                    ],
-                    [
-                        'updated_at' => now(),
-                    ],
-                );
+                // Target notifikasi approve final diambil dari business rule, bukan kirim_document.
+                $finalRecipients = $this->getFinalNotificationRecipients($memo, $authId);
+                $workflowRecipients = collect($this->getWorkflowNotificationRecipients($memo))->values();
 
-                if ($notifDisetujui->wasRecentlyCreated) {
-                    $push->sendToUser((int) $memo->pembuat, 'Memo Disetujui', $memo->judul);
-                }
+                foreach ($finalRecipients as $recipientId) {
+                    $isWorkflowRecipient = $workflowRecipients->contains((int) $recipientId);
+                    $judulNotif = $isWorkflowRecipient ? 'Memo Disetujui' : 'Memo Masuk';
 
-                // ----------------------------
-                // Memo Terkirim hanya untuk: pembuat + approver (idempotent)
-                // ----------------------------
-                $targetsTerkirim = collect([(int) $memo->pembuat, $authId])
-                    ->unique()
-                    ->filter();
-
-                foreach ($targetsTerkirim as $targetId) {
-                    Notifikasi::firstOrCreate(
-                        [
-                            'judul' => 'Memo Terkirim',
-                            'judul_document' => $memo->judul,
-                            'id_user' => (int) $targetId,
-                        ],
-                        [
-                            'updated_at' => now(),
-                        ],
+                    $notifService->createAndPush(
+                        (int) $recipientId,
+                        $judulNotif,
+                        $memo->judul,
+                        (int) $memo->id_memo,
+                        'memo'
                     );
                 }
 
@@ -1753,34 +1768,28 @@ class MemoController extends Controller
             } elseif ($requestStatus == 'reject') {
                 $memo->tgl_disahkan = now();
 
-                $notif = Notifikasi::firstOrCreate(
-                    [
-                        'judul' => 'Memo Ditolak',
-                        'judul_document' => $memo->judul,
-                        'id_user' => (int) $memo->pembuat,
-                    ],
-                    ['updated_at' => now()],
-                );
-
-                if ($notif->wasRecentlyCreated) {
-                    $push->sendToUser((int) $memo->pembuat, 'Memo Ditolak', $memo->judul);
+                foreach ($this->getWorkflowNotificationRecipients($memo) as $recipientId) {
+                    $notifService->createAndPush(
+                        (int) $recipientId,
+                        'Memo Ditolak',
+                        $memo->judul,
+                        (int) $memo->id_memo,
+                        'memo'
+                    );
                 }
 
                 // ============================
                 // CORRECTION
                 // ============================
             } elseif ($requestStatus == 'correction') {
-                $notif = Notifikasi::firstOrCreate(
-                    [
-                        'judul' => 'Memo Perlu Revisi',
-                        'judul_document' => $memo->judul,
-                        'id_user' => (int) $memo->pembuat,
-                    ],
-                    ['updated_at' => now()],
-                );
-
-                if ($notif->wasRecentlyCreated) {
-                    $push->sendToUser((int) $memo->pembuat, 'Memo Perlu Revisi', $memo->judul);
+                foreach ($this->getWorkflowNotificationRecipients($memo) as $recipientId) {
+                    $notifService->createAndPush(
+                        (int) $recipientId,
+                        'Memo Perlu Revisi',
+                        $memo->judul,
+                        (int) $memo->id_memo,
+                        'memo'
+                    );
                 }
 
                 // ============================
@@ -3174,6 +3183,7 @@ class MemoController extends Controller
             'catatan' => $request->input('catatan'),
             'status' => 'pending',
             'nama_bertandatangan' => $request->input('nama_bertandatangan'),
+            'manager_user_id' => (int) $request->input('manager_user_id'),
             'lampiran' => $lampiranPath,
             'feedback' => $idMemoLama,
             'tembusan' => !empty($tembusanUserIds) ? implode(';', $tembusanUserIds) : null,
@@ -3194,40 +3204,36 @@ class MemoController extends Controller
         }
 
         $creator = Auth::user();
-        $managers = User::where('id', $request->manager_user_id)->get();
+        $notifService = app(NotifService::class);
 
-        $sentCount = 0;
-        $push = new NotifApiController();
-
-        foreach ($managers as $manager) {
-            $kirim = Kirim_document::create([
+        // Workflow tetap pakai kirim_document, tapi source target notif pakai helper business rule.
+        Kirim_document::updateOrCreate(
+            [
                 'id_document' => $memo->id_memo,
                 'jenis_document' => 'memo',
                 'id_pengirim' => $creator->id,
-                'id_penerima' => $manager->id,
+                'id_penerima' => (int) $request->manager_user_id,
+            ],
+            [
                 'status' => 'pending',
+                'jenis_penerima' => 'approver',
                 'updated_at' => now(),
-            ]);
+            ]
+        );
 
-            Notifikasi::create([
-                'judul' => 'Memo Dalam Proses Persetujuan',
-                'judul_document' => $memo->judul,
-                'id_user' => $memo->pembuat,
-                'updated_at' => now(),
-            ]);
+        $workflowRecipients = $this->getWorkflowNotificationRecipients($memo, $request);
+        foreach ($workflowRecipients as $recipientId) {
+            $judulNotif = ((int) $recipientId === (int) $memo->pembuat)
+                ? 'Memo Dalam Proses Persetujuan'
+                : 'Memo Menunggu Persetujuan';
 
-            $push->sendToUser($manager->id, 'Memo Menunggu Persetujuan', $memo->judul);
-
-            Notifikasi::create([
-                'judul' => 'Memo Menunggu Persetujuan',
-                'judul_document' => $memo->judul,
-                'id_user' => $manager->id,
-                'updated_at' => now(),
-            ]);
-
-            if ($kirim) {
-                $sentCount++;
-            }
+            $notifService->createAndPush(
+                (int) $recipientId,
+                $judulNotif,
+                $memo->judul,
+                (int) $memo->id_memo,
+                'memo'
+            );
         }
 
         if (Auth::user()->role_id_role == 2) {
@@ -3435,7 +3441,14 @@ class MemoController extends Controller
             $selectedBcc = collect($bcc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
         }
 
-        return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja'));
+        // Prioritas selected approver: manager_user_id, fallback ke nama_bertandatangan.
+        $selectedManagerId = !empty($memo->manager_user_id) ? (int) $memo->manager_user_id : null;
+        if (!$selectedManagerId && !empty($memo->nama_bertandatangan)) {
+            $fallbackManager = User::findByFullname((string) $memo->nama_bertandatangan);
+            $selectedManagerId = $fallbackManager ? (int) $fallbackManager->id : null;
+        }
+
+        return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja', 'selectedManagerId'));
     }
 
     public function updateBaru(Request $request, $id)
@@ -3465,6 +3478,7 @@ class MemoController extends Controller
                 'tujuanString' => 'required|array|min:1',
                 'nomor_memo' => 'string|max:255',
                 'nama_bertandatangan' => 'required|string|max:255',
+                'manager_user_id' => 'required|exists:users,id',
                 'tgl_dibuat' => 'required|date',
                 'kode_bagian' => 'required|exists:bagian_kerja,kode_bagian',
                 'tgl_disahkan' => 'nullable|date',
@@ -3578,6 +3592,10 @@ class MemoController extends Controller
             if ($request->filled('nama_bertandatangan')) {
                 $memo->nama_bertandatangan = $request->nama_bertandatangan;
             }
+            if ($request->filled('manager_user_id')) {
+                // Sinkronkan approver baru ke memo (source utama notif workflow)
+                $memo->manager_user_id = (int) $request->manager_user_id;
+            }
             if ($request->filled('tgl_dibuat')) {
                 $memo->tgl_dibuat = $request->tgl_dibuat;
             }
@@ -3636,50 +3654,51 @@ class MemoController extends Controller
                 ->where('jenis_document', 'memo')
                 ->update(['status' => 'pending', 'updated_at' => now()]);
 
+            // Jika approver berubah, sinkronkan kirim_document approver (tetap untuk workflow/inbox).
+            Kirim_Document::where('id_document', $memo->id_memo)
+                ->where('jenis_document', 'memo')
+                ->where('jenis_penerima', 'approver')
+                ->update([
+                    'id_penerima' => (int) $memo->manager_user_id,
+                    'updated_at' => now(),
+                ]);
+
             // ============================
             // ✅ NOTIF + PUSH (PAKAI SERVICE)
             // ============================
 
-            // ambil semua approver dari kirim_document memo ini
-            $approverIds = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->pluck('id_penerima')->map(fn($v) => (int) $v)->unique()->filter(fn($v) => $v > 0)->values();
+            $workflowRecipients = $this->getWorkflowNotificationRecipients($memo, $request);
+            foreach ($workflowRecipients as $recipientId) {
+                $judulNotif = ((int) $recipientId === (int) $memo->pembuat)
+                    ? 'Memo Anda Berhasil Diupdate'
+                    : 'Memo Diupdate, Menunggu Persetujuan';
 
-            foreach ($approverIds as $approverId) {
-                // Simpan notif DB (biar list notif muncul)
-                Notifikasi::updateOrCreate(
-                    [
-                        'id_user' => $approverId,
-                        'judul' => 'Memo Diupdate, Menunggu Persetujuan',
-                        'judul_document' => $memo->judul,
-                    ],
-                    [
-                        'dibaca' => 0,
-                        'updated_at' => now(),
-                    ],
-                );
-
-                // anti spam push: kunci 30 detik per memo+approver
-                $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$approverId}";
+                // Tetap anti-spam push singkat per memo+recipient, tanpa ubah kontrak API mobile.
+                $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$recipientId}";
                 if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
-                    $notifService->createAndPush($approverId, 'Memo Diupdate, Menunggu Persetujuan', $memo->judul);
+                    $notifService->createAndPush(
+                        (int) $recipientId,
+                        $judulNotif,
+                        $memo->judul,
+                        (int) $memo->id_memo,
+                        'memo'
+                    );
+                } else {
+                    // Minimal: tetap sinkronkan record notifikasi walau push ditahan lock.
+                    Notifikasi::updateOrCreate(
+                        [
+                            'id_user' => (int) $recipientId,
+                            'judul' => $judulNotif,
+                            'judul_document' => $memo->judul,
+                            'id_document' => (int) $memo->id_memo,
+                            'jenis_document' => 'memo',
+                        ],
+                        [
+                            'dibaca' => 0,
+                            'updated_at' => now(),
+                        ]
+                    );
                 }
-            }
-
-            // notif ke pembuat (tanpa push juga boleh, tapi aku samakan)
-            Notifikasi::updateOrCreate(
-                [
-                    'id_user' => (int) $memo->pembuat,
-                    'judul' => 'Memo Diupdate, Menunggu Persetujuan',
-                    'judul_document' => $memo->judul,
-                ],
-                [
-                    'dibaca' => 0,
-                    'updated_at' => now(),
-                ],
-            );
-
-            $lockCreator = "push:memo_resubmit:{$memo->id_memo}:creator";
-            if (Cache::add($lockCreator, 1, now()->addSeconds(30))) {
-                $notifService->createAndPush((int) $memo->pembuat, 'Memo Diupdate, Menunggu Persetujuan', $memo->judul, (int) $memo->id_memo);
             }
 
             // ============================
