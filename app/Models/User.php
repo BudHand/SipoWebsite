@@ -33,6 +33,13 @@ class User extends Authenticatable
     protected $hidden = ['password', 'remember_token'];
 
     /**
+     * The attributes that should be cast.
+     *
+     * @var array<string, string>
+     */
+    protected $appends = ['fullname'];
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -51,10 +58,14 @@ class User extends Authenticatable
             'phone_number' => 'string',
         ];
     }
-    public function getFullnameAttribute()
+    public function getFullnameAttribute(): string
     {
-        return trim($this->firstname . ' ' . $this->lastname);
+        return trim(($this->firstname ?? '') . ' ' . ($this->lastname ?? ''));
     }
+    // public function getFullnameAttribute()
+    // {
+    //     return trim($this->firstname . ' ' . $this->lastname);
+    // }
     public function role()
     {
         return $this->belongsTo(Role::class, 'role_id_role', 'id_role');
@@ -92,5 +103,15 @@ class User extends Authenticatable
     public function expo_token()
     {
         return $this->hasOne(NotifTokenModel::class, 'id_user', 'id');
+    }
+
+    public static function findByFullname(string $fullname): ?self
+    {
+        $normalized = strtolower(trim(preg_replace('/\s+/', ' ', $fullname)));
+
+        return self::whereRaw(
+            "LOWER(TRIM(CONCAT(firstname, ' ', COALESCE(lastname, '')))) = ?",
+            [$normalized]
+        )->first();
     }
 }

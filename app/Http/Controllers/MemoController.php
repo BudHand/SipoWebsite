@@ -1817,6 +1817,199 @@ class MemoController extends Controller
         return view(Auth::user()->role->nm_role . '.memo.edit', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray'));
     }
 
+// public function update(Request $request, $id)
+// {
+//     $memo = Memo::findOrFail($id);
+
+//     $emojiErrors = $this->validateNoEmoji($request);
+//     if (!empty($emojiErrors)) {
+//         return redirect()->back()->withErrors($emojiErrors)->withInput();
+//     }
+
+//     $request->validate(
+//         [
+//             'judul' => 'required|string|max:255',
+//             'isi_memo' => [
+//                 'required',
+//                 function ($attribute, $value, $fail) {
+//                     $clean = strip_tags($value);
+//                     $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+//                     $clean = preg_replace('/\xc2\xa0|\s+/u', '', $clean);
+//                     if ($clean === '') {
+//                         $fail('Isi memo tidak boleh kosong.');
+//                     }
+//                 },
+//             ],
+//             'tujuan' => 'required|array|min:1',
+//             'tujuanString' => 'required|array|min:1',
+//             'nomor_memo' => 'required|string|max:255',
+//             'nama_bertandatangan' => 'required|string|max:255',
+//             'tgl_dibuat' => 'required|date',
+//             'tgl_disahkan' => 'nullable|date',
+//             'kategori_barang' => 'sometimes|required|array|min:1',
+//             'kategori_barang.*.barang' => 'sometimes|required|string',
+//             'kategori_barang.*.qty' => 'sometimes|required|integer|min:1',
+//             'kategori_barang.*.satuan' => 'sometimes|required|string',
+//         ],
+//         [
+//             'kategori_barang.*.barang.required' => 'Nama barang harus diisi.',
+//             'kategori_barang.*.qty.required' => 'Qty barang harus diisi.',
+//             'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
+//         ],
+//     );
+
+//     if ($request->filled('judul')) {
+//         $memo->judul = $request->judul;
+//     }
+//     if ($request->filled('isi_memo')) {
+//         $memo->isi_memo = $request->isi_memo;
+//     }
+//     if ($request->filled('tujuan')) {
+//         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
+//         $memo->tujuan = implode(';', $tujuanId);
+//     }
+//     if ($request->filled('tujuanString')) {
+//         $memo->tujuan_string = implode(';', $request->tujuanString);
+//     }
+//     if ($request->filled('nomor_memo')) {
+//         $memo->nomor_memo = $request->nomor_memo;
+//     }
+//     if ($request->filled('nama_bertandatangan')) {
+//         $memo->nama_bertandatangan = $request->nama_bertandatangan;
+//     }
+//     if ($request->filled('tgl_dibuat')) {
+//         $memo->tgl_dibuat = $request->tgl_dibuat;
+//     }
+//     if ($request->filled('seri_surat')) {
+//         $memo->seri_surat = $request->seri_surat;
+//     }
+//     if ($request->filled('tgl_disahkan')) {
+//         $memo->tgl_disahkan = $request->tgl_disahkan;
+//     }
+
+//     // kalau form edit mengirim manager_user_id, simpan di memo juga
+//     if ($request->filled('manager_user_id') && isset($memo->manager_user_id)) {
+//         $memo->manager_user_id = (int) $request->manager_user_id;
+//     }
+
+//     if ($request->hasFile('lampiran')) {
+//         $file = $request->file('lampiran');
+//         $memo->lampiran = file_get_contents($file->getRealPath());
+//     }
+
+//     $memo->status = 'pending';
+//     $memo->save();
+
+//     // =========================================================
+//     // NOTIF + PUSH LANGSUNG DARI DATA MEMO SAJA
+//     // =========================================================
+//     $notifService = app(NotifService::class);
+
+//     $recipientIds = collect();
+
+//     // pembuat memo
+//     if (!empty($memo->pembuat)) {
+//         $recipientIds->push((int) $memo->pembuat);
+//     }
+
+//     // penandatangan / approver
+//     $penandatanganUserId = null;
+
+//     // prioritas 1: pakai manager_user_id yang dikirim dari form
+//     if ($request->filled('manager_user_id')) {
+//         $penandatanganUserId = (int) $request->manager_user_id;
+//     }
+
+//     // prioritas 2: fallback dari kolom memo kalau ada
+//     if (!$penandatanganUserId && !empty($memo->manager_user_id)) {
+//         $penandatanganUserId = (int) $memo->manager_user_id;
+//     }
+
+//     // prioritas 3: fallback cocokkan nama_bertandatangan ke user.name
+//     $penandatangan = User::findByFullname($memo->nama_bertandatangan);
+
+// if ($penandatangan) {
+//     $penandatanganUserId = (int) $penandatangan->id;
+// }
+
+//     if (!empty($penandatanganUserId)) {
+//         $recipientIds->push((int) $penandatanganUserId);
+//     }
+
+//     $recipientIds = $recipientIds
+//         ->filter(fn($id) => (int) $id > 0)
+//         ->unique()
+//         ->values();
+
+//     foreach ($recipientIds as $recipientId) {
+//         $isPembuat = ((int) $recipientId === (int) $memo->pembuat);
+
+//         $judulNotif = $isPembuat
+//             ? 'Memo Anda Berhasil Diupdate'
+//             : 'Memo Menunggu Persetujuan';
+
+//         $bodyNotif = $memo->judul;
+
+//         Notifikasi::updateOrCreate(
+//             [
+//                 'id_user' => (int) $recipientId,
+//                 'judul' => $judulNotif,
+//                 'judul_document' => $memo->judul,
+//                 'id_document' => (int) $memo->id_memo,
+//             ],
+//             [
+//                 'dibaca' => 0,
+//                 'updated_at' => now(),
+//             ],
+//         );
+
+//         $notifService->createAndPush(
+//             (int) $recipientId,
+//             $judulNotif,
+//             $bodyNotif,
+//             (int) $memo->id_memo
+//         );
+//     }
+
+//     if ($request->has('kategori_barang')) {
+//         foreach ($request->kategori_barang as $dataBarang) {
+//             if (isset($dataBarang['id_kategori_barang']) && $dataBarang['id_kategori_barang'] != null) {
+//                 $barang = $memo->kategoriBarang()->find($dataBarang['id_kategori_barang']);
+//                 if ($barang) {
+//                     $barang->update([
+//                         'memo_id_memo' => $memo->id_memo,
+//                         'nomor' => $dataBarang['nomor'],
+//                         'barang' => $dataBarang['barang'],
+//                         'qty' => $dataBarang['qty'],
+//                         'satuan' => $dataBarang['satuan'],
+//                     ]);
+//                 }
+//             }
+//         }
+//     }
+//     Log::info('DEBUG UPDATE MEMO NOTIF', [
+//     'memo_id' => $memo->id_memo,
+//     'pembuat' => $memo->pembuat,
+//     'nama_bertandatangan' => $memo->nama_bertandatangan,
+//     'penandatanganUserId' => $penandatanganUserId,
+//     'recipientIds' => $recipientIds->toArray(),
+// ]);
+
+// dd([
+//     'pembuat' => $memo->pembuat,
+//     'nama_bertandatangan' => $memo->nama_bertandatangan,
+//     'penandatanganUserId' => $penandatanganUserId,
+//     'recipientIds' => $recipientIds->toArray(),
+// ]);
+//     if (Auth::user()->role_id_role == 1) {
+//         return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
+//     } else {
+//         return redirect()
+//             ->route(Auth::user()->role->nm_role . '.memo.terkirim')
+//             ->with('success', 'Memo berhasil diubah.');
+//     }
+// }
+
     public function update(Request $request, $id)
     {
         $memo = Memo::findOrFail($id);
@@ -1897,53 +2090,69 @@ class MemoController extends Controller
         $memo->status = 'pending';
         $memo->save();
 
-        // Update status pada kirim_document juga jika ada
         Kirim_Document::where('id_document', $memo->id_memo)
             ->where('jenis_document', 'memo')
-            ->update(['status' => 'pending', 'updated_at' => now()]);
+            ->where('jenis_penerima', 'approver')
+            ->update([
+                'id_penerima' => (int) $request->manager_user_id,
+                'updated_at' => now(),
+            ]);
+        // Update status pada kirim_document juga jika ada
+        // Kirim_Document::where('id_document', $memo->id_memo)
+        //     ->where('jenis_document', 'memo')
+        //     ->update(['status' => 'pending', 'updated_at' => now()]);
 
         // ============================
-        // ✅ NOTIF + PUSH RESUBMIT KE APPROVER (pakai NotifService)
+        // ✅ NOTIF + PUSH KE APPROVER DAN PEMBUAT SETIAP KALI MEMO DISIMPAN
         // ============================
         $notifService = app(NotifService::class);
 
-        $approverIds = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->pluck('id_penerima')->map(fn($v) => (int) $v)->unique()->filter(fn($v) => $v > 0)->values();
+        // ambil semua approver dari kirim_document
+        $approverIds = Kirim_Document::where('id_document', $memo->id_memo)
+            ->where('jenis_document', 'memo')
+            ->pluck('id_penerima')
+            ->map(fn($v) => (int) $v)
+            ->filter(fn($v) => $v > 0)
+            ->values()
+            ->toArray();
 
-        foreach ($approverIds as $approverId) {
-            // DB notif selalu update (unread)
+        // gabungkan approver + pembuat, lalu unique biar tidak dobel
+        $recipientIds = collect($approverIds)
+            ->push((int) $memo->pembuat)
+            ->unique()
+            ->values();
+
+        foreach ($recipientIds as $recipientId) {
+            $isPembuat = ((int) $recipientId === (int) $memo->pembuat);
+
+            $judulNotif = $isPembuat
+                ? 'Memo Anda Berhasil Diupdate'
+                : 'Memo Telah Diupdate';
+
+            $bodyNotif = $memo->judul;
+
+            // simpan / update notif database
             Notifikasi::updateOrCreate(
                 [
-                    'id_user' => $approverId,
-                    'judul' => 'Memo Telah Diupdate',
+                    'id_user' => (int) $recipientId,
+                    'judul' => $judulNotif,
                     'judul_document' => $memo->judul,
                     'id_document' => (int) $memo->id_memo,
                 ],
                 [
                     'dibaca' => 0,
-                    'updated_at' => now(), // penting karena timestamps=false
+                    'updated_at' => now(),
                 ],
             );
 
-            // anti spam push: 30 detik per memo-user
-            $lockKey = "push:memo_resubmit:{$memo->id_memo}:{$approverId}";
-            if (Cache::add($lockKey, 1, now()->addSeconds(30))) {
-                $notifService->createAndPush($approverId, 'Memo Telah Diupdate', $memo->judul, (int) $memo->id_memo);
-            }
+            // push ke mobile SETIAP KALI SAVE
+            $notifService->createAndPush(
+                (int) $recipientId,
+                $judulNotif,
+                $bodyNotif,
+                (int) $memo->id_memo
+            );
         }
-
-        // notif ke pembuat (DB saja)
-        Notifikasi::updateOrCreate(
-            [
-                'id_user' => (int) $memo->pembuat,
-                'judul' => 'Memo Telah Diupdate',
-                'judul_document' => $memo->judul,
-                'id_document' => (int) $memo->id_memo,
-            ],
-            [
-                'dibaca' => 0,
-                'updated_at' => now(),
-            ],
-        );
         // ============================
 
         if ($request->has('kategori_barang')) {

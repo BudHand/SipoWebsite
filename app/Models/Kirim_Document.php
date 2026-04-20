@@ -23,53 +23,79 @@ class Kirim_Document extends Model
         'id_penerima',
         'status',
         'updated_at',
+        'jenis_penerima',
     ];
     public $timestamps = false;
     protected $dates = ['deleted_at'];
 
     // Relasi ke User (Pengirim)
-    public function pengirim()
-    {
-        return $this->belongsTo(User::class, 'id_pengirim');
-    }
+    // public function pengirim()
+    // {
+    //     return $this->belongsTo(User::class, 'id_pengirim');
+    // }
 
-    public function memo()
-    {
-        return $this->belongsTo(Memo::class, 'id_document', 'id_memo'); // Sesuaikan dengan foreign key yang benar
-    }
+    // public function memo()
+    // {
+    //     return $this->belongsTo(Memo::class, 'id_document', 'id_memo'); // Sesuaikan dengan foreign key yang benar
+    // }
 
     // public function undangan()
     // {
     //     return $this->belongsTo(Undangan::class, 'id_document'); // Sesuaikan dengan foreign key yang benar
     // }
-    public function undangan()
-    {
-        return $this->belongsTo(\App\Models\Undangan::class, 'id_document', 'id_undangan');
-    }
+    // public function undangan()
+    // {
+    //     return $this->belongsTo(\App\Models\Undangan::class, 'id_document', 'id_undangan');
+    // }
 
 
-    public function risalah()
-    {
-        return $this->belongsTo(Risalah::class, 'id_document', 'id_risalah'); // Sesuaikan dengan foreign key yang benar
-    }
+    // public function risalah()
+    // {
+    //     return $this->belongsTo(Risalah::class, 'id_document', 'id_risalah'); // Sesuaikan dengan foreign key yang benar
+    // }
 
     // Relasi ke User (Penerima)
+    // public function penerima()
+    // {
+    //     return $this->belongsTo(User::class, 'id_penerima');
+    // }
+
+    public function pengirim()
+    {
+        return $this->belongsTo(User::class, 'id_pengirim');
+    }
+
     public function penerima()
     {
         return $this->belongsTo(User::class, 'id_penerima');
     }
 
-    public function up()
+    public function memo()
     {
-        Schema::table('kirim_document', function (Blueprint $table) {
-            $table->softDeletes();
-        });
+        return $this->belongsTo(Memo::class, 'id_document', 'id_memo');
     }
 
-    public function down()
+    public function undangan()
     {
-        Schema::table('kirim_document', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
+        return $this->belongsTo(\App\Models\Undangan::class, 'id_document', 'id_undangan');
     }
+
+    public function risalah()
+    {
+        return $this->belongsTo(Risalah::class, 'id_document', 'id_risalah');
+    }
+
+    // public function up()
+    // {
+    //     Schema::table('kirim_document', function (Blueprint $table) {
+    //         $table->softDeletes();
+    //     });
+    // }
+
+    // public function down()
+    // {
+    //     Schema::table('kirim_document', function (Blueprint $table) {
+    //         $table->dropSoftDeletes();
+    //     });
+    // }
 }

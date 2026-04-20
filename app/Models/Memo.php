@@ -33,7 +33,8 @@ class Memo extends Model
     protected $fillable = ['judul', 'tujuan', 'isi_memo', 'tgl_dibuat', 'tgl_disahkan',
     'qr_approved_by', 'status', 'pembuat', 'catatan', 'nomor_memo',
     'nama_bertandatangan', 'lampiran', 'divisi_id_divisi', 'seri_surat',
-    'kode', 'tujuan_string', 'feedback', 'tembusan', 'kode_bagian', 'bcc',];
+    'kode', 'tujuan_string', 'feedback', 'tembusan', 'kode_bagian', 'bcc', 'manager_user_id',
+    ];
 
     /**
      * Indicates if the model should be timestamped.
@@ -61,10 +62,10 @@ class Memo extends Model
     {
         return $this->hasMany(kategori_barang::class, 'memo_id_memo', 'id_memo');
     }
-    public function kirimDocument()
-    {
-        return $this->hasMany(Kirim_Document::class, 'id_document');
-    }
+    // public function kirimDocument()
+    // {
+    //     return $this->hasMany(Kirim_Document::class, 'id_document');
+    // }
     public function arsip()
     {
         return $this->morphMany(Arsip::class, 'document');
@@ -78,21 +79,20 @@ class Memo extends Model
         return $this->hasMany(Lampiran::class, 'memo_id');
     }
 
-    // public function getBccUserIds()
-    // {
-    //     if (!$this->bcc) {
-    //         return [];
-    //     }
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'manager_user_id');
+    }
 
-    //     return array_filter(explode(';', $this->bcc));
-    // }
+    public function pembuatUser()
+    {
+        return $this->belongsTo(User::class, 'pembuat');
+    }
 
-    // public function pembuatUser()
-    // {
-    //     return $this->belongsTo(User::class, 'pembuat', 'id');
-    // }
+    public function kirimDocument()
+    {
+        return $this->hasMany(Kirim_Document::class, 'id_document', 'id_memo')
+            ->where('jenis_document', 'memo');
+    }
 
-    /**
-     * Get the document associated with the memo.
-     */
 }
