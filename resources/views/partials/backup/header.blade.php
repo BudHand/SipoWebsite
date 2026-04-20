@@ -226,6 +226,23 @@
             return { icon: "fas fa-bell", badge: "secondary" };
         }
 
+        function formatTanggalIndo(dateString) {
+            if (!dateString) return '-';
+
+            const isoString = String(dateString).replace(' ', 'T');
+            const date = new Date(isoString);
+
+            if (isNaN(date.getTime())) return '-';
+
+            return new Intl.DateTimeFormat('id-ID', {
+                day: '2-digit',
+                month: 'long',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }).format(date);
+        }
+
         function truncateText(text, limit = 60) {
             if (!text) return '-';
             text = String(text);
@@ -303,7 +320,7 @@
             notifications.forEach(notif => {
                 const judul = notif.judul ?? 'Tanpa judul';
                 const judulDocument = notif.judul_document ?? '-';
-                const updatedAt = notif.updated_at ?? '-';
+                const updatedAt = notif.updated_at ?? null;
                 const redirectUrl = notif.redirect_url ?? '#';
                 const isUnread = Number(notif.dibaca) === 0;
                 const config = getNotifConfig(judul);
@@ -323,7 +340,7 @@
                             <div class="flex-1">
                                 <div class="fw-semibold text-dark mb-1">${escapeHtml(judul)}</div>
                                 <div class="text-muted small mb-1">${escapeHtml(truncateText(judulDocument, 60))}</div>
-                                <div class="text-muted small">${escapeHtml(updatedAt)}</div>
+                                <div class="text-muted small">${escapeHtml(formatTanggalIndo(updatedAt))}</div>
                             </div>
                             ${isUnread ? '<span class="badge badge-primary badge-dot"></span>' : ''}
                         </div>

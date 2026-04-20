@@ -218,7 +218,8 @@ class NotifController extends Controller
             'judul' => $notification->judul ?? 'Tanpa judul',
             'judul_document' => $notification->judul_document ?? '-',
             'dibaca' => (int) ($notification->dibaca ?? 0),
-            'updated_at' => optional($notification->updated_at)?->toDateTimeString(),
+            'updated_at' => $notification->updated_at,
+            // 'updated_at' => optional($notification->updated_at)?->toDateTimeString(),
             'redirect_url' => $redirectUrl ?: '#',
         ];
     }
