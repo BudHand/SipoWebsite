@@ -27,7 +27,7 @@
                 </div>
 
                 {{-- Form --}}
-                <form action="{{ route('memo/update-baru', $memo->id_memo) }}" id= "memoForm" method="POST"
+                <form action="{{ route('admin.memo.update', $memo->id_memo) }}" id= "memoForm" method="POST"
                     enctype="multipart/form-data">
                     @csrf
                     @method('PUT')
@@ -129,13 +129,13 @@
                         {{-- Row 3: Nama yang Bertanda Tangan & Lampiran --}}
                         <div class="row mb-3">
                             <div class="col-md-6">
-                                <label for="nama_bertandatangan" class="form-label">
+                                <label for="manager_user_id" class="form-label">
                                     <i class="fas fa-signature text-primary me-1"></i>
                                     Nama yang Bertanda Tangan <span class="text-danger">*</span>
                                 </label>
 
-                                <select name="nama_bertandatangan" id="nama_bertandatangan"
-                                    class="form-control @error('nama_bertandatangan') is-invalid @enderror" required>
+                                <select name="manager_user_id" id="manager_user_id"
+                                    class="form-control @error('manager_user_id') is-invalid @enderror" required>
 
                                     <option value="">-- Pilih Penanda Tangan --</option>
 
@@ -146,14 +146,17 @@
                                             $label = '(' . $jabatan . ') ' . $namaLengkap;
                                         @endphp
 
-                                        <option value="{{ $namaLengkap }}"
-                                            {{ old('nama_bertandatangan', $memo->nama_bertandatangan) == $namaLengkap ? 'selected' : '' }}>
+                                        <option value="{{ $user->id }}" data-fullname="{{ $namaLengkap }}"
+                                            {{ (int) old('manager_user_id', $selectedManagerId ?? 0) === (int) $user->id ? 'selected' : '' }}>
                                             {{ $label }}
                                         </option>
                                     @endforeach
                                 </select>
 
-                                @error('nama_bertandatangan')
+                                <input type="hidden" name="nama_bertandatangan" id="namaBertandatangan"
+                                    value="{{ old('nama_bertandatangan', $memo->nama_bertandatangan) }}">
+
+                                @error('manager_user_id')
                                     <div class="invalid-feedback">{{ $message }}</div>
                                 @enderror
                             </div>
@@ -1196,6 +1199,16 @@
 
         $(document).ready(function() {
             console.log('submit trigger');
+            // Sinkronkan hidden nama_bertandatangan untuk kompatibilitas data lama.
+            const syncSignerName = function() {
+                const selected = $('#manager_user_id option:selected');
+                const fullname = selected.data('fullname') || '';
+                if (fullname) {
+                    $('#namaBertandatangan').val(fullname);
+                }
+            };
+            syncSignerName();
+            $(document).on('change', '#manager_user_id', syncSignerName);
 
             $.validator.addMethod('tinymceRequired', function(value, element) {
                 const editorId = $(element).attr('id');

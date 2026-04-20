@@ -82,7 +82,7 @@
                         <button type="submit" class="btn btn-primary rounded-3">
                             <i class="fas fa-filter me-1"></i>Filter
                         </button>
-                        <a href="{{ route('memo-manager/add2') }}" class="btn rounded-3 text-white"
+                        <a href="{{ route('admin.memo.create') }}" class="btn rounded-3 text-white"
                             style="background-color:#1E4178;">
                             <i class="fas fa-plus me-1"></i>Tambah Memo
                         </a>

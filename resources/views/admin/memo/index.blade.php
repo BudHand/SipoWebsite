@@ -85,7 +85,7 @@
                         <button type="submit" class="btn btn-primary rounded-3">
                             <i class="fas fa-filter me-1"></i>Filter
                         </button>
-                        <a href="{{ route('admin.memo.store2') }}" class="btn rounded-3 text-white"
+                        <a href="{{ route('admin.memo.create') }}" class="btn rounded-3 text-white"
                             style="background-color:#1E4178; border-color:#1E4178;">
                             <i class="fas fa-plus me-1"></i>Tambah Memo
                         </a>
@@ -156,7 +156,7 @@
                                                 <button type="button"
                                                     class="btn btn-sm rounded-circle text-white border-0 bg-secondary"
                                                     style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                    onclick="window.location.href='{{ route('memo.edit-baru', ['id_memo' => $memo->id_memo]) }}'">
+                                                    onclick="window.location.href='{{ route('admin.memo.edit', ['id_memo' => $memo->id_memo]) }}'">
                                                     <i class="fa-solid fa-pencil fa-lg"></i>
                                                 </button>
                                             @elseif ($memo->status == 'approve' || $memo->status == 'reject')

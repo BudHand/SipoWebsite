@@ -48,7 +48,7 @@
                             </div>
                             <div class="card-body">
                                 <!-- Form -->
-                                <form action="{{ route('admin-memo.store') }}" method="POST" enctype="multipart/form-data"
+                                <form action="{{ route('admin.memo.store') }}" method="POST" enctype="multipart/form-data"
                                     id="memoForm">
                                     @csrf
                                     <div id="tujuan-container"></div>
@@ -223,7 +223,8 @@
                                             <i class="fas fa-signature text-primary me-1"></i>
                                             Nama yang Bertanda Tangan <span class="text-danger">*</span>
                                         </label>
-                                        <select name="manager_user_id" id="manager_user_id" class="form-control">
+                                        <select name="manager_user_id" id="manager_user_id"
+                                            class="form-control @error('manager_user_id') is-invalid @enderror" required>
                                             <option value="" disabled selected style="text-align: left;">
                                                 --Pilih--</option>
                                             @foreach ($managers as $manager)
@@ -235,7 +236,9 @@
                                                     );
                                                     $kode_position = $matches[1] ?? $manager->position->nm_position;
                                                 @endphp
-                                                <option value="{{ $manager->id }}">
+                                                <option value="{{ $manager->id }}"
+                                                    data-fullname="{{ trim($manager->firstname . ' ' . ($manager->lastname ?? '')) }}"
+                                                    {{ old('manager_user_id') == $manager->id ? 'selected' : '' }}>
                                                     ({{ $kode_position }})
                                                     {{ $manager->firstname }}{{ $manager->lastname ? ' ' . $manager->lastname : '' }}
                                                 </option>
@@ -1271,17 +1274,12 @@
 
                 });
                 $(document).on('change', '#manager_user_id', function() {
-                    console.log("triger manageruserid");
-                    // Get selected option text (excluding the code in parentheses if you want just the name)
-                    const text = $(this).find("option:selected").text().trim();
-
-                    // Or, if you want only the name part (without position code):
-                    const cleaned = text.replace(/\(.*?\)\s*/, '');
-
-                    $('#namaBertandatangan').val(cleaned);
+                    const selectedOption = $(this).find("option:selected");
+                    const fullname = selectedOption.data('fullname') || selectedOption.text().trim().replace(/\(.*?\)\s*/, '');
+                    $('#namaBertandatangan').val(fullname);
                     console.log("Updated via #manager_user_id:", $('#namaBertandatangan').val());
-
                 });
+                $('#manager_user_id').trigger('change');
 
                 // =========================
                 // LAMPIRAN: pilih satu per satu, tampil sebagai list
