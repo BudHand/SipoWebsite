@@ -287,6 +287,12 @@ class MemoController extends Controller
                             ->orWhere('tembusan', 'like', '%;' . $userId . ';%') // ...;21;... pattern
                             ->orWhere('tembusan', 'like', '%;' . $userId) // ...;21 pattern
                             ->orWhere('tembusan', '=', (string) $userId); // tembusan hanya 21 saja
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('bcc', 'like', $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId)
+                            ->orWhere('bcc', '=', (string) $userId);
                     });
             });
 
@@ -2419,6 +2425,12 @@ class MemoController extends Controller
                             ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
                             ->orWhere('tembusan', 'like', '%;' . $userId)
                             ->orWhere('tembusan', '=', (string) $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('bcc', 'like', $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId)
+                            ->orWhere('bcc', '=', (string) $userId);
                     });
             })
             ->firstOrFail();
@@ -2459,7 +2471,14 @@ class MemoController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
-        $sumberDiterima = $memo->kirimDocument->where('jenis_document', 'memo')->where('id_penerima', $userId)->isNotEmpty() ? 'penerima' : 'tembusan';
+        $isTembusan = collect(explode(';', (string) $memo->tembusan))
+            ->map(fn($item) => trim($item))
+            ->filter(fn($item) => $item !== '')
+            ->contains((string) $userId);
+
+        $sumberDiterima = $memo->kirimDocument->where('jenis_document', 'memo')->where('id_penerima', $userId)->isNotEmpty()
+            ? 'penerima'
+            : ($isTembusan ? 'tembusan' : 'bcc');
 
         return view('manager.memo.view-memoDiterima', compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList', 'sumberDiterima'));
     }

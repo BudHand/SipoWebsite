@@ -268,8 +268,22 @@ class UndanganController extends Controller
         }
 
         $query = Undangan::whereNotIn('id_undangan', $undanganDiarsipkan)
-            ->whereHas('kirimDocument', function ($q) use ($userId) {
-                $q->where('id_penerima', $userId)->where('jenis_document', 'undangan');
+            ->where(function ($q) use ($userId) {
+                $q->whereHas('kirimDocument', function ($sub) use ($userId) {
+                    $sub->where('id_penerima', $userId)->where('jenis_document', 'undangan');
+                })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('tembusan', 'like', $userId . ';%')
+                            ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
+                            ->orWhere('tembusan', 'like', '%;' . $userId)
+                            ->orWhere('tembusan', '=', (string) $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('bcc', 'like', $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId)
+                            ->orWhere('bcc', '=', (string) $userId);
+                    });
             });
 
 
