@@ -1803,7 +1803,7 @@ class MemoController extends Controller
             $memo->save();
 
             return redirect()
-                ->route('memo.terkirim')
+                ->route('manager.memo.terkirim')
                 ->with('success', 'Memo berhasil di-' . $requestStatus);
         });
     }
@@ -3016,7 +3016,7 @@ class MemoController extends Controller
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
         return view(
-            Auth::user()->role->nm_role . '.memo.add',
+            'admin.memo.add',
             [
                 'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
                 'nomorDokumen' => $nomorDokumen,
@@ -3447,7 +3447,7 @@ class MemoController extends Controller
             $selectedManagerId = $fallbackManager ? (int) $fallbackManager->id : null;
         }
 
-        return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja', 'selectedManagerId'));
+        return view('admin.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja', 'selectedManagerId'));
     }
 
     public function updateBaru(Request $request, $id)
@@ -3672,7 +3672,13 @@ class MemoController extends Controller
                     ? 'Memo Anda Berhasil Diupdate'
                     : 'Memo Diupdate, Menunggu Persetujuan';
 
-                // Selalu simpan notif DB + push mobile saat edit disimpan.
+                Log::info('UPDATE MEMO - BEFORE PUSH', [
+                    'memo_id' => $memo->id_memo,
+                    'recipient_id' => $recipientId,
+                    'judul_notif' => $judulNotif,
+                    'judul_memo' => $memo->judul,
+                ]);
+
                 $notifService->createAndPush(
                     (int) $recipientId,
                     $judulNotif,

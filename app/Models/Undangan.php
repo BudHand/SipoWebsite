@@ -41,6 +41,7 @@ class Undangan extends Model
         'kode_bagian',
         'tembusan',
         'bcc',
+        'manager_user_id',
     ];
 
     protected $casts = [
@@ -59,9 +60,14 @@ class Undangan extends Model
     {
         return $this->morphMany(Arsip::class, 'document');
     }
+    // public function kirimDocument()
+    // {
+    //     return $this->hasMany(Kirim_Document::class, 'id_document', 'id_undangan');
+    // }
     public function kirimDocument()
     {
-        return $this->hasMany(Kirim_Document::class, 'id_document', 'id_undangan');
+        return $this->hasMany(Kirim_Document::class, 'id_document', 'id_undangan')
+            ->where('jenis_document', 'undangan');
     }
     public function user()
     {
@@ -93,5 +99,13 @@ class Undangan extends Model
         });
 
         return $tujuanNames;
+    }
+    public function approver()
+    {
+        return $this->belongsTo(User::class, 'manager_user_id');
+    }
+    public function pembuatUser()
+    {
+        return $this->belongsTo(User::class, 'pembuat');
     }
 }

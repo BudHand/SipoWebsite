@@ -258,7 +258,7 @@ class DashboardController extends Controller
         // role 3 (manager)
         if ($roleId === 3) {
             return [
-                'memo_keluar'     => route('memo.terkirim'),
+                'memo_keluar'     => route('manager.memo.terkirim'),
                 'memo_masuk'      => route('manager.memo.diterima'),
                 'undangan_keluar' => route('undangan.terkirim'),
                 'undangan_masuk'  => route('undangan.diterima'),

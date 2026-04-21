@@ -240,12 +240,12 @@
                         id="memo">
                         <ul class="nav nav-collapse">
                             <li class="{{ request()->routeIs('memo.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('memo.terkirim') }}">
+                                <a href="{{ route(Auth::user()->role->nm_role . '.memo.terkirim') }}">
                                     <span class="sub-item">Memo Keluar</span>
                                 </a>
                             </li>
                             <li class="{{ request()->routeIs('manager.memo.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('manager.memo.diterima') }}">
+                                <a href="{{ route(Auth::user()->role->nm_role . '.memo.diterima') }}">
                                     <span class="sub-item">Memo Masuk</span>
                                 </a>
                             </li>

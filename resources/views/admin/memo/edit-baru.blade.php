@@ -17,9 +17,9 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('admin.memo.index') }}" class="text-decoration-none text-primary">Memo</a>
+                            <a href="{{ route(Auth::user()->role->nm_role . '.memo.terkirim') }}" class="text-decoration-none text-primary">Memo</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Edit Memo</span>
                         </div>
