@@ -17,7 +17,6 @@ use App\Models\Memo;
 use App\Models\Section;
 use App\Models\Unit;
 use App\Http\Controllers\CetakPDFController;
-use App\Http\Controllers\Api\NotifApiController;
 use Illuminate\Support\Facades\Validator;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use Illuminate\Support\Facades\Log;
@@ -158,7 +157,7 @@ class UndanganController extends Controller
                     ->orWhere('id_penerima', $userId);
             })->get();
 
-        return view(Auth::user()->role->nm_role . '.undangan.index', compact('undangans', 'kode', 'seri', 'sortDirection', 'kirimDocuments'));
+        return view('admin.undangan.index', compact('undangans', 'kode', 'seri', 'sortDirection', 'kirimDocuments'));
     }
 
     /**
@@ -244,7 +243,7 @@ class UndanganController extends Controller
                 $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })->get();
 
-        return view(Auth::user()->role->nm_role . '.undangan.undangan-terkirim', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('admin.undangan.undangan-terkirim', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
 
     /**
@@ -329,7 +328,7 @@ class UndanganController extends Controller
             ->where(function ($q) use ($userId) {
                 $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })->get();
-        return view(Auth::user()->role->nm_role . '.undangan.undangan-diterima', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('admin.undangan.undangan-diterima', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
 
 
@@ -528,7 +527,7 @@ class UndanganController extends Controller
         $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
         // dd($orgTree, $jsTreeData);
 
-        return view(Auth::user()->role->nm_role . '.undangan.add-coba', [
+        return view('admin.undangan.add-coba', [
             'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
             'nomorDokumen' => $nomorDokumen,
             'kode' => $divDeptKode,
@@ -918,6 +917,64 @@ class UndanganController extends Controller
             ->all();
     }
 
+    private function resolveApproverUserId(Undangan $undangan, ?Request $request = null): ?int
+    {
+        if ($request && $request->filled('manager_user_id')) {
+            $candidate = (int) $request->manager_user_id;
+            if ($candidate > 0) {
+                return $candidate;
+            }
+        }
+
+        if (!empty($undangan->manager_user_id)) {
+            $candidate = (int) $undangan->manager_user_id;
+            if ($candidate > 0) {
+                return $candidate;
+            }
+        }
+
+        if (!empty($undangan->nama_bertandatangan)) {
+            $penandatangan = User::findByFullname((string) $undangan->nama_bertandatangan);
+            if ($penandatangan) {
+                return (int) $penandatangan->id;
+            }
+        }
+
+        return null;
+    }
+
+    private function getWorkflowNotificationRecipients(Undangan $undangan, ?Request $request = null): array
+    {
+        return collect([
+            (int) $undangan->pembuat,
+            $this->resolveApproverUserId($undangan, $request),
+        ])
+            ->map(fn($v) => is_numeric($v) ? (int) $v : null)
+            ->filter(fn($v) => !is_null($v) && $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
+    private function getFinalNotificationRecipients(Undangan $undangan, ?int $approverId = null): array
+    {
+        $tujuanIds = is_array($undangan->tujuan)
+            ? $undangan->tujuan
+            : explode(';', (string) $undangan->tujuan);
+
+        return collect(array_merge(
+            [(int) $undangan->pembuat, $approverId],
+            $tujuanIds,
+            $this->parseRecipientUserIds($undangan->tembusan ?? null),
+            $this->parseRecipientUserIds($undangan->bcc ?? null),
+        ))
+            ->map(fn($v) => is_numeric($v) ? (int) $v : null)
+            ->filter(fn($v) => !is_null($v) && $v > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
+
     private function buildGroupedRecipientDisplayList(array $selectedUserIds): array
     {
         if (empty($selectedUserIds)) {
@@ -1108,12 +1165,12 @@ class UndanganController extends Controller
             'bcc' => !empty($bccIds) ? implode(';', $bccIds) : null,
             // 'nama_bertandatangan' => $manager->firstname . ' ' . $manager->lastname,
             'nama_bertandatangan' => trim($manager->firstname . ' ' . $manager->lastname),
+            'manager_user_id' => (int) $manager->id,
             'lampiran' => $lampiranPath,
         ]);
 
         // Kirim ke manager untuk approval
         $creator = Auth::user();
-        $push = new NotifApiController();
 
         Kirim_Document::create([
             'id_document' => $undangan->id_undangan,
@@ -1124,21 +1181,17 @@ class UndanganController extends Controller
             'updated_at' => now(),
         ]);
 
-        Notifikasi::create([
-            'judul' => "Undangan Dalam Proses Persetujuan",
-            'judul_document' => $undangan->judul,
-            'id_user' => $undangan->pembuat,
-            'updated_at' => now()
-        ]);
-
-        Notifikasi::create([
-            'judul' => "Undangan Menunggu Persetujuan",
-            'judul_document' => $undangan->judul,
-            'id_user' => $manager->id,
-            'updated_at' => now()
-        ]);
-
-        $push->sendToUser($manager->id, 'Undangan Menunggu Persetujuan', $undangan->judul);
+        $notifService = app(NotifService::class);
+        $workflowRecipients = $this->getWorkflowNotificationRecipients($undangan, $request);
+        foreach ($workflowRecipients as $recipientId) {
+            $notifService->createAndPush(
+                $recipientId,
+                'Undangan Menunggu Persetujuan',
+                $undangan->judul,
+                (int) $undangan->id_undangan,
+                'undangan'
+            );
+        }
 
         if (Auth::user()->role_id_role == 3) {
             return redirect()->route('undangan.terkirim')
@@ -1172,7 +1225,7 @@ class UndanganController extends Controller
     {
         $undangan = Undangan::findOrFail($id);
         $userId = Auth::id();
-        $push = new NotifApiController();
+        $notifService = app(NotifService::class);
 
         // Validasi input dinamis
         $rules = [
@@ -1266,10 +1319,16 @@ class UndanganController extends Controller
             }
 
             // Kirim ke seluruh penerima undangan (tujuan + tembusan + bcc)
+            $approverId = $this->resolveApproverUserId($undangan);
+            $finalRecipients = $this->getFinalNotificationRecipients($undangan, $approverId);
+            $workflowRecipients = $this->getWorkflowNotificationRecipients($undangan);
+            $distributionRecipients = collect($finalRecipients)
+                ->reject(fn($recipientId) => in_array((int) $recipientId, $workflowRecipients, true))
+                ->values();
+
             $tujuanUserId = is_array($undangan->tujuan) ? $undangan->tujuan : explode(';', (string) $undangan->tujuan);
             $tembusanUserId = $this->parseRecipientUserIds($undangan->tembusan ?? null);
             $bccUserId = $this->parseRecipientUserIds($undangan->bcc ?? null);
-
             $allRecipientIds = collect(array_merge($tujuanUserId, $tembusanUserId, $bccUserId))
                 ->map(fn($v) => is_numeric($v) ? (int) $v : null)
                 ->filter(fn($v) => !is_null($v) && $v > 0)
@@ -1298,53 +1357,48 @@ class UndanganController extends Controller
                     ]);
                 }
 
-                Notifikasi::create([
-                    'judul' => "Undangan Masuk",
-                    'judul_document' => $undangan->judul,
-                    'id_user' => $user,
-                    'updated_at' => now()
-                ]);
-
-                $push->sendToUser($user, 'Undangan Masuk', $undangan->judul);
+                if ($distributionRecipients->contains((int) $user)) {
+                    $notifService->createAndPush(
+                        (int) $user,
+                        'Undangan Masuk',
+                        $undangan->judul,
+                        (int) $undangan->id_undangan,
+                        'undangan'
+                    );
+                }
             }
-
-            Notifikasi::create([
-                'judul' => "Undangan Disetujui dan Telah Terkirim",
-                'judul_document' => $undangan->judul,
-                'id_user' => $undangan->pembuat,
-                'updated_at' => now()
-            ]);
-
-            $push->sendToUser($undangan->pembuat, 'Undangan Disetujui dan Telah Terkirim', $undangan->judul);
-
-            Notifikasi::create([
-                'judul' => "Undangan Terkirim",
-                'judul_document' => $undangan->judul,
-                'id_user' => $userId,
-                'updated_at' => now()
-            ]);
+            foreach ($workflowRecipients as $recipientId) {
+                $notifService->createAndPush(
+                    (int) $recipientId,
+                    'Undangan Disetujui',
+                    $undangan->judul,
+                    (int) $undangan->id_undangan,
+                    'undangan'
+                );
+            }
 
         } elseif ($request->status == 'reject') {
             $undangan->tgl_disahkan = now();
-
-            Notifikasi::create([
-                'judul' => "Undangan Ditolak",
-                'judul_document' => $undangan->judul,
-                'id_user' => $undangan->pembuat,
-                'updated_at' => now()
-            ]);
-
-            $push->sendToUser($undangan->pembuat, 'Undangan Ditolak', $undangan->judul);
+            foreach ($this->getWorkflowNotificationRecipients($undangan) as $recipientId) {
+                $notifService->createAndPush(
+                    (int) $recipientId,
+                    'Undangan Ditolak',
+                    $undangan->judul,
+                    (int) $undangan->id_undangan,
+                    'undangan'
+                );
+            }
 
         } elseif ($request->status == 'correction') {
-            Notifikasi::create([
-                'judul' => "Undangan Perlu Dikoreksi",
-                'judul_document' => $undangan->judul,
-                'id_user' => $undangan->pembuat,
-                'updated_at' => now()
-            ]);
-
-            $push->sendToUser($undangan->pembuat, 'Undangan Perlu Dikoreksi', $undangan->judul);
+            foreach ($this->getWorkflowNotificationRecipients($undangan) as $recipientId) {
+                $notifService->createAndPush(
+                    (int) $recipientId,
+                    'Undangan Perlu Dikoreksi',
+                    $undangan->judul,
+                    (int) $undangan->id_undangan,
+                    'undangan'
+                );
+            }
 
         } else {
             $undangan->tgl_disahkan = null;
@@ -1392,7 +1446,6 @@ class UndanganController extends Controller
         $undangan = Undangan::findOrFail($id);
         $divisi = Divisi::all();
         $seri = Seri::all();
-        $divisiId = Auth::user()->divisi_id_divisi;
         $user = Auth::user();
         $managers = User::where('role_id_role', 3)
             ->where(function ($q) use ($user) {
@@ -1440,7 +1493,9 @@ class UndanganController extends Controller
             ->values()
             ->all();
 
-        return view(Auth::user()->role->nm_role . '.undangan.edit-baru', compact(
+        $selectedManagerId = $this->resolveApproverUserId($undangan);
+
+        return view('admin.undangan.edit-baru', compact(
             'undangan',
             'divisi',
             'seri',
@@ -1450,7 +1505,8 @@ class UndanganController extends Controller
             'lampiranData',
             'bagianKerja',
             'selectedTembusan',
-            'selectedBcc'
+            'selectedBcc',
+            'selectedManagerId'
         ));
     }
 
@@ -1480,6 +1536,7 @@ class UndanganController extends Controller
             'nomor_undangan' => 'nullable|string|max:255',
             'kode_bagian' => 'required|string',
             'nama_bertandatangan' => 'required|string|max:255',
+            'manager_user_id' => 'required|exists:users,id',
             'tgl_dibuat' => 'required|date',
             'tgl_disahkan' => 'nullable|date',
             'tgl_rapat' => 'required|date',
@@ -1525,7 +1582,9 @@ class UndanganController extends Controller
             $undangan->nomor_undangan = $request->nomor_undangan;
         }
 
-        $undangan->nama_bertandatangan = $request->nama_bertandatangan;
+        $manager = User::findOrFail((int) $request->manager_user_id);
+        $undangan->manager_user_id = (int) $manager->id;
+        $undangan->nama_bertandatangan = trim($manager->firstname . ' ' . $manager->lastname);
         $undangan->tgl_dibuat = $request->tgl_dibuat;
         $undangan->tgl_disahkan = $request->tgl_disahkan;
         $undangan->tgl_rapat = $request->tgl_rapat;
@@ -1590,35 +1649,34 @@ class UndanganController extends Controller
                 'updated_at' => now()
             ]);
 
+        // Sinkronkan approver terbaru ke kirim_document (workflow tetap gunakan tabel ini).
+        \App\Models\Kirim_Document::updateOrCreate(
+            [
+                'id_document' => $undangan->id_undangan,
+                'jenis_document' => 'undangan',
+                'id_penerima' => (int) $undangan->manager_user_id,
+            ],
+            [
+                'id_pengirim' => (int) $undangan->pembuat,
+                'status' => 'pending',
+                'updated_at' => now(),
+            ]
+        );
+
         // =============================
         // NOTIFIKASI RESUBMIT
         // =============================
         $notifService = app(\App\Services\NotifService::class);
 
-        // ambil semua approver
-        $approverIds = \App\Models\Kirim_Document::where('id_document', $undangan->id_undangan)
-            ->where('jenis_document', 'undangan')
-            ->pluck('id_penerima')
-            ->map(fn($v) => (int) $v)
-            ->unique()
-            ->filter(fn($v) => $v > 0)
-            ->values();
-
-        foreach ($approverIds as $approverId) {
-
+        foreach ($this->getWorkflowNotificationRecipients($undangan, $request) as $approverId) {
             $notifService->createAndPush(
                 $approverId,
                 'Undangan Diedit, Menunggu Persetujuan',
-                $undangan->judul
+                $undangan->judul,
+                (int) $undangan->id_undangan,
+                'undangan'
             );
         }
-
-        // notif ke pembuat
-        $notifService->createAndPush(
-            (int) $undangan->pembuat,
-            'Undangan Diedit, Menunggu Persetujuan',
-            $undangan->judul
-        );
 
         // =============================
         // REDIRECT
@@ -1786,7 +1844,7 @@ class UndanganController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($this->parseRecipientUserIds($undangan->bcc ?? null));
         }
 
-        return view(Auth::user()->role->nm_role . '.undangan.view-undangan', compact('undangan', 'lampiranData', 'tembusanList', 'canViewBcc', 'bccDisplayList'));
+        return view('admin.undangan.view-undangan', compact('undangan', 'lampiranData', 'tembusanList', 'canViewBcc', 'bccDisplayList'));
     }
 
     public function updateStatus(Request $request, $id)
