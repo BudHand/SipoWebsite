@@ -3,6 +3,9 @@
 @section('title', 'Edit Undangan Rapat')
 
 @section('content')
+    @php
+        $undanganIndexRoute = auth()->user()->role_id_role == 2 ? 'admin.undangan.index' : 'undangan.manager';
+    @endphp
     <div class="container-fluid px-4 py-0 mt-0">
         <div class="card shadow-sm border-0 rounded-3">
             <div class="card-body py-3">
@@ -11,9 +14,9 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('admin.undangan.index') }}" class="text-decoration-none text-primary">Undangan
+                            <a href="{{ route($undanganIndexRoute) }}" class="text-decoration-none text-primary">Undangan
                                 Rapat</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Edit Undangan Rapat</span>
@@ -250,22 +253,27 @@
                                         Nama yang Bertanda Tangan <span class="text-danger">*</span>
                                     </label>
 
-                                    <select name="nama_bertandatangan" id="nama_bertandatangan"
-                                        class="form-control @error('nama_bertandatangan') is-invalid @enderror">
+                                    <select name="manager_user_id" id="manager_user_id"
+                                        class="form-control @error('manager_user_id') is-invalid @enderror" required>
+                                        <option value="" disabled {{ empty($selectedManagerId) ? 'selected' : '' }}>--Pilih--</option>
                                         @foreach ($managers as $manager)
                                             @php
                                                 $fullName = trim($manager->firstname . ' ' . $manager->lastname);
                                             @endphp
-
-                                            <option value="{{ $fullName }}"
-                                                {{ old('nama_bertandatangan', $undangan->nama_bertandatangan) == $fullName ? 'selected' : '' }}>
+                                            <option value="{{ $manager->id }}" data-fullname="{{ $fullName }}"
+                                                {{ (int) old('manager_user_id', $selectedManagerId) === (int) $manager->id ? 'selected' : '' }}>
                                                 {{ $fullName }}
                                             </option>
                                         @endforeach
                                     </select>
+                                    <input type="hidden" name="nama_bertandatangan" id="nama_bertandatangan"
+                                        value="{{ old('nama_bertandatangan', $undangan->nama_bertandatangan) }}">
 
+                                    @error('manager_user_id')
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                                    @enderror
                                     @error('nama_bertandatangan')
-                                        <div class="invalid-feedback">{{ $message }}</div>
+                                        <div class="invalid-feedback d-block">{{ $message }}</div>
                                     @enderror
                                 </div>
 
@@ -377,7 +385,7 @@
                             <!-- Action Buttons -->
                             <div class="form-group">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('admin.undangan.index') }}" class="btn rounded-3"
+                                    <a href="{{ route($undanganIndexRoute) }}" class="btn rounded-3"
                                         style="background-color:#fff; color:#0d6efd; border:1px solid #0d6efd;">
                                         Batal
                                     </a>
@@ -397,6 +405,20 @@
 
 @push('scripts')
     <script>
+$(function() {
+    const managerSelect = document.getElementById('manager_user_id');
+    const namaInput = document.getElementById('nama_bertandatangan');
+    const syncPenandatangan = () => {
+        if (!managerSelect || !namaInput) return;
+        const selected = managerSelect.options[managerSelect.selectedIndex];
+        namaInput.value = selected ? (selected.dataset.fullname || selected.text.trim()) : '';
+    };
+    if (managerSelect && namaInput) {
+        syncPenandatangan();
+        managerSelect.addEventListener('change', syncPenandatangan);
+    }
+});
+
 $(function() {
     const treeData = @json($jsTreeData);
     const selectedTujuan = @json($tujuanArray);

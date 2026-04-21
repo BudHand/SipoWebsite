@@ -3,6 +3,9 @@
 @section('title', 'Detail Undangan Rapat')
 
 @section('content')
+    @php
+        $undanganIndexRoute = auth()->user()->role_id_role == 2 ? 'admin.undangan.index' : 'undangan.manager';
+    @endphp
 
     <div class="container-fluid px-4 py-0 mt-0">
         <div class="card shadow-sm border-0 rounded-3">
@@ -14,9 +17,9 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('admin.undangan.index') }}" class="text-decoration-none text-primary">Undangan
+                            <a href="{{ route($undanganIndexRoute) }}" class="text-decoration-none text-primary">Undangan
                                 Rapat</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Detail Undangan Rapat</span>
@@ -215,7 +218,166 @@
                         </div>
                     </div>
                 @endif
+
+                {{-- Form Approval (khusus manager approver) --}}
+                @php
+                    $isManagerApprover = auth()->user()->role_id_role == 3 &&
+                        ($undangan->manager_user_id
+                            ? (int) $undangan->manager_user_id === (int) auth()->id()
+                            : (string) $undangan->nama_bertandatangan === (string) auth()->user()->fullname);
+                @endphp
+                @if ($undangan->status === 'pending' && $isManagerApprover)
+                    <form id="approvalForm" method="POST"
+                        action="{{ route('undangan.updateStatus', $undangan->id_undangan) }}">
+                        @csrf
+                        @method('PUT')
+
+                        <div class="row mb-4">
+                            <div class="col-md-12" id="pengesahanCol">
+                                <div class="card border-0 shadow-sm rounded-3 h-100">
+                                    <div class="card-header py-2 rounded-top-3"
+                                        style="background:#e3f2fd;border-bottom:1px solid #bbdefb;">
+                                        <i class="fas fa-signature text-primary me-1"></i>
+                                        <span class="fw-semibold">Pengesahan</span>
+                                        <span style="color: red; font-size: 12px;">*</span>
+                                    </div>
+                                    <div class="card-body d-flex align-items-center justify-content-center">
+                                        <div class="d-flex gap-4">
+                                            <div class="form-check">
+                                                <input type="radio" class="form-check-input approval-checkbox"
+                                                    id="approve" name="status" value="approve">
+                                                <label class="form-check-label" for="approve">Diterima</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="radio" class="form-check-input approval-checkbox"
+                                                    id="reject" name="status" value="reject">
+                                                <label class="form-check-label" for="reject">Ditolak</label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input type="radio" class="form-check-input approval-checkbox"
+                                                    id="correction" name="status" value="correction">
+                                                <label class="form-check-label" for="correction">Dikoreksi</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-md-6" id="catatanCol" style="display:none;">
+                                <div class="card border-0 shadow-sm rounded-3 h-100">
+                                    <div class="card-header py-2 rounded-top-3"
+                                        style="background:#fff3cd;border-bottom:1px solid #ffeeba;">
+                                        <i class="fa fa-sticky-note me-2 text-warning"></i>
+                                        <span class="fw-semibold">Catatan</span>
+                                        <span style="color: red; font-size: 12px;">*</span>
+                                    </div>
+                                    <div class="card-body d-flex flex-column">
+                                        <textarea id="catatan" name="catatan" class="form-control flex-grow-1" rows="4"
+                                            placeholder="Berikan Catatan"></textarea>
+                                        <small id="catatanError" class="text-danger mt-1" style="display:none;">Catatan
+                                            wajib diisi</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="row mb-4" id="tujuanDivisiRow" style="display:none;">
+                            <div class="col-md-12 mb-3">
+                                <div class="card border-0 shadow-sm rounded-3">
+                                    <div class="card-header py-2 rounded-top-3"
+                                        style="background:#e3f2fd;border-bottom:1px solid #bbdefb;">
+                                        <i class="fas fa-id-card me-2 text-primary"></i>
+                                        <span class="fw-semibold">Konfirmasi Daftar Penerima</span>
+                                        <label for="isi"
+                                            style="color: #FF000080; font-size: 10px; margin-left: 5px;">
+                                            *Berikut adalah daftar divisi tujuan yang akan menerima undangan.
+                                        </label>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="info-row d-flex flex-column flex-sm-row">
+                                            <div class="info-label">Kepada</div>
+                                            <div class="info-value">
+                                                <pre style="font-family: Public Sans, sans-serif">{{ $undangan->tujuan }}</pre>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-end gap-2 mt-3">
+                            <a href="{{ route('undangan.terkirim') }}" class="btn rounded-3"
+                                style="background:#fff;color:#0d6efd;border:1px solid #0d6efd;">Batal</a>
+                            <button type="button" class="btn btn-primary rounded-3" id="submitBtn">Kirim</button>
+                        </div>
+                    </form>
+                @endif
             </div>
         </div>
     </div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const checkboxes = document.querySelectorAll('.approval-checkbox');
+            const catatanCol = document.getElementById('catatanCol');
+            const catatanInput = document.getElementById('catatan');
+            const tujuanDivisiRow = document.getElementById('tujuanDivisiRow');
+            const submitBtn = document.getElementById('submitBtn');
+            const approvalForm = document.getElementById('approvalForm');
+            let statusValue = null;
+            let isSubmitting = false;
+
+            if (!approvalForm) return;
+
+            checkboxes.forEach(checkbox => {
+                checkbox.addEventListener('change', function() {
+                    checkboxes.forEach(cb => {
+                        if (cb !== this) cb.checked = false;
+                    });
+                    statusValue = this.value;
+                    const pengesahanCol = document.getElementById('pengesahanCol');
+
+                    if (statusValue === 'approve') {
+                        catatanCol.style.display = 'none';
+                        catatanInput.required = false;
+                        tujuanDivisiRow.style.display = 'flex';
+                        pengesahanCol.className = 'col-md-12';
+                    } else if (statusValue === 'reject' || statusValue === 'correction') {
+                        catatanCol.style.display = 'block';
+                        catatanInput.required = true;
+                        tujuanDivisiRow.style.display = 'none';
+                        pengesahanCol.className = 'col-md-6';
+                    } else {
+                        catatanCol.style.display = 'none';
+                        catatanInput.required = false;
+                        tujuanDivisiRow.style.display = 'none';
+                        pengesahanCol.className = 'col-md-12';
+                    }
+                });
+            });
+
+            if (submitBtn) {
+                submitBtn.addEventListener('click', function() {
+                    if (isSubmitting) return;
+                    if (!statusValue) {
+                        alert('Pilih status pengesahan terlebih dahulu!');
+                        return;
+                    }
+                    if ((statusValue === 'reject' || statusValue === 'correction') && catatanInput.value.trim() ===
+                        '') {
+                        document.getElementById('catatanError').style.display = 'block';
+                        catatanInput.focus();
+                        return;
+                    }
+
+                    isSubmitting = true;
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Memproses...';
+                    approvalForm.submit();
+                });
+            }
+        });
+    </script>
+@endpush
