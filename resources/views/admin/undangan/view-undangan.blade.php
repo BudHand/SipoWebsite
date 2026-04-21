@@ -3,6 +3,9 @@
 @section('title', 'Detail Undangan Rapat')
 
 @section('content')
+    @php
+        $undanganIndexRoute = auth()->user()->role_id_role == 2 ? 'admin.undangan.index' : 'undangan.manager';
+    @endphp
 
     <div class="container-fluid px-4 py-0 mt-0">
         <div class="card shadow-sm border-0 rounded-3">
@@ -14,9 +17,9 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                            <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('admin.undangan.index') }}" class="text-decoration-none text-primary">Undangan
+                            <a href="{{ route($undanganIndexRoute) }}" class="text-decoration-none text-primary">Undangan
                                 Rapat</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Detail Undangan Rapat</span>

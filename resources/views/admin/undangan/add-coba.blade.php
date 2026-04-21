@@ -5,6 +5,9 @@
 @push('scripts')
 
     @section('content')
+        @php
+            $undanganIndexRoute = auth()->user()->role_id_role == 2 ? 'admin.undangan.index' : 'undangan.manager';
+        @endphp
         <div class="container-fluid px-4 py-0 mt-0">
             <div class="card shadow-sm border-0">
                 @if ($errors->any())
@@ -26,9 +29,9 @@
                     <div class="row mb-3">
                         <div class="col-12">
                             <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                                <a href="{{ route('admin.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
+                                <a href="{{ route('dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                                 <span class="mx-2 text-muted">/</span>
-                                <a href="{{ route('admin.undangan.index') }}"
+                                <a href="{{ route($undanganIndexRoute) }}"
                                     class="text-decoration-none text-primary">Undangan</a>
                                 <span class="mx-2 text-muted">/</span>
                                 <span class="text-muted">Tambah Undangan</span>
@@ -384,7 +387,7 @@
                                         <!-- Action Buttons -->
                                         <div class="form-group">
                                             <div class="d-flex justify-content-end gap-2">
-                                                <a href="{{ route('admin.undangan.index') }}" class="btn rounded-3"
+                                                <a href="{{ route($undanganIndexRoute) }}" class="btn rounded-3"
                                                     style="background-color:#fff; color:#0d6efd; border:1px solid #0d6efd;">
                                                     Batal
                                                 </a>
