@@ -22,7 +22,6 @@ class MemoApiController extends Controller
     // GET /api/memos
     public function index(Request $request)
     {
-        // eager load user
         $user = Auth::user();
 
         $memoDiarsipkan = Arsip::where('user_id', $user->id)

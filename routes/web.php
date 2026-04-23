@@ -284,8 +284,7 @@ Route::middleware(['auth', 'role:3'])->group(function () {
 
     // memo
     Route::get('/manager/memo', [KirimController::class, 'memo'])->name('memo.manager');
-    Route::get('/memo-terkirim', [KirimController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
-    // Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('memo.diterima');
+    Route::get('/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
     Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('manager.memo.diterima');
     // Route::get('memo-manager/add', [MemoController::class, 'create'])->name('memo-manager/add');
 

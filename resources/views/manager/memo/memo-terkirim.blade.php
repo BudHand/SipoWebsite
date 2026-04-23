@@ -93,16 +93,16 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if ($memoTerkirim->isEmpty())
+                            @if ($memos->isEmpty())
                                 <tr>
                                     <td colspan="8" class="text-center">Belum ada memo yang terkirim.</td>
                                 </tr>
                             @else
-                                @foreach ($memoTerkirim as $index => $kirim)
+                                @foreach ($memos as $index => $memo)
                                     <tr>
-                                        <td class="nomor">{{ ($memoTerkirim->firstItem() ?? 0) + $index }}</td>
+                                        <td class="nomor">{{ ($memos->firstItem() ?? 0) + $index }}</td>
                                         @php
-                                            $status = $kirim->memo->status;
+                                            $status = $memo->status;
 
                                             $class = match ($status) {
                                                 'reject' => 'text-danger',
@@ -115,36 +115,36 @@
                                         @endphp
 
                                         <td class="nama-dokumen {{ $class }}" style="{{ $style }}">
-                                            {{ Str::limit($kirim->memo->judul, 35, '...') }}
+                                            {{ Str::limit($memo->judul, 35, '...') }}
                                         </td>
-                                        {{-- @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
+                                        {{-- @if (Auth::user()->divisi_id_divisi == $memo->divisi_id_divisi)
                                             <td class="nama-dokumen
-                                            {{ $kirim->memo->status == 'reject' ? 'text-danger' : ($kirim->memo->status == 'correction' ? 'text-warning' : ($kirim->memo->status == 'approve' ? 'text-success' : '')) }}"
-                                                style="{{ $kirim->memo->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
-                                                {{ Str::limit($kirim->memo->judul, 35, '...') }}
+                                            {{ $memo->status == 'reject' ? 'text-danger' : ($memo->status == 'correction' ? 'text-warning' : ($memo->status == 'approve' ? 'text-success' : '')) }}"
+                                                style="{{ $memo->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
+                                                {{ Str::limit($memo->judul, 35, '...') }}
                                             </td>
                                         @else
                                             <td class="nama-dokumen
                                         {{ $kirim->status == 'reject' ? 'text-danger' : ($kirim->status == 'correction' ? 'text-warning' : ($kirim->status == 'pending' ? '' : 'text-success')) }}"
                                                 style="{{ $kirim->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
-                                                {{ Str::limit($kirim->memo->judul, 35, '...') }}
+                                                {{ Str::limit($memo->judul, 35, '...') }}
                                             </td>
                                         @endif --}}
 
-                                        <!-- <td>{{ $kirim->memo->tgl_dibuat }}</td> -->
-                                        <td>{{ $kirim->memo->tgl_dibuat ? \Carbon\Carbon::parse($kirim->memo->tgl_dibuat)->format('d-m-Y') : '-' }}
+                                        <!-- <td>{{ $memo->tgl_dibuat }}</td> -->
+                                        <td>{{ $memo->tgl_dibuat ? \Carbon\Carbon::parse($memo->tgl_dibuat)->format('d-m-Y') : '-' }}
                                         </td>
-                                        <td>{{ $kirim->memo->nomor_memo }}</td>
-                                        <td>{{ $kirim->memo->tgl_disahkan ? \Carbon\Carbon::parse($kirim->memo->tgl_disahkan)->format('d-m-Y') : '-' }}
+                                        <td>{{ $memo->nomor_memo }}</td>
+                                        <td>{{ $memo->tgl_disahkan ? \Carbon\Carbon::parse($memo->tgl_disahkan)->format('d-m-Y') : '-' }}
                                         </td>
-                                        {{-- <td class="text-center">{{ $kirim->memo->kode_bagian ?? '-' }}</td> --}}
+                                        {{-- <td class="text-center">{{ $memo->kode_bagian ?? '-' }}</td> --}}
                                         {{-- <td class="text-center">
-                                            @if (Auth::user()->divisi_id_divisi == $kirim->memo->divisi_id_divisi)
-                                                @if ($kirim->memo->status == 'reject')
+                                            @if (Auth::user()->divisi_id_divisi == $memo->divisi_id_divisi)
+                                                @if ($memo->status == 'reject')
                                                     <span class="badge bg-danger">Ditolak</span>
-                                                @elseif ($kirim->memo->status == 'pending')
+                                                @elseif ($memo->status == 'pending')
                                                     <span class="badge bg-info">Diproses</span>
-                                                @elseif ($kirim->memo->status == 'correction')
+                                                @elseif ($memo->status == 'correction')
                                                     <span class="badge bg-warning">Dikoreksi</span>
                                                 @else
                                                     <span class="badge bg-success">Diterima</span>
@@ -163,7 +163,7 @@
                                         </td> --}}
                                         <td class="text-center">
                                             @php
-                                                $status = $kirim->memo->status;
+                                                $status = $memo->status;
 
                                                 $badge = match ($status) {
                                                     'reject' => ['class' => 'bg-danger', 'text' => 'Ditolak'],
@@ -183,25 +183,25 @@
                                                 <button title="Detail"
                                                     class="btn btn-sm rounded-circle text-white border-0 bg-info"
                                                     style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                    onclick="window.location.href='{{ route('view.memo-terkirim', ['id' => $kirim->memo->id_memo]) }}'">
+                                                    onclick="window.location.href='{{ route('view.memo-terkirim', ['id' => $memo->id_memo]) }}'">
                                                     <i class="fas fa-eye" alt="Detail"></i>
                                                 </button>
-                                                @if ($kirim->memo->status == 'pending' || $kirim->memo->status == 'correction')
-                                                    @if ($kirim->memo->pembuat == Auth::user()->id)
+                                                @if ($memo->status == 'pending' || $memo->status == 'correction')
+                                                    @if ($memo->pembuat == Auth::user()->id)
                                                         <button type="button"
                                                             class="btn btn-sm rounded-circle text-white border-0 bg-secondary"
                                                             style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                            onclick="window.location.href='{{ route('admin.memo.edit', ['id_memo' => $kirim->memo->id_memo]) }}'"
+                                                            onclick="window.location.href='{{ route('admin.memo.edit', ['id_memo' => $memo->id_memo]) }}'"
                                                             title="Edit">
                                                             <i class="fa-solid fa-pencil fa-lg"></i>
                                                         </button>
                                                     @endif
-                                                @elseif ($kirim->memo->status == 'approve' || $kirim->memo->status == 'reject')
+                                                @elseif ($memo->status == 'approve' || $memo->status == 'reject')
                                                     {{-- Button Arsip untuk status approve reject --}}
                                                     <button type="button"
                                                         class="btn btn-sm rounded-circle text-white border-0"
                                                         style="background-color:#FFAD46; width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                        onclick="showArsipConfirmation({{ $kirim->memo->id_memo }}, '{{ $kirim->memo->judul ?? $kirim->memo->nama_dokumen }}')"
+                                                        onclick="showArsipConfirmation({{ $memo->id_memo }}, '{{ $memo->judul ?? $memo->nama_dokumen }}')"
                                                         title="Arsip">
                                                         <i class="fa-solid fa-archive fa-lg"></i>
                                                     </button>
@@ -215,7 +215,7 @@
                     </table>
                 </div>
                 <div class="d-flex justify-content-end mt-3">
-                    {{ $memoTerkirim->appends(request()->query())->links('pagination::bootstrap-5') }}
+                    {{ $memos->appends(request()->query())->links('pagination::bootstrap-5') }}
                 </div>
             </div>
         </div>

@@ -158,43 +158,29 @@ class MemoController extends Controller
     {
         $divisi = Divisi::all();
         $seri = Seri::all();
-        $user = User::all();
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user->id;
 
-        // Ambil ID memo yang sudah diarsipkan oleh user saat ini
-        $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
-        $sortBy = $request->get('sort_by', 'created_at'); // default ke created_at
+        $memoDiarsipkan = Arsip::where('user_id', $userId)
+            ->where('jenis_document', 'App\Models\Memo')
+            ->pluck('document_id')
+            ->toArray();
+
+        $sortBy = $request->get('sort_by', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
 
         $allowedSortColumns = ['created_at', 'tgl_disahkan', 'tgl_dibuat', 'nomor_memo', 'judul'];
         if (!in_array($sortBy, $allowedSortColumns)) {
             $sortBy = 'created_at';
         }
-        // Query memo dengan filter + hanya yang dikirim oleh kode (divisi/department) user
-        $userKode = $this->getDivDeptKode(Auth::user());
-        // For received/own filtering we'll still rely on the caller's filterType; here
-        // we want memos that have at least one kirim_document pointing to a memo
-        // whose kode matches the user's kode (department-level visibility).
-        $query = Memo::with('divisi')
+
+        $query = Memo::with(['divisi', 'user'])
             ->whereNotIn('id_memo', $memoDiarsipkan)
-            ->whereHas('kirimDocument', function ($q) use ($userKode) {
-                // select kirim_document rows of type memo that are related to memos with the same kode
-                $q->where('jenis_document', 'memo')
-                    ->where('id_pengirim', Auth::user()->id)
-                    ->whereHas('memo', function ($qq) use ($userKode) {
-                        $qq->where('kode', $userKode)->orWhere('nama_bertandatangan', Auth::user()->fullname);
-                    });
-            });
+            ->where('kode_bagian', $user->kode_bagian);
 
-        // copy over same filter logic as index (divisi_filter / status / tanggal / search / kode)
-        $filterType = $request->get('divisi_filter', 'both');
-
-        if ($filterType === 'own') {
+        // role admin/staff = hanya memo buatan sendiri
+        if ((int) $user->role_id_role === 2) {
             $query->where('pembuat', $userId);
-        } elseif ($filterType === 'received' || $filterType === 'other') {
-            $query->where('pembuat', '!=', $userId);
-        } else {
-            // both -> no extra constraint
         }
 
         if ($request->filled('status')) {
@@ -209,11 +195,10 @@ class MemoController extends Controller
             $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
         }
 
-        $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
-
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                $q->where('judul', 'like', '%' . $request->search . '%')
+                ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -223,32 +208,28 @@ class MemoController extends Controller
 
         $query->orderBy($sortBy, $sortDirection);
 
+        $kode = (clone $query)
+            ->whereNotNull('kode')
+            ->pluck('kode')
+            ->filter()
+            ->unique()
+            ->values();
+
         $perPage = $request->get('per_page', 10);
         $memos = $query->paginate($perPage);
 
-        // **Tambahkan status penerima untuk setiap memo** (mirip index)
-        $memos->getCollection()->transform(function ($memo) use ($userKode) {
-            // Ambil status kirim pertama untuk dokumen ini yang berasal dari kode yang sama
-            $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)
-                ->where('jenis_document', 'memo')
-                ->whereHas('memo', function ($qq) use ($userKode) {
-                    $qq->where('kode', $userKode);
-                })
-                ->orderBy('id_kirim_document')
-                ->first();
-
-            $memo->final_status = $statusKirim ? $statusKirim->status : '-';
+        $memos->getCollection()->transform(function ($memo) {
+            $memo->final_status = $memo->status;
             return $memo;
         });
 
-        // Ambil kirim_document untuk kode user (untuk menampilkan kolom pengirim/penerima di view)
-        $kirimDocuments = Kirim_Document::where('jenis_document', 'memo')
-            ->whereHas('memo', function ($qq) use ($userKode) {
-                $qq->where('kode', $userKode);
-            })
-            ->get();
-
-        return view(Auth::user()->role->nm_role . '.memo.memo-terkirim', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view(Auth::user()->role->nm_role . '.memo.memo-terkirim', compact(
+            'memos',
+            'divisi',
+            'seri',
+            'sortDirection',
+            'kode'
+        ));
     }
 
     /**
