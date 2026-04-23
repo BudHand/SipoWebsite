@@ -274,13 +274,6 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/admin/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('admin.undangan.terkirim');
     Route::get('/admin/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('admin.undangan.diterima');
 
-    // risalah
-    Route::get('/risalah/admin', [RisalahController::class, 'index'])->name('admin.risalah.index');
-    Route::get('/risalah/tambah', [RisalahController::class, 'create'])->name('admin.risalah.add');
-    Route::get('/risalah/tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('admin.risalah-custom.add');
-    // Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
-    Route::get('/risalah/view/{id}', [RisalahController::class, 'view'])->name('view.risalahAdmin');
-
     Route::get('/risalah/{id}/preview', [RisalahController::class, 'showFile'])->name('risalah.preview');
 });
 
@@ -310,14 +303,6 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     Route::get('/manager/undangan/diterima', [KirimController::class, 'undanganDiterima'])->name('undangan.diterima');
     Route::get('/manager/undangan/terkirim', [KirimController::class, 'undanganTerkirim'])->name('undangan.terkirim');
 
-    //risalah
-    Route::get('/manager/risalah', [KirimController::class, 'risalah'])->name('manager.risalah.index');
-    Route::get('/risalah-tambah', [RisalahController::class, 'create'])->name('add-risalah.manager');
-    Route::get('/risalah-tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('add-risalah.custom.manager');
-    // Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
-    // Route::post('/risalah-store', [KirimController::class, 'store'])->name('risalah.store.manager');
-    Route::get('/persetujuan-risalah/{id}', [KirimController::class, 'viewRisalah'])->name('persetujuan.risalah');
-    // Route::put('/risalah/{id}/update-status', [RisalahController::class, 'updateStatus'])->name('risalah.updateStatus');
 });
 
 Route::middleware(['auth', 'role:2,3'])->group(function () {
@@ -344,6 +329,20 @@ Route::middleware(['auth', 'role:2,3'])->group(function () {
     Route::get('/undangan/{id}', [UndanganController::class, 'view'])->name('view.undangan');
 
     //risalah karena ternyata staff juga bisa approval :sob:
+    Route::get('/risalah', [RisalahController::class, 'index'])->name('risalah.index');
+    Route::get('/risalah/tambah', [RisalahController::class, 'create'])->name('risalah.create');
+    Route::get('/risalah/tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('risalah.create-custom');
+    Route::get('/risalah/view/{id}', [RisalahController::class, 'view'])->name('risalah.view');
     Route::put('/risalah/{id}/update-status', [RisalahController::class, 'updateStatus'])->name('risalah.updateStatus');
     Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
+
+    // Alias lama untuk backward-compat route name/path.
+    Route::get('/risalah/admin', [RisalahController::class, 'index'])->name('admin.risalah.index');
+    Route::get('/manager/risalah', [RisalahController::class, 'index'])->name('manager.risalah.index');
+    Route::get('/risalah-tambah', [RisalahController::class, 'create'])->name('add-risalah.manager');
+    Route::get('/risalah-tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('add-risalah.custom.manager');
+    Route::get('/persetujuan-risalah/{id}', [RisalahController::class, 'view'])->name('persetujuan.risalah');
+    Route::get('/risalah/view-admin/{id}', [RisalahController::class, 'view'])->name('view.risalahAdmin');
+    Route::get('/risalah/tambah-admin', [RisalahController::class, 'create'])->name('admin.risalah.add');
+    Route::get('/risalah/tambah-admin-custom', [RisalahController::class, 'createCustom'])->name('admin.risalah-custom.add');
 });

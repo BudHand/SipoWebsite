@@ -20,7 +20,7 @@
                 </div>
 
                 {{-- Row Filter --}}
-                <form class="row g-2 align-items-center" method="GET" action="{{ route('admin.risalah.index') }}">
+                <form class="row g-2 align-items-center" method="GET" action="{{ route('risalah.index') }}">
                     <div class="col-auto">
                         <select name="per_page" class="form-select rounded-3" style="max-width:100px;"
                             onchange="this.form.submit()">
@@ -165,7 +165,7 @@
                                                 <button title="Detail"
                                                     class="btn btn-sm rounded-circle text-white border-0 bg-info"
                                                     style="width:30px; height:30px; display:flex; align-items:center; justify-content:center;"
-                                                    onclick="window.location.href='{{ route('view.risalahAdmin', ['id' => $risalah->id_risalah]) }}'">
+                                                    onclick="window.location.href='{{ route('risalah.view', ['id' => $risalah->id_risalah]) }}'">
                                                     <i class="fas fa-eye" alt="Detail"></i>
                                                 </button>
                                                 @if ($risalah->status == 'pending' || $risalah->status == 'correction')
@@ -328,14 +328,14 @@
                 }).then((result) => {
                     if (result.isConfirmed && type === 'success') {
                         // kalau sukses dan user klik OK → balik ke index
-                        window.location.href = "{{ route('admin.risalah.index') }}";
+                        window.location.href = "{{ route('risalah.index') }}";
                     }
                 });
             } else {
                 alert(message);
                 // fallback redirect
                 if (type === 'success') {
-                    window.location.href = "{{ route('admin.risalah.index') }}";
+                    window.location.href = "{{ route('risalah.index') }}";
                 }
             }
         }
@@ -376,7 +376,7 @@
                 html: `<div class="row justify-content-around">
                             <div class="col-sm-5">
                                 <div class="row">
-                                    <a href="{{ route('admin.risalah.add') }}" class="btn rounded-3 text-white"
+                                    <a href="{{ route('risalah.create') }}" class="btn rounded-3 text-white"
                                     style="background-color:#4285f4; border-color:#4285f4;">
                                         <div class="col">
                                             <i class="fa-solid fa-calendar-days" style="font-size: 50px"></i>
@@ -390,7 +390,7 @@
                             </div>
                             <div class="col-sm-5">
                                 <div class="row">
-                                    <a href="{{ route('admin.risalah-custom.add') }}" class="btn rounded-3 text-white"
+                                    <a href="{{ route('risalah.create-custom') }}" class="btn rounded-3 text-white"
                                     style="background-color:#34a853; border-color:#34a853;">
                                         <div class="col">
                                             <i class="fa-solid fa-clipboard-list" style="font-size: 50px"></i>
