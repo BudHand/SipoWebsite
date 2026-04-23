@@ -112,14 +112,14 @@
                             </tr>
                         </thead>
                         <tbody>
-                            @if ($memos->isEmpty())
+                            @if ($memoDiterima->isEmpty())
                                 <tr>
                                     <td colspan="8" class="text-center">Belum ada memo yang diterima.</td>
                                 </tr>
                             @else
-                                @foreach ($memos as $index => $memo)
+                                @foreach ($memoDiterima as $index => $memo)
                                     <tr>
-                                        <td class="nomor">{{ ($memos->firstItem() ?? 0) + $index }}</td>
+                                        <td class="nomor">{{ ($memoDiterima->firstItem() ?? 0) + $index }}</td>
                                         <td class="nama-dokumen
                                 {{ $memo->status == 'reject' ? 'text-danger' : ($memo->status == 'correction' ? 'text-warning' : ($memo->status == 'approve' ? 'text-success' : '')) }}"
                                             style="{{ $memo->status == 'pending' ? 'color: #0dcaf0;' : '' }}">
@@ -176,7 +176,7 @@
                     </table>
                 </div>
                 <div class="d-flex justify-content-end mt-3">
-                    {{ $memos->onEachSide(1)->appends(request()->query())->links('pagination::bootstrap-5') }}
+                    {{ $memoDiterima->onEachSide(1)->appends(request()->query())->links('pagination::bootstrap-5') }}
                 </div>
             </div>
         </div>

@@ -258,12 +258,16 @@ class MemoController extends Controller
     {
         $divisi = Divisi::all();
         $seri = Seri::all();
-        $user = User::all();
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = (int) $user->id;
+        $uid = (string) $userId;
 
-        // Ambil ID memo yang sudah diarsipkan oleh user saat ini
-        $memoDiarsipkan = Arsip::where('user_id', $userId)->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
-        $sortBy = $request->get('sort_by', 'created_at'); // default ke created_at
+        $memoDiarsipkan = Arsip::where('user_id', $userId)
+            ->where('jenis_document', 'App\Models\Memo')
+            ->pluck('document_id')
+            ->toArray();
+
+        $sortBy = $request->get('sort_by', 'created_at');
         $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
 
         $allowedSortColumns = ['created_at', 'tgl_disahkan', 'tgl_dibuat', 'nomor_memo', 'judul'];
@@ -271,43 +275,14 @@ class MemoController extends Controller
             $sortBy = 'created_at';
         }
 
-        // Query memo dengan filter + hanya yang datang dari kode yang BUKAN kode user (diterima)
-        $userKode = $this->getDivDeptKode(Auth::user());
-        $userId = Auth::id();
-        $query = Memo::with('divisi')
+        $query = Memo::with(['divisi', 'user'])
             ->whereNotIn('id_memo', $memoDiarsipkan)
-            ->whereHas('kirimDocument', function ($q) use ($userKode, $userId) {
-                // only consider kirim_document rows that are approved
-                $q->where('jenis_document', 'memo')
-                    //->where('id_pengirim', Auth::user()->id)
-                    ->where('status', 'approve')
-                    ->where('id_penerima', Auth::user()->id)
-                    ->orWhere(function ($sub) use ($userId) {
-                        $sub->where('tembusan', 'like', $userId . ';%') // 21;% or 21;... or ...;21;... or ...;21
-                            ->orWhere('tembusan', 'like', '%;' . $userId . ';%') // ...;21;... pattern
-                            ->orWhere('tembusan', 'like', '%;' . $userId) // ...;21 pattern
-                            ->orWhere('tembusan', '=', (string) $userId); // tembusan hanya 21 saja
-                    })
-                    ->orWhere(function ($sub) use ($userId) {
-                        $sub->where('bcc', 'like', $userId . ';%')
-                            ->orWhere('bcc', 'like', '%;' . $userId . ';%')
-                            ->orWhere('bcc', 'like', '%;' . $userId)
-                            ->orWhere('bcc', '=', (string) $userId);
-                    });
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
             });
-
-        // same filter logic as index
-        $filterType = $request->get('divisi_filter', 'both');
-
-        if ($filterType === 'own') {
-            $query->where('pembuat', $userId);
-        } elseif ($filterType === 'received' || $filterType === 'other') {
-            $query->where('pembuat', '!=', $userId);
-        }
-
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
 
         if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
             $query->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
@@ -317,11 +292,10 @@ class MemoController extends Controller
             $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
         }
 
-        $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
-
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+                $q->where('judul', 'like', '%' . $request->search . '%')
+                ->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
             });
         }
 
@@ -331,32 +305,47 @@ class MemoController extends Controller
 
         $query->orderBy($sortBy, $sortDirection);
 
+        $kode = (clone $query)
+            ->whereNotNull('kode')
+            ->pluck('kode')
+            ->filter()
+            ->unique()
+            ->values();
+
         $perPage = $request->get('per_page', 10);
-        $memos = $query->paginate($perPage);
+        $memoDiterima = $query->paginate($perPage);
 
-        $memos->getCollection()->transform(function ($memo) use ($userKode) {
-            // Ambil status kirim pertama untuk dokumen ini yang berasal dari kode selain user
-            $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)
-                ->where('jenis_document', 'memo')
-                ->where('status', 'approve')
-                ->whereHas('memo', function ($qq) use ($userKode) {
-                    $qq->where('kode', '!=', $userKode);
-                })
-                ->orderBy('id_kirim_document')
-                ->first();
+        $memoDiterima->getCollection()->transform(function ($memo) use ($userId) {
+            $memo->final_status = $memo->status;
 
-            $memo->final_status = $statusKirim ? $statusKirim->status : '-';
+            $isTembusan = collect(explode(';', (string) $memo->tembusan))
+                ->map(fn($item) => trim($item))
+                ->filter(fn($item) => $item !== '')
+                ->contains((string) $userId);
+
+            $isBcc = collect(explode(';', (string) $memo->bcc))
+                ->map(fn($item) => trim($item))
+                ->filter(fn($item) => $item !== '')
+                ->contains((string) $userId);
+
+            if ($isTembusan) {
+                $memo->sumber_diterima = 'tembusan';
+            } elseif ($isBcc) {
+                $memo->sumber_diterima = 'bcc';
+            } else {
+                $memo->sumber_diterima = 'tujuan';
+            }
+
             return $memo;
         });
 
-        $kirimDocuments = Kirim_Document::where('jenis_document', 'memo')
-            ->where('status', 'approve')
-            ->whereHas('memo', function ($qq) use ($userKode) {
-                $qq->where('kode', '!=', $userKode);
-            })
-            ->get();
-
-        return view(Auth::user()->role->nm_role . '.memo.memo-diterima', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view(Auth::user()->role->nm_role . '.memo.memo-diterima', compact(
+            'memoDiterima',
+            'divisi',
+            'seri',
+            'sortDirection',
+            'kode'
+        ));
     }
 
     public function superadmin(Request $request)

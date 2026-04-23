@@ -264,7 +264,7 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
     Route::get('/kirim-memoAdmin/{id}', [KirimController::class, 'index'])->name('kirim-memoAdmin.admin');
     Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
-    Route::get('/admin/memo-diterima', [KirimController::class, 'memoDiterima'])->name('admin.memo.diterima');
+    Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
     // Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
     Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
 
@@ -293,7 +293,7 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     Route::get('/manager/memo', [KirimController::class, 'memo'])->name('memo.manager');
     Route::get('/memo-terkirim', [KirimController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
     // Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('memo.diterima');
-    Route::get('/memo-diterima', [KirimController::class, 'memoDiterima'])->name('manager.memo.diterima');
+    Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('manager.memo.diterima');
     // Route::get('memo-manager/add', [MemoController::class, 'create'])->name('memo-manager/add');
 
     // Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');

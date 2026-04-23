@@ -40,7 +40,9 @@ class Risalah extends Model
         'lampiran',
         'catatan',
         'nama_pemimpin_acara',
+        'pemimpin_acara_user_id',
         'nama_notulis_acara',
+        'notulis_acara_user_id',
         'qr_pemimpin_acara',
         'qr_notulis_acara',
         'with_undangan',
@@ -63,8 +65,13 @@ class Risalah extends Model
 
     public function kirimDocument()
     {
-        return $this->hasMany(Kirim_Document::class, 'id_document');
+        return $this->hasMany(Kirim_Document::class, 'id_document', 'id_risalah')
+            ->where('jenis_document', 'risalah');
     }
+    // public function kirimDocument()
+    // {
+    //     return $this->hasMany(Kirim_Document::class, 'id_document');
+    // }
 
     public function arsip()
     {
@@ -76,19 +83,19 @@ class Risalah extends Model
         return $this->belongsTo(User::class, 'pembuat');
     }
 
-    public function up()
-    {
-        Schema::table('risalah', function (Blueprint $table) {
-            $table->softDeletes();
-        });
-    }
+    // public function up()
+    // {
+    //     Schema::table('risalah', function (Blueprint $table) {
+    //         $table->softDeletes();
+    //     });
+    // }
 
-    public function down()
-    {
-        Schema::table('risalah', function (Blueprint $table) {
-            $table->dropSoftDeletes();
-        });
-    }
+    // public function down()
+    // {
+    //     Schema::table('risalah', function (Blueprint $table) {
+    //         $table->dropSoftDeletes();
+    //     });
+    // }
 
     public function tujuanString()
     {
@@ -120,5 +127,20 @@ class Risalah extends Model
         } catch (\Exception $e) {
             return null; // or handle the exception as needed
         }
+    }
+
+    public function pemimpinAcara()
+    {
+        return $this->belongsTo(User::class, 'pemimpin_acara_user_id');
+    }
+
+    public function notulisAcara()
+    {
+        return $this->belongsTo(User::class, 'notulis_acara_user_id');
+    }
+
+    public function pembuatUser()
+    {
+        return $this->belongsTo(User::class, 'pembuat');
     }
 }

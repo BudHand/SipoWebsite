@@ -48,8 +48,8 @@ class DashboardController extends Controller
         $isManager = ((int)($user->role_id_role ?? 0) === 3);
 
         // ===== HITUNG MEMO =====
-        $jumlahMemoKeluar = $this->countMemoKeluar($userId, $isManager, $memoDiarsipkan, $userKode, $fullname);
-        $jumlahMemoMasuk  = $this->countMemoMasuk($userId, $memoDiarsipkan, $fullname);
+        $jumlahMemoKeluar = $this->countMemoKeluar($user, $memoDiarsipkan);
+        $jumlahMemoMasuk  = $this->countMemoMasuk($user, $memoDiarsipkan);
 
         // ===== HITUNG UNDANGAN =====
         $jumlahUndanganKeluar = $this->countUndanganKeluar($userId, $isManager, $undanganDiarsipkan, $userKode, $fullname);
@@ -93,40 +93,17 @@ class DashboardController extends Controller
      * - Role 3: semua memo dengan (kode == userKode OR nama_bertandatangan == fullname)
      * - 1 dokumen dihitung 1x (MIN id_kirim_document)
      */
-    private function countMemoKeluar(int $userId, bool $isManager, array $arsipIds, ?string $userKode, string $fullname): int
+    private function countMemoKeluar($user, array $arsipIds): int
     {
-        $q = Kirim_Document::query()
-            ->where('jenis_document', 'memo')
-            ->whereNotIn('id_document', $arsipIds)
-            ->whereIn('id_kirim_document', function ($sub) {
-                $sub->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->where('jenis_document', 'memo')
-                    ->groupBy('id_document');
-            })
-            ->whereHas('memo', function ($mq) use ($isManager, $userKode, $fullname, $userId) {
-                // Opsi A: filter berdasarkan kode / penandatangan
-                $mq->where(function ($x) use ($userKode, $fullname) {
-                    if (!empty($userKode)) {
-                        $x->where('kode', $userKode);
-                    }
-                    $x->orWhere('nama_bertandatangan', $fullname);
-                });
+        $query = Memo::query()
+            ->whereNotIn('id_memo', $arsipIds)
+            ->where('kode_bagian', $user->kode_bagian);
 
-                // Untuk role 2, biar “keluar” benar-benar yang dia buat/kirim
-                if (!$isManager) {
-                    // memo.pembuat di sistemmu kadang string, jadi safe cast:
-                    $mq->where('pembuat', (string)$userId);
-                }
-            })
-            ->with('memo');
-
-        // Untuk role 2, ikut pola “keluar” = pengirim
-        if (!$isManager) {
-            $q->where('id_pengirim', $userId);
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $user->id);
         }
 
-        return (int) $q->count();
+        return (int) $query->count();
     }
 
     /**
@@ -134,25 +111,18 @@ class DashboardController extends Controller
      * Diambil dari kirim_document.penerima (pending/approve), exclude arsip,
      * dan exclude memo yang ditandatangani dirinya sendiri (menghindari “self inbox”)
      */
-    private function countMemoMasuk(int $userId, array $arsipIds, string $fullname): int
+    private function countMemoMasuk($user, array $arsipIds): int
     {
+        $uid = (string) $user->id;
+
         return (int) Memo::query()
-            ->whereNotIn('id_memo', $arsipIds)
-            ->where('nama_bertandatangan', '!=', $fullname)
             ->where('status', 'approve')
-            ->where(function ($query) use ($userId) {
-                $query->whereHas('kirimDocument', function ($sub) use ($userId) {
-                    $sub->where('jenis_document', 'memo')
-                        ->where('id_penerima', $userId)
-                        ->where('status', 'approve');
-                })
-                ->orWhere(function ($sub) use ($userId) {
-                    $this->applySemicolonUserMatch($sub, 'tembusan', $userId);
-                })
-                ->orWhere(function ($sub) use ($userId) {
-                    $this->applySemicolonUserMatch($sub, 'bcc', $userId);
-                });
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
             })
+            ->whereNotIn('id_memo', $arsipIds)
             ->count();
     }
 

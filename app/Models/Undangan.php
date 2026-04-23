@@ -73,6 +73,7 @@ class Undangan extends Model
     {
         return $this->belongsTo(User::class, 'pembuat', 'id');
     }
+
     public function tujuanString()
     {
         $pdfController = new CetakPDFController();
@@ -100,12 +101,26 @@ class Undangan extends Model
 
         return $tujuanNames;
     }
+
     public function approver()
     {
         return $this->belongsTo(User::class, 'manager_user_id');
     }
+
     public function pembuatUser()
     {
         return $this->belongsTo(User::class, 'pembuat');
+    }
+
+    public function scopeVisibleTo($query, $userId)
+    {
+        $uid = (string) $userId;
+
+        return $query->where(function ($q) use ($userId, $uid) {
+            $q->where('pembuat', $userId)
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
+        });
     }
 }

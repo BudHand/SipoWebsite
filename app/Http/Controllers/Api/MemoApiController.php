@@ -54,6 +54,61 @@ class MemoApiController extends Controller
         ]);
     }
 
+    public function memoKeluar()
+    {
+        $user = Auth::user();
+
+        // Ambil memo yang diarsipkan oleh user ini
+        $memoDiarsipkan = Arsip::where('user_id', $user->id)
+            ->where('jenis_document', 'App\Models\Memo')
+            ->pluck('document_id')
+            ->toArray();
+
+        // Cocokkan dengan memo yang dibuat oleh user ini (pembuat) dan kode_bagian sesuai user
+        $query = Memo::with('user')
+            ->whereNotIn('id_memo', $memoDiarsipkan)
+            ->where('kode_bagian', $user->kode_bagian);
+
+        if ($user->role_id_role === 2) {
+            $query->where('pembuat', $user->id);
+        }
+
+        $memos = $query->latest()->get();
+
+        return $this->apiResponse(
+            MemoResource::collection($memos),
+            $memos->isEmpty() ? 'Belum ada memo keluar' : 'Daftar memo keluar ditemukan'
+        );
+    }
+
+    public function memoMasuk()
+    {
+        $user = Auth::user();
+        $uid = (string) $user->id;
+
+        //filter memo yang tujuan/tembusan/bcc nya ada user ini, status approve, dan belum diarsipkan
+        $memoDiarsipkan = Arsip::where('user_id', $user->id)
+            ->where('jenis_document', 'App\Models\Memo')
+            ->pluck('document_id')
+            ->toArray();
+
+        $memos = Memo::with('user')
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
+            })
+            ->whereNotIn('id_memo', $memoDiarsipkan)
+            ->latest()
+            ->get();
+
+        return $this->apiResponse(
+            MemoResource::collection($memos),
+            $memos->isEmpty() ? 'Belum ada memo diterima' : 'Daftar memo diterima ditemukan'
+        );
+    }
+
     public function kodeFilter()
     {
         $kode = Memo::whereNotNull('kode')
@@ -330,5 +385,15 @@ class MemoApiController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    function apiResponse($data, $message = '', $status = 'success')
+    {
+        return response()->json([
+            'status' => $status,
+            'message' => $message,
+            'data_count' => is_countable($data) ? count($data) : 1,
+            'data' => $data,
+        ]);
     }
 }
