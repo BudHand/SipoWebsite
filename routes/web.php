@@ -8,7 +8,6 @@ use App\Http\Controllers\CetakPDFController;
 use App\Http\Controllers\MemoController;
 use App\Http\Controllers\UndanganController;
 use App\Http\Controllers\RisalahController;
-use App\Http\Controllers\KirimController;
 use App\Http\Controllers\NotifController;
 use App\Http\Controllers\ArsipController;
 use App\Http\Controllers\DashboardController;
@@ -258,22 +257,6 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     // dashboard
     // Route::get('/dashboard.admin', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-    // memo
-    Route::get('/memo-admin', [MemoController::class, 'index'])->name('admin.memo.index');
-    // Route::get('memo-admin/add1', [MemoController::class, 'create'])->name('admin.memo.store');
-    Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
-    // Route::get('/kirim-memoAdmin/{id}', [KirimController::class, 'index'])->name('kirim-memoAdmin.admin');
-    Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
-    Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
-    // Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
-    Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
-
-    //undangan
-    Route::get('/admin/undangan', [UndanganController::class, 'index'])->name('admin.undangan.index');
-    // Undangan (Admin: Masuk/Keluar)
-    Route::get('/admin/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('admin.undangan.terkirim');
-    Route::get('/admin/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('admin.undangan.diterima');
-
     Route::get('/risalah/{id}/preview', [RisalahController::class, 'showFile'])->name('risalah.preview');
 });
 
@@ -282,29 +265,41 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     // dashboard
     // Route::get('dashboard.manager', [DashboardController::class, 'index'])->name('manager.dashboard');
 
-    // memo
-    Route::get('/manager/memo', [KirimController::class, 'memo'])->name('memo.manager');
-    Route::get('/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
-    Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('manager.memo.diterima');
-    // Route::get('memo-manager/add', [MemoController::class, 'create'])->name('memo-manager/add');
-
-    // Route::get('memo-manager/add2', [MemoController::class, 'createCoba'])->name('memo-manager/add2');
-
     Route::put('/memo/{id}/update-status', [MemoController::class, 'updateStatus'])->name('memo.updateStatus');
     Route::get('/view-memoTerkirim/{id}', [MemoController::class, 'showTerkirim'])->name('view.memo-terkirim');
-    // Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
-
-    //undangan
-    Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.undangan');
     Route::put('/undangan/{id}/update-status', [UndanganController::class, 'updateDocumentStatus'])->name('undangan.updateStatus');
-    Route::get('/manager/undangan', [KirimController::class, 'undangan'])->name('undangan.manager');
-    // Undangan (Manager) - masuk & terkirim
-    Route::get('/manager/undangan/diterima', [KirimController::class, 'undanganDiterima'])->name('undangan.diterima');
-    Route::get('/manager/undangan/terkirim', [KirimController::class, 'undanganTerkirim'])->name('undangan.terkirim');
-
 });
 
 Route::middleware(['auth', 'role:2,3'])->group(function () {
+    // memo (domain route utama)
+    Route::get('/memo', [MemoController::class, 'index'])->name('memo.index');
+    Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
+    Route::get('/memo/terkirim', [MemoController::class, 'memoTerkirim'])->name('memo.terkirim');
+    Route::get('/memo/diterima', [MemoController::class, 'memoDiterima'])->name('memo.diterima');
+    Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
+
+    // alias route lama memo (backward-compat)
+    Route::get('/memo-admin', [MemoController::class, 'index'])->name('admin.memo.index');
+    Route::get('/manager/memo', [MemoController::class, 'index'])->name('memo.manager');
+    Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
+    Route::get('/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
+    Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
+    Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('manager.memo.diterima');
+
+    // undangan (domain route utama)
+    Route::get('/undangan', [UndanganController::class, 'index'])->name('undangan.index');
+    Route::get('/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('undangan.terkirim');
+    Route::get('/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('undangan.diterima');
+
+    // alias route lama undangan (backward-compat)
+    Route::get('/admin/undangan', [UndanganController::class, 'index'])->name('admin.undangan.index');
+    Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.manager');
+    Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.undangan');
+    Route::get('/admin/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('admin.undangan.terkirim');
+    Route::get('/manager/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('manager.undangan.terkirim');
+    Route::get('/admin/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('admin.undangan.diterima');
+    Route::get('/manager/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('manager.undangan.diterima');
+
     // memo
     Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
     // Memo form shared untuk admin + manager (jalur UI yang sama)

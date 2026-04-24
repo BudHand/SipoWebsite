@@ -6,7 +6,7 @@
 
     @section('content')
         @php
-            $undanganIndexRoute = auth()->user()->role_id_role == 2 ? 'admin.undangan.index' : 'undangan.manager';
+            $undanganIndexRoute = auth()->user()->role_id_role == 2 ? 'admin.undangan.index' : 'undangan.index';
         @endphp
         <div class="container-fluid px-4 py-0 mt-0">
             <div class="card shadow-sm border-0">
