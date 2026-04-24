@@ -13,7 +13,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('manager.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('undangan.manager') }}" class="text-decoration-none text-primary">Undangan
+                            <a href="{{ route('undangan.index') }}" class="text-decoration-none text-primary">Undangan
                                 Rapat</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Edit Undangan Rapat</span>
@@ -352,7 +352,7 @@
                             <!-- Action Buttons -->
                             <div class="form-group">
                                 <div class="d-flex justify-content-end gap-2">
-                                    <a href="{{ route('undangan.manager') }}" class="btn rounded-3"
+                                    <a href="{{ route('undangan.index') }}" class="btn rounded-3"
                                         style="background-color:#fff; color:#0d6efd; border:1px solid #0d6efd;">
                                         Batal
                                     </a>

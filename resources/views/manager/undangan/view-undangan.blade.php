@@ -14,7 +14,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('manager.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route('undangan.manager') }}" class="text-decoration-none text-primary">Undangan
+                            <a href="{{ route('undangan.index') }}" class="text-decoration-none text-primary">Undangan
                                 Rapat</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Detail Undangan Rapat</span>
