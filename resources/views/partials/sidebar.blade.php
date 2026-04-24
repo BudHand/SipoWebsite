@@ -73,7 +73,7 @@
             <!-- ADMIN -->
             @if (Auth::user()->role->nm_role == 'admin')
                 <li class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <a href="{{ route('admin.dashboard') }}" class="nav-link">
+                    <a href="{{ route('dashboard') }}" class="nav-link">
                         <i class="fas fa-home"></i>
                         <p>Dashboard</p>
                     </a>
@@ -90,23 +90,23 @@
 
                 <!-- Memo (Admin: Masuk/Keluar) -->
                 <li
-                    class="nav-item {{ request()->is('memo*') || request()->routeIs('admin.memo.terkirim', 'admin.memo.diterima') ? 'active' : '' }}">
+                    class="nav-item {{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'active' : '' }}">
                     <a data-bs-toggle="collapse" href="#memo-admin"
-                        aria-expanded="{{ request()->is('memo*') || request()->routeIs('admin.memo.terkirim', 'admin.memo.diterima') ? 'true' : 'false' }}">
+                        aria-expanded="{{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'true' : 'false' }}">
                         <i class="fas fa-file-alt"></i>
                         <p>Memo</p>
                         <span class="caret"></span>
                     </a>
-                    <div class="collapse {{ request()->is('memo*') || request()->routeIs('admin.memo.terkirim', 'admin.memo.diterima') ? 'show' : '' }}"
+                    <div class="collapse {{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'show' : '' }}"
                         id="memo-admin">
                         <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('admin.memo.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('admin.memo.terkirim') }}">
+                            <li class="{{ request()->routeIs('memo.terkirim') ? 'active' : '' }}">
+                                <a href="{{ route('memo.terkirim') }}">
                                     <span class="sub-item">Memo Keluar</span>
                                 </a>
                             </li>
                             <li class="{{ request()->routeIs('admin.memo.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('admin.memo.diterima') }}">
+                                <a href="{{ route('memo.diterima') }}">
                                     <span class="sub-item">Memo Masuk</span>
                                 </a>
                             </li>
@@ -131,16 +131,16 @@
                         <p>Undangan Rapat</p>
                         <span class="caret"></span>
                     </a>
-                    <div class="collapse {{ request()->routeIs('admin.undangan.terkirim', 'admin.undangan.diterima') ? 'show' : '' }}"
+                    <div class="collapse {{ request()->routeIs('undangan.terkirim', 'undangan.diterima') ? 'show' : '' }}"
                         id="undangan-admin">
                         <ul class="nav nav-collapse">
                             <li class="{{ request()->routeIs('admin.undangan.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('admin.undangan.terkirim') }}">
+                                <a href="{{ route('undangan.terkirim') }}">
                                     <span class="sub-item">Undangan Keluar</span>
                                 </a>
                             </li>
                             <li class="{{ request()->routeIs('admin.undangan.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('admin.undangan.diterima') }}">
+                                <a href="{{ route('undangan.diterima') }}">
                                     <span class="sub-item">Undangan Masuk</span>
                                 </a>
                             </li>
@@ -150,7 +150,7 @@
 
                 <!-- Risalah Rapat -->
                 <li class="nav-item {{ request()->routeIs('admin.risalah.index') ? 'active' : '' }}">
-                    <a href="{{ route('admin.risalah.index') }}" class="nav-link">
+                    <a href="{{ route('risalah.index') }}" class="nav-link">
                         <i class="fas fa-clipboard-list"></i>
                         <p>Risalah Rapat</p>
                     </a>
@@ -218,8 +218,8 @@
 
             <!-- MANAGER -->
             @if (Auth::user()->role->nm_role == 'manager')
-                <li class="nav-item {{ request()->routeIs('manager.dashboard') ? 'active' : '' }}">
-                    <a href="{{ route('manager.dashboard') }}" class="nav-link">
+                <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
+                    <a href="{{ route('dashboard') }}" class="nav-link">
                         <i class="fas fa-home"></i>
                         <p>Dashboard</p>
                     </a>
@@ -240,12 +240,12 @@
                         id="memo">
                         <ul class="nav nav-collapse">
                             <li class="{{ request()->routeIs('memo.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route(Auth::user()->role->nm_role . '.memo.terkirim') }}">
+                                <a href="{{ route('memo.terkirim') }}">
                                     <span class="sub-item">Memo Keluar</span>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('manager.memo.diterima') ? 'active' : '' }}">
-                                <a href="{{ route(Auth::user()->role->nm_role . '.memo.diterima') }}">
+                            <li class="{{ request()->routeIs('memo.diterima') ? 'active' : '' }}">
+                                <a href="{{ route('memo.diterima') }}">
                                     <span class="sub-item">Memo Masuk</span>
                                 </a>
                             </li>
@@ -290,8 +290,8 @@
                 </li>
 
                 <!-- Risalah Rapat -->
-                <li class="nav-item {{ request()->routeIs('manager.risalah.index') ? 'active' : '' }}">
-                    <a href="{{ route('manager.risalah.index') }}" class="nav-link">
+                <li class="nav-item {{ request()->routeIs('risalah.index') ? 'active' : '' }}">
+                    <a href="{{ route('risalah.index') }}" class="nav-link">
                         <i class="fas fa-clipboard-list"></i>
                         <p>Risalah Rapat</p>
                     </a>

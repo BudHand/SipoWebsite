@@ -35,121 +35,121 @@ class MemoController extends Controller
     /**
      * @mixin \Illuminate\Support\Facades\Log
      */
-    public function index(Request $request)
-    {
-        $divisi = Divisi::all();
-        $seri = Seri::all();
-        $user = User::all();
-        $userId = Auth::id();
+    // public function index(Request $request)
+    // {
+    //     $divisi = Divisi::all();
+    //     $seri = Seri::all();
+    //     $user = User::all();
+    //     $userId = Auth::id();
 
-        // Ambil ID memo yang sudah diarsipkan oleh user saat ini
-        $memoDiarsipkan = Arsip::where('user_id', Auth::id())->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
-        $sortBy = $request->get('sort_by', 'created_at'); // default ke created_at
-        $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
+    //     // Ambil ID memo yang sudah diarsipkan oleh user saat ini
+    //     $memoDiarsipkan = Arsip::where('user_id', Auth::id())->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
+    //     $sortBy = $request->get('sort_by', 'created_at'); // default ke created_at
+    //     $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
 
-        $allowedSortColumns = ['created_at', 'tgl_disahkan', 'tgl_dibuat', 'nomor_memo', 'judul'];
-        if (!in_array($sortBy, $allowedSortColumns)) {
-            $sortBy = 'created_at'; // fallback default
-        }
+    //     $allowedSortColumns = ['created_at', 'tgl_disahkan', 'tgl_dibuat', 'nomor_memo', 'judul'];
+    //     if (!in_array($sortBy, $allowedSortColumns)) {
+    //         $sortBy = 'created_at'; // fallback default
+    //     }
 
-        // Query memo dengan filter
-        $query = Memo::with('divisi')->whereNotIn('id_memo', $memoDiarsipkan); // Filter memo yang belum diarsipkan
+    //     // Query memo dengan filter
+    //     $query = Memo::with('divisi')->whereNotIn('id_memo', $memoDiarsipkan); // Filter memo yang belum diarsipkan
 
-        // Filter by self (own/other/both) if requested
-        // Advanced filter: 3 types
-        // 1. both: memo milik sendiri dan kiriman orang lain
-        // 2. own: memo yang dibuat diri sendiri saja
-        // 3. received: memo yang dibuat orang lain saja
+    //     // Filter by self (own/other/both) if requested
+    //     // Advanced filter: 3 types
+    //     // 1. both: memo milik sendiri dan kiriman orang lain
+    //     // 2. own: memo yang dibuat diri sendiri saja
+    //     // 3. received: memo yang dibuat orang lain saja
 
-        $filterType = $request->get('divisi_filter', 'both');
+    //     $filterType = $request->get('divisi_filter', 'both');
 
-        if ($filterType === 'own') {
-            // Only memos where current user is the sender
-            $query->whereHas('kirimDocument', function ($q) use ($userId) {
-                $q->where('id_pengirim', $userId)
-                    ->where('jenis_document', 'memo')
-                    ->whereHas('memo', function ($q) {
-                        $q->where('kode', $this->getDivDeptKode(Auth::user()));
-                    });
-            });
-        } elseif ($filterType === 'received' || $filterType === 'other') {
-            // Only memos received by current user
-            $query->whereHas('kirimDocument', function ($q) use ($userId) {
-                $q->where('id_penerima', $userId)->where(
-                    'jenis_document',
-                    'memo',
-                    //->whereHas('memo', function ($q) {
-                    //    $q->where('kode', '!=', $this->getDivDeptKode(Auth::user()));
-                    //})
-                );
-            });
-        } else {
-            // Both sent and received memos by the user
-            $query->whereHas('kirimDocument', function ($q) use ($userId) {
-                $q->where(function ($subQ) use ($userId) {
-                    $subQ->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-                })->where('jenis_document', 'memo');
-            });
-        }
+    //     if ($filterType === 'own') {
+    //         // Only memos where current user is the sender
+    //         $query->whereHas('kirimDocument', function ($q) use ($userId) {
+    //             $q->where('id_pengirim', $userId)
+    //                 ->where('jenis_document', 'memo')
+    //                 ->whereHas('memo', function ($q) {
+    //                     $q->where('kode', $this->getDivDeptKode(Auth::user()));
+    //                 });
+    //         });
+    //     } elseif ($filterType === 'received' || $filterType === 'other') {
+    //         // Only memos received by current user
+    //         $query->whereHas('kirimDocument', function ($q) use ($userId) {
+    //             $q->where('id_penerima', $userId)->where(
+    //                 'jenis_document',
+    //                 'memo',
+    //                 //->whereHas('memo', function ($q) {
+    //                 //    $q->where('kode', '!=', $this->getDivDeptKode(Auth::user()));
+    //                 //})
+    //             );
+    //         });
+    //     } else {
+    //         // Both sent and received memos by the user
+    //         $query->whereHas('kirimDocument', function ($q) use ($userId) {
+    //             $q->where(function ($subQ) use ($userId) {
+    //                 $subQ->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
+    //             })->where('jenis_document', 'memo');
+    //         });
+    //     }
 
-        // Filter berdasarkan status
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
+    //     // Filter berdasarkan status
+    //     if ($request->filled('status')) {
+    //         $query->where('status', $request->status);
+    //     }
 
-        // Filter berdasarkan tanggal dibuat
-        if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
-            $query->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
-        } elseif ($request->filled('tgl_dibuat_awal')) {
-            $query->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
-        } elseif ($request->filled('tgl_dibuat_akhir')) {
-            $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
-        }
+    //     // Filter berdasarkan tanggal dibuat
+    //     if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+    //         $query->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
+    //     } elseif ($request->filled('tgl_dibuat_awal')) {
+    //         $query->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+    //     } elseif ($request->filled('tgl_dibuat_akhir')) {
+    //         $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
+    //     }
 
-        // Ambil semua arsip memo berdasarkan user login
-        $arsipMemoQuery = Arsip::where('user_id', $userId)->where('jenis_document', 'memo')->with('document');
+    //     // Ambil semua arsip memo berdasarkan user login
+    //     $arsipMemoQuery = Arsip::where('user_id', $userId)->where('jenis_document', 'memo')->with('document');
 
-        $query->orderBy($sortBy, $sortDirection);
+    //     $query->orderBy($sortBy, $sortDirection);
 
-        $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
-        // Pencarian berdasarkan nama dokumen atau nomor memo
-        if ($request->filled('search')) {
-            $query->where(function ($q) use ($request) {
-                $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
-            });
-        }
-        if ($request->filled('kode') && $request->kode != 'pilih') {
-            $query->where('kode', $request->kode);
-        }
-        // Pagination
-        $perPage = $request->get('per_page', 10); // Default ke 10 jika tidak ada input
-        $memos = $query->paginate($perPage);
-        // **Tambahkan status penerima untuk setiap memo**
+    //     $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+    //     // Pencarian berdasarkan nama dokumen atau nomor memo
+    //     if ($request->filled('search')) {
+    //         $query->where(function ($q) use ($request) {
+    //             $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
+    //         });
+    //     }
+    //     if ($request->filled('kode') && $request->kode != 'pilih') {
+    //         $query->where('kode', $request->kode);
+    //     }
+    //     // Pagination
+    //     $perPage = $request->get('per_page', 10); // Default ke 10 jika tidak ada input
+    //     $memos = $query->paginate($perPage);
+    //     // **Tambahkan status penerima untuk setiap memo**
 
-        $memos->getCollection()->transform(function ($memo) use ($userId) {
-            $creator = $memo->pembuat;
+    //     $memos->getCollection()->transform(function ($memo) use ($userId) {
+    //         $creator = $memo->pembuat;
 
-            if ($creator == $userId || $memo->nama_bertandatangan == Auth::user()->fullname) {
-                $memo->final_status = $memo->status;
-                $memo->jenis = 'keluar'; // Memo diri sendiri
-            } else {
-                $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->where('id_penerima', $userId)->first();
-                $memo->final_status = $statusKirim ? $statusKirim->status : '-';
-                $memo->jenis = 'masuk';
-                // Cari status kiriman untuk user login
-            }
-            return $memo;
-        });
-        // Ambil id penerima dan pengirim melalui relasi user
-        $kirimDocuments = Kirim_Document::where('jenis_document', 'memo')
-            ->where(function ($query) use ($userId) {
-                $query->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-            })
-            ->with('memo') // eager-load related memo
-            ->orderBy('id_kirim_document', 'desc')
-            ->get();
-        return view(Auth::user()->role->nm_role . '.memo.index', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
-    }
+    //         if ($creator == $userId || $memo->nama_bertandatangan == Auth::user()->fullname) {
+    //             $memo->final_status = $memo->status;
+    //             $memo->jenis = 'keluar'; // Memo diri sendiri
+    //         } else {
+    //             $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->where('id_penerima', $userId)->first();
+    //             $memo->final_status = $statusKirim ? $statusKirim->status : '-';
+    //             $memo->jenis = 'masuk';
+    //             // Cari status kiriman untuk user login
+    //         }
+    //         return $memo;
+    //     });
+    //     // Ambil id penerima dan pengirim melalui relasi user
+    //     $kirimDocuments = Kirim_Document::where('jenis_document', 'memo')
+    //         ->where(function ($query) use ($userId) {
+    //             $query->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
+    //         })
+    //         ->with('memo') // eager-load related memo
+    //         ->orderBy('id_kirim_document', 'desc')
+    //         ->get();
+    //     return view(Auth::user()->role->nm_role . '.memo.index', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+    // }
 
     /**
      * Memo Terkirim for logged in user (same logic as index but only memos where id_pengirim == auth user)
@@ -223,7 +223,7 @@ class MemoController extends Controller
             return $memo;
         });
 
-        return view(Auth::user()->role->nm_role . '.memo.memo-terkirim', compact(
+        return view('memo.memo-terkirim', compact(
             'memos',
             'divisi',
             'seri',
@@ -320,7 +320,7 @@ class MemoController extends Controller
             return $memo;
         });
 
-        return view(Auth::user()->role->nm_role . '.memo.memo-diterima', compact(
+        return view('memo.memo-diterima', compact(
             'memoDiterima',
             'divisi',
             'seri',
@@ -1779,7 +1779,7 @@ class MemoController extends Controller
             $memo->save();
 
             return redirect()
-                ->route('manager.memo.terkirim')
+                ->route('memo.terkirim')
                 ->with('success', 'Memo berhasil di-' . $requestStatus);
         });
     }
@@ -1798,7 +1798,7 @@ class MemoController extends Controller
         $mainDirector = $orgTree[0] ?? null;
 
         $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
-        return view(Auth::user()->role->nm_role . '.memo.edit', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray'));
+        return view('memo.edit', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray'));
     }
 
 // public function update(Request $request, $id)
@@ -2324,7 +2324,7 @@ class MemoController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
-        return view(Auth::user()->role->nm_role . '.memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
+        return view('memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
         // $memo = Kirim_Document::where('jenis_document', 'memo')
         //     ->where('id_document', $id)
         //     ->with(['memo', 'penerima', 'pengirim'])
@@ -2450,7 +2450,7 @@ class MemoController extends Controller
             ? 'penerima'
             : ($isTembusan ? 'tembusan' : 'bcc');
 
-        return view('manager.memo.view-memoDiterima', compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList', 'sumberDiterima'));
+        return view('memo.view-memoDiterima', compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList', 'sumberDiterima'));
     }
     // public function showDiterima($id)
     // {
@@ -3005,7 +3005,7 @@ class MemoController extends Controller
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
         return view(
-            'admin.memo.add',
+            'memo.add',
             [
                 'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
                 'nomorDokumen' => $nomorDokumen,
@@ -3224,13 +3224,9 @@ class MemoController extends Controller
             );
         }
 
-        if (Auth::user()->role_id_role == 2) {
-            return redirect()
-                ->route(Auth::user()->role->nm_role . '.memo.terkirim')
-                ->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
-        } else {
-            return redirect()->route('memo.terkirim')->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
-        }
+        return redirect()
+        ->route('memo.terkirim')
+        ->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
     }
 
     // public function editBaru($id)
@@ -3436,7 +3432,7 @@ class MemoController extends Controller
             $selectedManagerId = $fallbackManager ? (int) $fallbackManager->id : null;
         }
 
-        return view('admin.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja', 'selectedManagerId'));
+        return view('memo.edit', compact('memo', 'divisi', 'seri', 'managers', 'penandatanganList', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja', 'selectedManagerId'));
     }
 
     public function updateBaru(Request $request, $id)
@@ -3698,13 +3694,15 @@ class MemoController extends Controller
             }
 
             // redirect sesuai role
-            if (Auth::user()->role_id_role == 1) {
-                return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
-            } elseif (Auth::user()->role_id_role == 2) {
-                return redirect()->route('admin.memo.index')->with('success', 'Memo berhasil diubah.');
-            }
+            // if (Auth::user()->role_id_role == 1) {
+            //     return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
+            // } elseif (Auth::user()->role_id_role == 2) {
+            //     return redirect()->route('admin.memo.index')->with('success', 'Memo berhasil diubah.');
+            // }
 
-            return redirect()->route('memo.terkirim')->with('success', 'Memo berhasil diubah.');
+                    return redirect()
+        ->route('memo.terkirim')
+        ->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
         });
     }
 

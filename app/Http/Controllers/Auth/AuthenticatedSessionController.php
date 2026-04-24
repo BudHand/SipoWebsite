@@ -56,7 +56,7 @@ class AuthenticatedSessionController extends Controller
         $request->session()->regenerate();
 
         // Redirect sesuai role
-        return redirect()->route(Auth::user()->role->nm_role . '.dashboard');
+        return redirect()->route('dashboard');
     }
 
     /**

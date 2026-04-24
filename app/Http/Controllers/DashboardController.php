@@ -88,11 +88,10 @@ class DashboardController extends Controller
     }
 
     /**
-     * ====== MEMO KELUAR (Opsi A) ======
-     * - Role 2: kirim_document.id_pengirim = userId
-     * - Role 3: semua memo dengan (kode == userKode OR nama_bertandatangan == fullname)
-     * - 1 dokumen dihitung 1x (MIN id_kirim_document)
-     */
+     * ====== MEMO KELUAR ======
+        * utk staff/admin (role 2): dihitung berdasarkan memo yang ada di kode_bagian && dibuatnya (pembuat = userId), exclude arsip
+        * utk manager (role 3): dihitung berdasarkan memo yang terkait dengan seluruh memo yang ada di kode_bagian
+    */
     private function countMemoKeluar($user, array $arsipIds): int
     {
         $query = Memo::query()
@@ -108,8 +107,7 @@ class DashboardController extends Controller
 
     /**
      * ====== MEMO MASUK ======
-     * Diambil dari kirim_document.penerima (pending/approve), exclude arsip,
-     * dan exclude memo yang ditandatangani dirinya sendiri (menghindari “self inbox”)
+     * staff & manager : jika id user berada di tujuan/tembusan/bcc, status approve, exclude arsip
      */
     private function countMemoMasuk($user, array $arsipIds): int
     {
@@ -217,22 +215,22 @@ class DashboardController extends Controller
         // role 2 (admin/staff)
         if ($roleId === 2) {
             return [
-                'memo_keluar'     => route('admin.memo.terkirim'),
-                'memo_masuk'      => route('admin.memo.diterima'),
-                'undangan_keluar' => route('admin.undangan.terkirim'),
-                'undangan_masuk'  => route('admin.undangan.diterima'),
-                'risalah'         => route('admin.risalah.index'),
+                'memo_keluar'     => route('memo.terkirim'),
+                'memo_masuk'      => route('memo.diterima'),
+                'undangan_keluar' => route('undangan.terkirim'),
+                'undangan_masuk'  => route('undangan.diterima'),
+                'risalah'         => route('risalah.index'),
             ];
         }
 
         // role 3 (manager)
         if ($roleId === 3) {
             return [
-                'memo_keluar'     => route('manager.memo.terkirim'),
-                'memo_masuk'      => route('manager.memo.diterima'),
+                'memo_keluar'     => route('memo.terkirim'),
+                'memo_masuk'      => route('memo.diterima'),
                 'undangan_keluar' => route('undangan.terkirim'),
                 'undangan_masuk'  => route('undangan.diterima'),
-                'risalah'         => route('manager.risalah.index'),
+                'risalah'         => route('risalah.index'),
             ];
         }
 

@@ -14,7 +14,7 @@
                 <div class="row mb-3">
                     <div class="col-12">
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
-                            <a href="{{ route(Auth::user()->role->nm_role . '.dashboard') }}"
+                            <a href="{{ route('dashboard') }}"
                                 class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
                             <a href="{{ route('arsip.undangan') }}" class="text-decoration-none text-primary">Undangan

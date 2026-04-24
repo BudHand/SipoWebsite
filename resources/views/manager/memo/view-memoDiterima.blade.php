@@ -17,7 +17,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('manager.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route(Auth::user()->role->nm_role . '.memo.diterima') }}" class="text-decoration-none text-primary">Memo Masuk</a>
+                            <a href="{{ route('memo.diterima') }}" class="text-decoration-none text-primary">Memo Masuk</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Detail Memo Masuk</span>
                         </div>

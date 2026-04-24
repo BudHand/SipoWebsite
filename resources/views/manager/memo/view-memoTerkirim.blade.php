@@ -17,7 +17,7 @@
                         <div class="bg-white border rounded-2 px-3 py-2 w-100 d-flex align-items-center">
                             <a href="{{ route('manager.dashboard') }}" class="text-decoration-none text-primary">Beranda</a>
                             <span class="mx-2 text-muted">/</span>
-                            <a href="{{ route(Auth::user()->role->nm_role . '.memo.terkirim') }}" class="text-decoration-none text-primary">Memo Keluar</a>
+                            <a href="{{ route('memo.terkirim') }}" class="text-decoration-none text-primary">Memo Keluar</a>
                             <span class="mx-2 text-muted">/</span>
                             <span class="text-muted">Detail Memo Keluar</span>
                         </div>
@@ -729,7 +729,7 @@
 
                         {{-- ACTION --}}
                         <div class="d-flex justify-content-end gap-2 mt-3">
-                            <a href="{{ route('manager.memo.terkirim') }}" class="btn rounded-3"
+                            <a href="{{ route('memo.terkirim') }}" class="btn rounded-3"
                                 style="background:#fff;color:#0d6efd;border:1px solid #0d6efd;">Batal</a>
                             <button type="button" class="btn btn-primary rounded-3" id="submitBtn">Kirim</button>
                         </div>

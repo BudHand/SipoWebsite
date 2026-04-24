@@ -230,15 +230,15 @@ class NotifController extends Controller
             return match ($type) {
                 'memo' => route('memo.show', $documentId),
                 'undangan' => route('view.undangan', $documentId),
-                'risalah' => route('view.risalahAdmin', $documentId),
+                'risalah' => route('risalah.view', $documentId),
                 default => '#',
             };
         }
 
         return match ($type) {
-            'memo-null' => route('admin.memo.index'),
-            'undangan-null' => route('admin.undangan.index'),
-            'risalah-null' => route('admin.risalah.index'),
+            'memo-null' => route('memo.terkirim'),
+            'undangan-null' => route('undangan.terkirim'),
+            'risalah-null' => route('risalah.index'),
             default => '#',
         };
     }
@@ -250,16 +250,16 @@ class NotifController extends Controller
                 'memo-terkirim' => route('view.memo-terkirim', $documentId),
                 'memo-diterima' => route('view.memo-diterima', $documentId),
                 'undangan' => route('view.undangan', $documentId),
-                'risalah' => route('persetujuan.risalah', $documentId),
+                'risalah' => route('risalah.view', $documentId),
                 default => '#',
             };
         }
 
         return match ($type) {
-            'memo-null', 'memo-terkirim' => route('manager.memo.terkirim'),
+            'memo-null', 'memo-terkirim' => route('memo.terkirim'),
             'memo-diterima' => route('view.memo-diterima'),
-            'undangan-null' => route('undangan.manager'),
-            'risalah-null' => route('manager.risalah.index'),
+            'undangan-null' => route('undangan.terkirim'),
+            'risalah-null' => route('risalah.index'),
             default => '#',
         };
     }

@@ -243,7 +243,7 @@ class UndanganController extends Controller
                 $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })->get();
 
-        return view('admin.undangan.undangan-terkirim', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('undangan.undangan-terkirim', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
 
     /**
@@ -342,7 +342,7 @@ class UndanganController extends Controller
             ->where(function ($q) use ($userId) {
                 $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })->get();
-        return view('admin.undangan.undangan-diterima', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('undangan.undangan-diterima', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
 
 
@@ -541,7 +541,7 @@ class UndanganController extends Controller
         $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
         // dd($orgTree, $jsTreeData);
 
-        return view('admin.undangan.add-coba', [
+        return view('undangan.add-coba', [
             'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
             'nomorDokumen' => $nomorDokumen,
             'kode' => $divDeptKode,
@@ -1507,7 +1507,7 @@ class UndanganController extends Controller
 
         $selectedManagerId = $this->resolveApproverUserId($undangan);
 
-        return view('admin.undangan.edit-baru', compact(
+        return view('undangan.edit-baru', compact(
             'undangan',
             'divisi',
             'seri',
@@ -1852,7 +1852,7 @@ class UndanganController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($this->parseRecipientUserIds($undangan->bcc ?? null));
         }
 
-        return view('admin.undangan.view-undangan', compact('undangan', 'lampiranData', 'tembusanList', 'canViewBcc', 'bccDisplayList'));
+        return view('undangan.view-undangan', compact('undangan', 'lampiranData', 'tembusanList', 'canViewBcc', 'bccDisplayList'));
     }
 
     public function updateStatus(Request $request, $id)

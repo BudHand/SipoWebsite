@@ -63,12 +63,6 @@ class RisalahApiController extends Controller
             'message' => $risalahs->isEmpty() ? 'Belum ada risalah' : 'Daftar risalah ditemukan',
         ]);
     }
-
-    public function risalahKeluar(){
-
-    }
-
-
     public function kodeFilter()
     {
         $kode = Undangan::whereNotNull('kode')

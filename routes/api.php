@@ -51,8 +51,6 @@ Route::get('/mobile/risalah/pdf/{token}', [CetakPDFController::class, 'viewRisal
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::get('/memos', [MemoApiController::class, 'index']);
-    Route::get('/memos/keluar', [MemoApiController::class, 'memoKeluar']);
-    Route::get('/memos/masuk', [MemoApiController::class, 'memoMasuk']);
     Route::get('/memos/kode', [MemoApiController::class, 'kodeFilter']);
     Route::get('/memos/{id}', [MemoApiController::class, 'show']);
     Route::get('/users', [App\Http\Controllers\Api\UserManageApiController::class, 'index']);

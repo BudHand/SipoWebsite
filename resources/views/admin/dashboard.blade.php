@@ -28,7 +28,7 @@
                 <div class="row g-3">
                     {{-- MEMO KELUAR --}}
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <a href="{{ route('admin.memo.terkirim') }}" class="text-decoration-none">
+                        <a href="{{ route('memo.terkirim') }}" class="text-decoration-none">
                             <div class="card border-0 shadow-sm h-100 card-hover"
                                  style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); cursor: pointer;">
                                 <div class="card-body text-white">
@@ -51,7 +51,7 @@
 
                     {{-- MEMO MASUK --}}
                     <div class="col-12 col-sm-6 col-lg-3">
-                        <a href="{{ route('admin.memo.diterima') }}" class="text-decoration-none">
+                        <a href="{{ route('memo.diterima') }}" class="text-decoration-none">
                             <div class="card border-0 shadow-sm h-100 card-hover"
                                  style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); cursor: pointer;">
                                 <div class="card-body text-white">

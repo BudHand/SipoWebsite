@@ -186,7 +186,7 @@ class RisalahController extends Controller
                 $query->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
             })
             ->get();
-        return view('admin.risalah.index', compact('risalahs', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('risalah.index', compact('risalahs', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
     }
 
     public function superadmin(Request $request)
@@ -274,7 +274,7 @@ class RisalahController extends Controller
         $users = User::orderBy('firstname')->get();
         $self = Auth::user();
 
-        return view('admin.risalah.add', [
+        return view('risalah.add', [
             'risalah' => $risalah,
             'users' => $users,
             'kode_bagian' => $bagianKerja,
@@ -300,7 +300,7 @@ class RisalahController extends Controller
         $jsTreeData = $this->convertToJsTree($orgTree);
         $mainDirector = $orgTree[0] ?? null;
 
-        return view('admin.risalah.add-custom', [
+        return view('risalah.add-custom', [
             'risalah' => $risalah,
             'kode_bagian' => $bagianKerja,
             'bagianKerja' => $bagianKerja,
@@ -899,7 +899,7 @@ class RisalahController extends Controller
         // kode_bagian
         $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
 
-        return view('admin.risalah.edit', compact('risalah', 'divisi', 'seri', 'undangan', 'users', 'lampiranData', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'bagianKerja'));
+        return view('risalah.edit', compact('risalah', 'divisi', 'seri', 'undangan', 'users', 'lampiranData', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'bagianKerja'));
     }
 
     public function update(Request $request, $id)
@@ -1254,7 +1254,7 @@ class RisalahController extends Controller
             }
         }
 
-        return view('admin.risalah.view', compact('risalah', 'undangan', 'tujuanUsernames', 'lampiranData'));
+        return view('risalah.view', compact('risalah', 'undangan', 'tujuanUsernames', 'lampiranData'));
     }
 
     public function updateStatus(Request $request, $id)
@@ -1461,51 +1461,51 @@ class RisalahController extends Controller
     }
 
     //  menampilkan file yang disimpan dalam database
-    public function showFile($id)
-    {
-        $risalah = Risalah::findOrFail($id);
+    // public function showFile($id)
+    // {
+    //     $risalah = Risalah::findOrFail($id);
 
-        if (!$risalah->lampiran) {
-            return response()->json(['error' => 'File tidak ditemukan.'], 404);
-        }
+    //     if (!$risalah->lampiran) {
+    //         return response()->json(['error' => 'File tidak ditemukan.'], 404);
+    //     }
 
-        $fileContent = base64_decode($risalah->lampiran);
-        if (!$fileContent) {
-            return response()->json(['error' => 'File corrupt atau tidak bisa di-decode.'], 500);
-        }
+    //     $fileContent = base64_decode($risalah->lampiran);
+    //     if (!$fileContent) {
+    //         return response()->json(['error' => 'File corrupt atau tidak bisa di-decode.'], 500);
+    //     }
 
-        // Pastikan MIME type valid
-        $finfo = finfo_open();
-        $mimeType = finfo_buffer($finfo, $fileContent, FILEINFO_MIME_TYPE);
-        finfo_close($finfo);
+    //     // Pastikan MIME type valid
+    //     $finfo = finfo_open();
+    //     $mimeType = finfo_buffer($finfo, $fileContent, FILEINFO_MIME_TYPE);
+    //     finfo_close($finfo);
 
-        // Validasi MIME type
-        $validMimeTypes = [
-            'application/pdf' => 'pdf',
-            'image/jpeg' => 'jpg',
-            'image/png' => 'png',
-        ];
+    //     // Validasi MIME type
+    //     $validMimeTypes = [
+    //         'application/pdf' => 'pdf',
+    //         'image/jpeg' => 'jpg',
+    //         'image/png' => 'png',
+    //     ];
 
-        if (!isset($validMimeTypes[$mimeType])) {
-            return response()->json(['error' => 'Format file tidak didukung.'], 400);
-        }
+    //     if (!isset($validMimeTypes[$mimeType])) {
+    //         return response()->json(['error' => 'Format file tidak didukung.'], 400);
+    //     }
 
-        return response($fileContent)
-            ->header('Content-Type', $mimeType)
-            ->header('Content-Disposition', 'inline; filename="dokumen.' . $validMimeTypes[$mimeType] . '"');
-    }
+    //     return response($fileContent)
+    //         ->header('Content-Type', $mimeType)
+    //         ->header('Content-Disposition', 'inline; filename="dokumen.' . $validMimeTypes[$mimeType] . '"');
+    // }
 
-    private function validateMimeType($mimeType)
-    {
-        // Valid MIME types for PDF, JPG, PNG, JPEG
-        $validMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+    // private function validateMimeType($mimeType)
+    // {
+    //     // Valid MIME types for PDF, JPG, PNG, JPEG
+    //     $validMimeTypes = ['application/pdf', 'image/jpeg', 'image/png'];
 
-        if (in_array($mimeType, $validMimeTypes)) {
-            return $mimeType;
-        }
+    //     if (in_array($mimeType, $validMimeTypes)) {
+    //         return $mimeType;
+    //     }
 
-        return 'application/octet-stream'; // Default fallback MIME type if not valid
-    }
+    //     return 'application/octet-stream'; // Default fallback MIME type if not valid
+    // }
 
     // Fungsi tambahan untuk mendapatkan ekstensi dari MIME type
     private function getExtension($mimeType)

@@ -58,23 +58,12 @@ Route::get('/support', [SupportController::class, 'index'])->name('support');
 
 // SEMUA
 Route::middleware(['auth', 'role:1,2,3'])->group(function () {
-    // Route::get('/dashboard', function () {
-    //     return view('superadmin.dashboard');
-    // })->middleware(['auth', 'verified'])->name('dashboard');
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     // ALIAS dashboard per role (buat tombol "kembali ke dashboard" sesuai role)
     Route::get('/dashboard/superadmin', [DashboardController::class, 'index'])
         ->middleware('role:1')
         ->name('superadmin.dashboard');
-
-    Route::get('/dashboard/admin', [DashboardController::class, 'index'])
-        ->middleware('role:2')
-        ->name('admin.dashboard');
-
-    Route::get('/dashboard/manager', [DashboardController::class, 'index'])
-        ->middleware('role:3')
-        ->name('manager.dashboard');
 
     // counter nomor surat
     Route::get('/counter-nomor-surat', [CounterNomorSuratController::class, 'index'])->name('counter-nomor-surat.index');
@@ -87,12 +76,7 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
     Route::post('/delete-photo', [ProfileController::class, 'deletePhoto'])->name('superadmin.deletePhoto');
     Route::post('/update-profile', [ProfileController::class, 'updateProfile'])->name('superadmin.updateProfile');
 
-    //Edit Undangan
-    Route::get('/undangan/edit/{id}', [UndanganController::class, 'edit'])->name('undangan.edit');
-    Route::put('/undangan/update/{id_undangan}', [UndanganController::class, 'update'])->name('undangan/update');
-    Route::delete('/undangan/lampiran-existing/{undanganId}/{index}', [UndanganController::class, 'deleteLampiranExisting'])->name('undangan.lampiran.delete-existing');
-
-    // Cetak PDF Controller
+        // Cetak PDF Controller
     Route::get('/format-cetakLaporan-memo', [CetakPDFController::class, 'laporanmemoPDF'])->name('format-cetakLaporan-memo');
     Route::get('/format-cetakLaporan-undangan', [CetakPDFController::class, 'laporanundanganPDF'])->name('format-cetakLaporan-undangan');
     Route::get('/format-cetakLaporan-risalah', [CetakPDFController::class, 'laporanrisalahPDF'])->name('format-cetakLaporan-risalah');
@@ -143,9 +127,6 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
 
 // SUPERADMIN
 Route::middleware(['auth', 'role:1'])->group(function () {
-    // dashboard
-    // Route::get('/dashboard.superadmin', [DashboardController::class, 'index'])->name('superadmin.dashboard');
-
     // memo
     Route::get('/superadmin/memo', [MemoController::class, 'superadmin'])->name('superadmin.memo.index');
     Route::delete('/memo/delete/{id_memo}', [MemoController::class, 'delete'])->name('memo.delete');
@@ -220,8 +201,8 @@ Route::middleware(['auth', 'role:1'])->group(function () {
 
 Route::middleware(['auth', 'role:1,2'])->group(function () {
     // Legacy route (dipertahankan untuk backward-compat).
-    Route::get('/memo/edit/{id_memo}', [MemoController::class, 'edit'])->name('memo.edit');
-    Route::put('/memo/update/{id_memo}', [MemoController::class, 'update'])->name('memo/update');
+    // Route::get('/memo/edit/{id_memo}', [MemoController::class, 'edit'])->name('memo.edit');
+    // Route::put('/memo/update/{id_memo}', [MemoController::class, 'update'])->name('memo/update');
 
     // //Delete Lampiran Memo
     // Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
@@ -257,7 +238,7 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     // dashboard
     // Route::get('/dashboard.admin', [DashboardController::class, 'index'])->name('admin.dashboard');
 
-    Route::get('/risalah/{id}/preview', [RisalahController::class, 'showFile'])->name('risalah.preview');
+    // Route::get('/risalah/{id}/preview', [RisalahController::class, 'showFile'])->name('risalah.preview');
 });
 
 // MANAGER
@@ -266,53 +247,58 @@ Route::middleware(['auth', 'role:3'])->group(function () {
     // Route::get('dashboard.manager', [DashboardController::class, 'index'])->name('manager.dashboard');
 
     Route::put('/memo/{id}/update-status', [MemoController::class, 'updateStatus'])->name('memo.updateStatus');
-    Route::get('/view-memoTerkirim/{id}', [MemoController::class, 'showTerkirim'])->name('view.memo-terkirim');
     Route::put('/undangan/{id}/update-status', [UndanganController::class, 'updateDocumentStatus'])->name('undangan.updateStatus');
 });
 
 Route::middleware(['auth', 'role:2,3'])->group(function () {
     // memo (domain route utama)
-    Route::get('/memo', [MemoController::class, 'index'])->name('memo.index');
-    Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
     Route::get('/memo/terkirim', [MemoController::class, 'memoTerkirim'])->name('memo.terkirim');
     Route::get('/memo/diterima', [MemoController::class, 'memoDiterima'])->name('memo.diterima');
+    // Route::get('/memo', [MemoController::class, 'index'])->name('memo.index');
+        // memo
+    Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
+    Route::get('/view-memoTerkirim/{id}', [MemoController::class, 'showTerkirim'])->name('view.memo-terkirim');
+    // Memo form shared untuk admin + manager (jalur UI yang sama)
+    Route::post('/memo', [MemoController::class, 'storeCoba'])->name('memo.store');
+    Route::get('/memo/create', [MemoController::class, 'createCoba'])->name('memo.create');
+    Route::get('/memo/{id_memo}/edit', [MemoController::class, 'editBaru'])->name('memo.edit');
+    Route::put('/memo/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo.update');
+    Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
+
     Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
 
     // alias route lama memo (backward-compat)
-    Route::get('/memo-admin', [MemoController::class, 'index'])->name('admin.memo.index');
-    Route::get('/manager/memo', [MemoController::class, 'index'])->name('memo.manager');
-    Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
-    Route::get('/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
-    Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
-    Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('manager.memo.diterima');
+    // Route::get('/memo-admin', [MemoController::class, 'index'])->name('admin.memo.index');
+    // Route::get('/manager/memo', [MemoController::class, 'index'])->name('memo.manager');
+    // Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
+    // Route::get('/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('manager.memo.terkirim');
+    // Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
+    // Route::get('/memo-diterima', [MemoController::class, 'memoDiterima'])->name('manager.memo.diterima');
 
     // undangan (domain route utama)
-    Route::get('/undangan', [UndanganController::class, 'index'])->name('undangan.index');
+    // Route::get('/undangan', [UndanganController::class, 'index'])->name('undangan.index');
     Route::get('/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('undangan.terkirim');
     Route::get('/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('undangan.diterima');
+    //Edit Undangan
+    Route::get('/undangan/edit/{id}', [UndanganController::class, 'edit'])->name('undangan.edit');
+    Route::put('/undangan/update/{id_undangan}', [UndanganController::class, 'update'])->name('undangan/update');
+    Route::delete('/undangan/lampiran-existing/{undanganId}/{index}', [UndanganController::class, 'deleteLampiranExisting'])->name('undangan.lampiran.delete-existing');
+
 
     // alias route lama undangan (backward-compat)
-    Route::get('/admin/undangan', [UndanganController::class, 'index'])->name('admin.undangan.index');
-    Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.manager');
-    Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.undangan');
-    Route::get('/admin/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('admin.undangan.terkirim');
-    Route::get('/manager/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('manager.undangan.terkirim');
-    Route::get('/admin/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('admin.undangan.diterima');
-    Route::get('/manager/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('manager.undangan.diterima');
-
-    // memo
-    Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
-    // Memo form shared untuk admin + manager (jalur UI yang sama)
-    Route::get('/admin/memo/create', [MemoController::class, 'createCoba'])->name('admin.memo.create');
-    Route::post('/admin/memo', [MemoController::class, 'storeCoba'])->name('admin.memo.store');
-    Route::get('/admin/memo/{id_memo}/edit', [MemoController::class, 'editBaru'])->name('admin.memo.edit');
-    Route::put('/admin/memo/{id_memo}', [MemoController::class, 'updateBaru'])->name('admin.memo.update');
+    // Route::get('/admin/undangan', [UndanganController::class, 'index'])->name('admin.undangan.index');
+    // Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.manager');
+    // Route::get('/manager/undangan', [UndanganController::class, 'index'])->name('undangan.undangan');
+    // Route::get('/admin/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('admin.undangan.terkirim');
+    // Route::get('/manager/undangan/terkirim', [UndanganController::class, 'undanganTerkirim'])->name('manager.undangan.terkirim');
+    // Route::get('/admin/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('admin.undangan.diterima');
+    // Route::get('/manager/undangan/diterima', [UndanganController::class, 'undanganDiterima'])->name('manager.undangan.diterima');
 
     // Alias legacy route name/path (agar view lama tidak langsung break).
-    Route::get('memo-admin/add', [MemoController::class, 'createCoba'])->name('admin.memo.store2');
-    Route::post('memo/add/doc2', [MemoController::class, 'storeCoba'])->name('admin-memo.store');
-    Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
-    Route::put('/memo/update-baru/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo/update-baru');
+    // Route::get('memo-admin/add', [MemoController::class, 'createCoba'])->name('admin.memo.store2');
+    // Route::post('memo/add/doc2', [MemoController::class, 'storeCoba'])->name('admin-memo.store');
+    // Route::get('/memo/edit-baru/{id_memo}', [MemoController::class, 'editBaru'])->name('memo.edit-baru');
+    // Route::put('/memo/update-baru/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo/update-baru');
 
     //Delete Lampiran Memo
     Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
@@ -331,12 +317,12 @@ Route::middleware(['auth', 'role:2,3'])->group(function () {
     Route::post('/risalah/store', [RisalahController::class, 'store'])->name('risalah.store');
 
     // Alias lama untuk backward-compat route name/path.
-    Route::get('/risalah/admin', [RisalahController::class, 'index'])->name('admin.risalah.index');
-    Route::get('/manager/risalah', [RisalahController::class, 'index'])->name('manager.risalah.index');
-    Route::get('/risalah-tambah', [RisalahController::class, 'create'])->name('add-risalah.manager');
-    Route::get('/risalah-tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('add-risalah.custom.manager');
-    Route::get('/persetujuan-risalah/{id}', [RisalahController::class, 'view'])->name('persetujuan.risalah');
-    Route::get('/risalah/view-admin/{id}', [RisalahController::class, 'view'])->name('view.risalahAdmin');
-    Route::get('/risalah/tambah-admin', [RisalahController::class, 'create'])->name('admin.risalah.add');
-    Route::get('/risalah/tambah-admin-custom', [RisalahController::class, 'createCustom'])->name('admin.risalah-custom.add');
+    // Route::get('/risalah/admin', [RisalahController::class, 'index'])->name('admin.risalah.index');
+    // Route::get('/manager/risalah', [RisalahController::class, 'index'])->name('manager.risalah.index');
+    // Route::get('/risalah-tambah', [RisalahController::class, 'create'])->name('add-risalah.manager');
+    // Route::get('/risalah-tambah-tanpa-undangan', [RisalahController::class, 'createCustom'])->name('add-risalah.custom.manager');
+    // Route::get('/persetujuan-risalah/{id}', [RisalahController::class, 'view'])->name('persetujuan.risalah');
+    // Route::get('/risalah/view-admin/{id}', [RisalahController::class, 'view'])->name('view.risalahAdmin');
+    // Route::get('/risalah/tambah-admin', [RisalahController::class, 'create'])->name('admin.risalah.add');
+    // Route::get('/risalah/tambah-admin-custom', [RisalahController::class, 'createCustom'])->name('admin.risalah-custom.add');
 });
