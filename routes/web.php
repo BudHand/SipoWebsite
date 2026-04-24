@@ -262,7 +262,7 @@ Route::middleware(['auth', 'role:2'])->group(function () {
     Route::get('/memo-admin', [MemoController::class, 'index'])->name('admin.memo.index');
     // Route::get('memo-admin/add1', [MemoController::class, 'create'])->name('admin.memo.store');
     Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
-    Route::get('/kirim-memoAdmin/{id}', [KirimController::class, 'index'])->name('kirim-memoAdmin.admin');
+    // Route::get('/kirim-memoAdmin/{id}', [KirimController::class, 'index'])->name('kirim-memoAdmin.admin');
     Route::get('/admin/memo-terkirim', [MemoController::class, 'memoTerkirim'])->name('admin.memo.terkirim');
     Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
     // Route::get('/admin/memo-diterima', [MemoController::class, 'memoDiterima'])->name('admin.memo.diterima');
