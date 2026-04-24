@@ -263,7 +263,8 @@ Route::middleware(['auth', 'role:2,3'])->group(function () {
     Route::get('/memo/create', [MemoController::class, 'createCoba'])->name('memo.create');
     Route::get('/memo/{id_memo}/edit', [MemoController::class, 'editBaru'])->name('memo.edit');
     Route::put('/memo/{id_memo}', [MemoController::class, 'updateBaru'])->name('memo.update');
-    Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
+
+    // Route::get('/memo/{id}', [MemoController::class, 'view'])->name('memo.show');
 
     Route::post('/memo/next-seri', [MemoController::class, 'nextSeri'])->name('memo.nextSeri');
 

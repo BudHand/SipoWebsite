@@ -228,7 +228,7 @@ class NotifController extends Controller
     {
         if ($documentId) {
             return match ($type) {
-                'memo' => route('memo.show', $documentId),
+                'memo' => route('view.memo-diterima', $documentId),
                 'undangan' => route('view.undangan', $documentId),
                 'risalah' => route('risalah.view', $documentId),
                 default => '#',

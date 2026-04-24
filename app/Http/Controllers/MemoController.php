@@ -2580,7 +2580,7 @@ class MemoController extends Controller
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
-        return view(Auth::user()->role->nm_role . '.memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
+        return view('memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
     }
 
     public function updateStatusNotif(Request $request, $id)
