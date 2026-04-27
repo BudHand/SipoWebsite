@@ -24,7 +24,7 @@
 
                 <div class="space-y-4">
                     <span class="login-left-animate inline-block px-4 py-1.5 text-sm rounded-full bg-blue-50 text-blue-700 border border-blue-100">
-                        Sistem Informasi Persuratan Online
+                        PT. REKAINDO GLOBAL JASA - {{ date('Y') }}
                     </span>
 
                     <h1 class="login-left-animate text-4xl font-extrabold text-slate-900 leading-tight">

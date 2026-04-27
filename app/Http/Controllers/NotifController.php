@@ -186,39 +186,47 @@ class NotifController extends Controller
     private function transformNotification(Notifikasi $notification, int $role): array
     {
         $judulNotif = strtolower((string) ($notification->judul ?? ''));
-        $judulDocument = $notification->judul_document ?? null;
 
         $type = 'unknown';
-        $documentId = null;
+        $documentId = $notification->id_document ?? null;
         $redirectUrl = '#';
 
-        if (str_contains($judulNotif, 'memo')) {
-            $memo = Memo::query()->where('judul', $judulDocument)->first();
-
-            $documentId = $memo?->id_memo;
+        if ($notification->jenis_document === 'App\Models\Memo' || str_contains($judulNotif, 'memo')) {
+            $memo = $documentId ? Memo::find($documentId) : null;
 
             if ($memo) {
-                if (str_contains($judulNotif, 'update') || str_contains($judulNotif, 'diupdate') || str_contains($judulNotif, 'berhasil di update') || str_contains($judulNotif, 'berhasil diupdate')) {
-                    $type = 'memo-terkirim';
-                } elseif ($role === 3 && $memo->status === 'approve') {
+                if (
+                    str_contains($judulNotif, 'memo masuk') ||
+                    str_contains($judulNotif, 'masuk') ||
+                    str_contains($judulNotif, 'disetujui') ||
+                    str_contains($judulNotif, 'setujui') ||
+                    str_contains($judulNotif, 'approve') ||
+                    str_contains($judulNotif, 'approved')
+                ) {
                     $type = 'memo-diterima';
-                } elseif ($role === 3) {
+                } elseif (
+                    str_contains($judulNotif, 'ditolak') ||
+                    str_contains($judulNotif, 'tolak') ||
+                    str_contains($judulNotif, 'diupdate') ||
+                    str_contains($judulNotif, 'update') ||
+                    str_contains($judulNotif, 'berhasil di update') ||
+                    str_contains($judulNotif, 'berhasil diupdate') ||
+                    str_contains($judulNotif, 'revisi') ||
+                    str_contains($judulNotif, 'terkirim') ||
+                    str_contains($judulNotif, 'dikirim')
+                ) {
                     $type = 'memo-terkirim';
                 } else {
-                    $type = 'memo';
+                    $type = 'memo-terkirim';
                 }
             } else {
                 $type = 'memo-null';
             }
-        } elseif (str_contains($judulNotif, 'undangan')) {
-            $undangan = Undangan::query()->where('judul', $judulDocument)->first();
-
-            $documentId = $undangan?->id_undangan;
+        } elseif ($notification->jenis_document === 'App\Models\Undangan' || str_contains($judulNotif, 'undangan')) {
+            $undangan = $documentId ? Undangan::find($documentId) : null;
             $type = $undangan ? 'undangan' : 'undangan-null';
-        } elseif (str_contains($judulNotif, 'risalah')) {
-            $risalah = Risalah::query()->where('judul', $judulDocument)->first();
-
-            $documentId = $risalah?->id_risalah;
+        } elseif ($notification->jenis_document === 'App\Models\Risalah' || str_contains($judulNotif, 'risalah')) {
+            $risalah = $documentId ? Risalah::find($documentId) : null;
             $type = $risalah ? 'risalah' : 'risalah-null';
         }
 
@@ -236,7 +244,6 @@ class NotifController extends Controller
             'judul_document' => $notification->judul_document ?? '-',
             'dibaca' => (int) ($notification->dibaca ?? 0),
             'updated_at' => $notification->updated_at,
-            // 'updated_at' => optional($notification->updated_at)?->toDateTimeString(),
             'redirect_url' => $redirectUrl ?: '#',
         ];
     }
@@ -245,7 +252,6 @@ class NotifController extends Controller
     {
         if ($documentId) {
             return match ($type) {
-                // 'memo' => route('view.memo-diterima', $documentId),
                 'memo-terkirim' => route('view.memo-terkirim', $documentId),
                 'memo-diterima' => route('view.memo-diterima', $documentId),
                 'undangan' => route('view.undangan', $documentId),
@@ -255,7 +261,8 @@ class NotifController extends Controller
         }
 
         return match ($type) {
-            'memo-null' => route('memo.terkirim'),
+            'memo-null', 'memo-terkirim' => route('memo.terkirim'),
+            'memo-diterima' => route('memo.diterima'),
             'undangan-null' => route('undangan.terkirim'),
             'risalah-null' => route('risalah.index'),
             default => '#',
@@ -276,7 +283,7 @@ class NotifController extends Controller
 
         return match ($type) {
             'memo-null', 'memo-terkirim' => route('memo.terkirim'),
-            'memo-diterima' => route('view.memo-diterima'),
+            'memo-diterima' => route('memo.diterima'),
             'undangan-null' => route('undangan.terkirim'),
             'risalah-null' => route('risalah.index'),
             default => '#',
