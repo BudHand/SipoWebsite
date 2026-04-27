@@ -43,7 +43,11 @@
     <link rel="stylesheet" href="{{ asset('assets/css/modal.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/custom.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/css/text-tiny.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/css/sidebar-anime.css') }}">
     <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0/dist/css/select2.min.css" rel="stylesheet" />
+
+    {{-- Vite --}}
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
 
 
 

@@ -1,437 +1,469 @@
+{{--
+    resources/views/partials/sidebar.blade.php
+--}}
+
+{{-- ============================================================ --}}
+{{-- Helper functions — hanya dideklarasi sekali                  --}}
+{{-- ============================================================ --}}
+@once
+    @php
+        /**
+         * Cek apakah role user boleh melihat item menu.
+         * Jika item tidak mendefinisikan 'roles', semua role boleh akses.
+         */
+        function sidebarCanAccess(array $item, string $role): bool
+        {
+            if (! isset($item['roles'])) {
+                return true;
+            }
+
+            return in_array($role, $item['roles'], strict: true);
+        }
+
+        /**
+         * Cek apakah salah satu pattern cocok dengan route/path saat ini.
+         *
+         * @param string|string[] $patterns
+         */
+        function sidebarIsActive(string|array $patterns): bool
+        {
+            foreach ((array) $patterns as $pattern) {
+                if (request()->routeIs($pattern) || request()->is($pattern)) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        /**
+         * Buat collapse ID yang unik dan deterministik per menu item.
+         */
+        function sidebarCollapseId(string $label, int $sectionIndex, int $itemIndex): string
+        {
+            return 'sidebar-' . md5("{$label}-{$sectionIndex}-{$itemIndex}");
+        }
+    @endphp
+@endonce
+
+{{-- ============================================================ --}}
+{{-- Data & role user                                             --}}
+{{-- ============================================================ --}}
+@php
+    $role = Auth::user()->role->nm_role;
+
+    $menuSections = [
+
+        // ----------------------------------------------------------------
+        // SECTION: MENU
+        // ----------------------------------------------------------------
+        [
+            'title' => 'MENU',
+            'items' => [
+
+                [
+                    'label'  => 'Counter Nomor Surat',
+                    'icon'   => 'fas fa-sort-numeric-up',
+                    'route'  => 'counter-nomor-surat.index',
+                    'roles'  => ['superadmin', 'admin', 'manager'],
+                    'active' => ['counter-nomor-surat.*'],
+                ],
+
+                // Dashboard — superadmin
+                [
+                    'label'  => 'Dashboard',
+                    'icon'   => 'fas fa-home',
+                    'route'  => 'superadmin.dashboard',
+                    'roles'  => ['superadmin'],
+                    'active' => ['superadmin.dashboard'],
+                ],
+
+                // Dashboard — admin & manager
+                [
+                    'label'  => 'Dashboard',
+                    'icon'   => 'fas fa-home',
+                    'route'  => 'dashboard',
+                    'roles'  => ['admin', 'manager'],
+                    'active' => ['dashboard', 'admin.dashboard'],
+                ],
+
+                // Memo — superadmin (flat)
+                [
+                    'label'  => 'Memo',
+                    'icon'   => 'fas fa-file-alt',
+                    'route'  => 'superadmin.memo.index',
+                    'roles'  => ['superadmin'],
+                    'active' => ['superadmin.memo.index'],
+                ],
+
+                // Memo — admin & manager (dengan sub-menu)
+                [
+                    'label'  => 'Memo',
+                    'icon'   => 'fas fa-file-alt',
+                    'roles'  => ['admin', 'manager'],
+                    'active' => [
+                        'memo.terkirim',
+                        'memo.diterima',
+                        'memo.create',
+                        'memo.edit',
+                        'view.memo-terkirim',
+                        'view.memo-diterima',
+                    ],
+                    'children' => [
+                        [
+                            'label'  => 'Memo Keluar',
+                            'route'  => 'memo.terkirim',
+                            'active' => ['memo.terkirim', 'memo.create', 'memo.edit', 'view.memo-terkirim'],
+                        ],
+                        [
+                            'label'  => 'Memo Masuk',
+                            'route'  => 'memo.diterima',
+                            'active' => ['memo.diterima', 'view.memo-diterima'],
+                        ],
+                    ],
+                ],
+
+                // Undangan Rapat — superadmin (flat)
+                [
+                    'label'  => 'Undangan Rapat',
+                    'icon'   => 'fas fa-calendar-alt',
+                    'route'  => 'superadmin.undangan.index',
+                    'roles'  => ['superadmin'],
+                    'active' => ['superadmin.undangan.index'],
+                ],
+
+                // Undangan Rapat — admin & manager (dengan sub-menu)
+                [
+                    'label'  => 'Undangan Rapat',
+                    'icon'   => 'fas fa-calendar-alt',
+                    'roles'  => ['admin', 'manager'],
+                    'active' => [
+                        'undangan.terkirim',
+                        'undangan.diterima',
+                        'admin.undangan.terkirim',
+                        'admin.undangan.diterima',
+                    ],
+                    'children' => [
+                        [
+                            'label'  => 'Undangan Keluar',
+                            'route'  => 'undangan.terkirim',
+                            'active' => ['undangan.terkirim', 'admin.undangan.terkirim'],
+                        ],
+                        [
+                            'label'  => 'Undangan Masuk',
+                            'route'  => 'undangan.diterima',
+                            'active' => ['undangan.diterima', 'admin.undangan.diterima'],
+                        ],
+                    ],
+                ],
+
+                // Risalah Rapat — superadmin (flat)
+                [
+                    'label'  => 'Risalah Rapat',
+                    'icon'   => 'fas fa-clipboard-list',
+                    'route'  => 'superadmin.risalah.index',
+                    'roles'  => ['superadmin'],
+                    'active' => ['superadmin.risalah.index'],
+                ],
+
+                // Risalah Rapat — admin & manager (flat)
+                [
+                    'label'  => 'Risalah Rapat',
+                    'icon'   => 'fas fa-clipboard-list',
+                    'route'  => 'risalah.index',
+                    'roles'  => ['admin', 'manager'],
+                    'active' => ['risalah.index'],
+                ],
+
+                // Arsip — semua role
+                [
+                    'label'  => 'Arsip',
+                    'icon'   => 'fas fa-archive',
+                    'roles'  => ['superadmin', 'admin', 'manager'],
+                    'active' => ['arsip.*', 'arsip.memo', 'arsip.undangan', 'arsip.risalah'],
+                    'children' => [
+                        [
+                            'label'  => 'Memo',
+                            'route'  => 'arsip.memo',
+                            'active' => ['arsip.memo'],
+                        ],
+                        [
+                            'label'  => 'Undangan Rapat',
+                            'route'  => 'arsip.undangan',
+                            'active' => ['arsip.undangan'],
+                        ],
+                        [
+                            'label'  => 'Risalah Rapat',
+                            'route'  => 'arsip.risalah',
+                            'active' => ['arsip.risalah'],
+                        ],
+                    ],
+                ],
+
+                // Laporan — superadmin saja
+                [
+                    'label'  => 'Laporan',
+                    'icon'   => 'fas fa-book',
+                    'roles'  => ['superadmin'],
+                    'active' => [
+                        'laporan*',
+                        'laporan-memo.superadmin',
+                        'laporan-undangan.superadmin',
+                        'laporan-risalah.superadmin',
+                    ],
+                    'children' => [
+                        [
+                            'label'  => 'Memo',
+                            'route'  => 'laporan-memo.superadmin',
+                            'active' => ['laporan-memo.superadmin'],
+                        ],
+                        [
+                            'label'  => 'Undangan Rapat',
+                            'route'  => 'laporan-undangan.superadmin',
+                            'active' => ['laporan-undangan.superadmin'],
+                        ],
+                        [
+                            'label'  => 'Risalah Rapat',
+                            'route'  => 'laporan-risalah.superadmin',
+                            'active' => ['laporan-risalah.superadmin'],
+                        ],
+                    ],
+                ],
+
+            ],
+        ],
+
+        // ----------------------------------------------------------------
+        // SECTION: LAINNYA
+        // ----------------------------------------------------------------
+        [
+            'title' => 'LAINNYA',
+            'items' => [
+
+                // Pengaturan — superadmin & admin
+                [
+                    'label'  => 'Pengaturan',
+                    'icon'   => 'fas fa-cogs',
+                    'roles'  => ['superadmin', 'admin'],
+                    'active' => [
+                        'pengaturan*',
+                        'data-perusahaan',
+                        'user.manage',
+                        'organization.manageOrganization',
+                        'kode-bagian.index',
+                    ],
+                    'children' => [
+                        [
+                            'label'  => 'Data Perusahaan',
+                            'route'  => 'data-perusahaan',
+                            'roles'  => ['superadmin', 'admin'], // kedua role boleh
+                            'active' => ['data-perusahaan'],
+                        ],
+                        [
+                            'label'  => 'Manajemen Kode Bagian Kerja',
+                            'route'  => 'kode-bagian.index',
+                            'roles'  => ['superadmin'], // superadmin saja
+                            'active' => ['kode-bagian.index'],
+                        ],
+                        [
+                            'label'  => 'Manajemen Pengguna',
+                            'route'  => 'user.manage',
+                            'roles'  => ['superadmin'], // superadmin saja
+                            'active' => ['user.manage'],
+                        ],
+                        [
+                            'label'  => 'Manajemen Struktur Organisasi',
+                            'route'  => 'organization.manageOrganization',
+                            'roles'  => ['superadmin'], // superadmin saja
+                            'active' => ['organization.manageOrganization'],
+                        ],
+                    ],
+                ],
+
+                // Pemulihan — superadmin saja
+                [
+                    'label'  => 'Pemulihan',
+                    'icon'   => 'fas fa-recycle',
+                    'roles'  => ['superadmin'],
+                    'active' => ['pemulihan*', 'memo.backup', 'undangan.backup', 'risalah.backup'],
+                    'children' => [
+                        [
+                            'label'  => 'Memo',
+                            'route'  => 'memo.backup',
+                            'active' => ['memo.backup'],
+                        ],
+                        [
+                            'label'  => 'Undangan Rapat',
+                            'route'  => 'undangan.backup',
+                            'active' => ['undangan.backup'],
+                        ],
+                        [
+                            'label'  => 'Risalah Rapat',
+                            'route'  => 'risalah.backup',
+                            'active' => ['risalah.backup'],
+                        ],
+                    ],
+                ],
+
+                // Info — semua role
+                [
+                    'label'  => 'Info',
+                    'icon'   => 'fas fa-info-circle',
+                    'route'  => 'info',
+                    'roles'  => ['superadmin', 'admin', 'manager'],
+                    'active' => ['info'],
+                ],
+
+            ],
+        ],
+
+    ];
+@endphp
+
+{{-- ============================================================ --}}
+{{-- Logo                                                         --}}
+{{-- ============================================================ --}}
 <div class="sidebar-logo">
-    <div class="logo-header d-flex align-items-center justify-content-center p-3 pt-4 pb-4" style="padding:14px 16px;">
-        <a href="{{ url('dashboard') }}" class="logo" style="display:block; width:100%; text-decoration:none;">
-            <div
-                style="
-                    background:#fff;
-                    padding:10px 14px;
-                    display:flex;
-                    align-items:center;
-                    justify-content:center;
-                    overflow:hidden;
-                    width:100%;
-                ">
-                <img src="/assets/img/Logo-SIPO-Text.svg" alt="SIPO"
-                    style="display:block; max-width:100%; height:auto; max-height:76px; margin:0;" />
+    <div class="logo-header d-flex align-items-center justify-content-center p-3 pt-4 pb-4">
+        <a href="{{ url('dashboard') }}" class="logo d-block w-100 text-decoration-none">
+            <div class="bg-white d-flex align-items-center justify-content-center overflow-hidden w-100 p-2 px-3">
+                <img
+                    src="{{ asset('assets/img/Logo-SIPO-Text.svg') }}"
+                    alt="SIPO"
+                    class="d-block img-fluid"
+                    style="max-height: 76px;"
+                />
             </div>
         </a>
     </div>
 </div>
 
+{{-- ============================================================ --}}
+{{-- Navigasi                                                     --}}
+{{-- ============================================================ --}}
 <div class="sidebar-wrapper">
     <div class="sidebar-content">
         <ul class="nav nav-secondary" style="margin-top: 50px;">
 
-            <li class="nav-section">
-                <span class="sidebar-mini-icon">
-                    <i class="fa fa-ellipsis-h"></i>
-                </span>
-                <h4 class="text-section">MENU</h4>
-            </li>
-            <li class="nav-item {{ request()->routeIs('counter-nomor-surat.*') ? 'active' : '' }}">
-                <a href="{{ route('counter-nomor-surat.index') }}">
-                    <i class="fas fa-sort-numeric-up"></i>
-                    <p>Counter Nomor Surat</p>
-                </a>
-            </li>
+            @foreach ($menuSections as $sectionIndex => $section)
 
+                @php
+                    $visibleItems = collect($section['items'])
+                        ->filter(fn ($item) => sidebarCanAccess($item, $role))
+                        ->values();
+                @endphp
 
-            <!-- SUPERADMIN -->
-            @if (Auth::user()->role->nm_role == 'superadmin')
-                <li class="nav-item {{ request()->routeIs('superadmin.dashboard') ? 'active' : '' }}">
-                    <a href="{{ route('superadmin.dashboard') }}" class="nav-link">
-                        <i class="fas fa-home"></i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
+                @if ($visibleItems->isNotEmpty())
 
-                <!-- Memo -->
-                <li class="nav-item {{ request()->routeIs('superadmin.memo.index') ? 'active' : '' }}">
-                    <a href="{{ route('superadmin.memo.index') }}" class="nav-link">
-                        <i class="fas fa-file-alt"></i>
-                        <p>Memo</p>
-                    </a>
-                </li>
+                    {{-- Heading section --}}
+                    <li class="nav-section">
+                        <span class="sidebar-mini-icon">
+                            <i class="fa fa-ellipsis-h"></i>
+                        </span>
+                        <h4 class="text-section">{{ $section['title'] }}</h4>
+                    </li>
 
-                <!-- Undangan Rapat -->
-                <li class="nav-item {{ request()->routeIs('superadmin.undangan.index') ? 'active' : '' }}">
-                    <a href="{{ route('superadmin.undangan.index') }}" class="nav-link">
-                        <i class="fas fa-calendar-alt"></i>
-                        <p>Undangan Rapat</p>
-                    </a>
-                </li>
+                    @foreach ($visibleItems as $itemIndex => $menu)
 
-                <!-- Risalah Rapat -->
-                <li class="nav-item {{ request()->routeIs('superadmin.risalah.index') ? 'active' : '' }}">
-                    <a href="{{ route('superadmin.risalah.index') }}" class="nav-link">
-                        <i class="fas fa-clipboard-list"></i>
-                        <p>Risalah Rapat</p>
-                    </a>
-                </li>
-            @endif
+                        @php
+                            $hasChildren = ! empty($menu['children']);
 
-            <!-- ADMIN -->
-            @if (Auth::user()->role->nm_role == 'admin')
-                <li class="nav-item {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard') }}" class="nav-link">
-                        <i class="fas fa-home"></i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
+                            /*
+                             * Filter child berdasarkan role.
+                             * Child tanpa key 'roles' mewarisi role parent-nya.
+                             */
+                            $visibleChildren = $hasChildren
+                                ? collect($menu['children'])
+                                    ->filter(function ($child) use ($role, $menu) {
+                                        $childRoles = $child['roles'] ?? $menu['roles'] ?? null;
+                                        return $childRoles === null
+                                            || in_array($role, $childRoles, strict: true);
+                                    })
+                                    ->values()
+                                : collect();
 
+                            // Cek apakah item ini atau salah satu child-nya sedang aktif
+                            $isActive = sidebarIsActive($menu['active'] ?? [$menu['route'] ?? '']);
 
-                <!-- Memo (Lama) -->
-                {{-- <li class="nav-item {{ request()->routeIs('admin.memo.index') ? 'active' : '' }}">
-                    <a href="{{ route('admin.memo.index') }}" class="nav-link">
-                        <i class="fas fa-file-alt"></i>
-                        <p>Memo</p>
-                    </a>
-                </li> --}}
+                            if ($hasChildren) {
+                                $isActive = $isActive || $visibleChildren->contains(
+                                    fn ($child) => sidebarIsActive($child['active'] ?? [$child['route'] ?? ''])
+                                );
+                            }
 
-                <!-- Memo (Admin: Masuk/Keluar) -->
-                <li
-                    class="nav-item {{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#memo-admin"
-                        aria-expanded="{{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'true' : 'false' }}">
-                        <i class="fas fa-file-alt"></i>
-                        <p>Memo</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse {{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'show' : '' }}"
-                        id="memo-admin">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('memo.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('memo.terkirim') }}">
-                                    <span class="sub-item">Memo Keluar</span>
+                            $collapseId = sidebarCollapseId($menu['label'], $sectionIndex, $itemIndex);
+                        @endphp
+
+                        {{--
+                            Kondisi render:
+                            A) Flat item  → tidak punya 'children' DAN punya 'route'
+                            B) Grup item  → punya 'children' yang visible
+                            C) Diabaikan  → punya 'children' tapi semua child tidak accessible
+                                            (misal: semua child hanya untuk superadmin, user adalah admin)
+                        --}}
+
+                        {{-- A) Item TANPA sub-menu --}}
+                        @if (! $hasChildren && isset($menu['route']))
+
+                            <li class="nav-item {{ $isActive ? 'active' : '' }}">
+                                <a href="{{ route($menu['route']) }}" class="nav-link">
+                                    <i class="{{ $menu['icon'] }}"></i>
+                                    <p>{{ $menu['label'] }}</p>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('memo.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('memo.diterima') }}">
-                                    <span class="sub-item">Memo Masuk</span>
+
+                        {{-- B) Item DENGAN sub-menu yang visible --}}
+                        @elseif ($hasChildren && $visibleChildren->isNotEmpty())
+
+                            <li class="nav-item {{ $isActive ? 'active' : '' }}">
+                                <a
+                                    href="#{{ $collapseId }}"
+                                    data-sidebar-toggle="{{ $collapseId }}"
+                                    aria-expanded="{{ $isActive ? 'true' : 'false' }}"
+                                    aria-controls="{{ $collapseId }}"
+                                    role="button"
+                                >
+                                    <i class="{{ $menu['icon'] }}"></i>
+                                    <p>{{ $menu['label'] }}</p>
+                                    <span class="caret"></span>
                                 </a>
+
+                                <div
+                                    id="{{ $collapseId }}"
+                                    class="sidebar-submenu {{ $isActive ? 'is-open' : '' }}"
+                                    style="{{ $isActive ? '' : 'display:none;' }}"
+                                >
+                                    <ul class="nav nav-collapse">
+                                        @foreach ($visibleChildren as $child)
+                                            @php
+                                                $childActive = sidebarIsActive(
+                                                    $child['active'] ?? [$child['route'] ?? '']
+                                                );
+                                            @endphp
+
+                                            {{-- Guard: hanya render child yang punya route --}}
+                                            @if (isset($child['route']))
+                                                <li class="{{ $childActive ? 'active' : '' }}">
+                                                    <a href="{{ route($child['route']) }}">
+                                                        <span class="sub-item">{{ $child['label'] }}</span>
+                                                    </a>
+                                                </li>
+                                            @endif
+                                        @endforeach
+                                    </ul>
+                                </div>
+
                             </li>
-                        </ul>
-                    </div>
-                </li>
 
+                        {{-- C) Item diabaikan — children ada tapi semua tidak accessible --}}
+                        @endif
 
-                <!-- Undangan Rapat (Lama) -->
-                {{-- <li class="nav-item {{ request()->routeIs('admin.undangan.index') ? 'active' : '' }}">
-                    <a href="{{ route('admin.undangan.index') }}" class="nav-link">
-                        <i class="fas fa-calendar-alt"></i>
-                        <p>Undangan Rapat</p>
-                    </a>
-                </li> --}}
+                    @endforeach
 
-                <!-- Undangan (Admin: Masuk/Keluar) -->
-                <li
-                    class="nav-item {{ request()->routeIs('admin.undangan.terkirim', 'admin.undangan.diterima') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#undangan-admin">
-                        <i class="fas fa-calendar-alt"></i>
-                        <p>Undangan Rapat</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse {{ request()->routeIs('undangan.terkirim', 'undangan.diterima') ? 'show' : '' }}"
-                        id="undangan-admin">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('undangan.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('undangan.terkirim') }}">
-                                    <span class="sub-item">Undangan Keluar</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('undangan.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('undangan.diterima') }}">
-                                    <span class="sub-item">Undangan Masuk</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
+                @endif
 
-                <!-- Risalah Rapat -->
-                <li class="nav-item {{ request()->routeIs('risalah.index') ? 'active' : '' }}">
-                    <a href="{{ route('risalah.index') }}" class="nav-link">
-                        <i class="fas fa-clipboard-list"></i>
-                        <p>Risalah Rapat</p>
-                    </a>
-                </li>
-            @endif
-            @if (Auth::user()->role->nm_role == 'superadmin' || Auth::user()->role->nm_role == 'admin')
-                <!-- Arsip -->
-                <li class="nav-item {{ request()->is('arsip*') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#arsip">
-                        <i class="fas fa-archive"></i>
-                        <p>Arsip</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse {{ request()->is('arsip*') ? 'show' : '' }}" id="arsip">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('arsip.memo') ? 'active' : '' }}">
-                                <a href="{{ route('arsip.memo') }}">
-                                    <span class="sub-item">Memo</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('arsip.undangan') ? 'active' : '' }}">
-                                <a href="{{ route('arsip.undangan') }}">
-                                    <span class="sub-item">Undangan Rapat</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('arsip.risalah') ? 'active' : '' }}">
-                                <a href="{{ route('arsip.risalah') }}">
-                                    <span class="sub-item">Risalah Rapat</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            @endif
-            <!-- LAPORAN -->
-            @if (Auth::user()->role->nm_role == 'superadmin')
-                <!-- Laporan -->
-                <li class="nav-item {{ request()->is('laporan*') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#laporan">
-                        <i class="fas fa-book"></i>
-                        <p>Laporan</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse {{ request()->is('laporan*') ? 'show' : '' }}" id="laporan">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('laporan-memo.superadmin') ? 'active' : '' }}">
-                                <a href="{{ route('laporan-memo.superadmin') }}">
-                                    <span class="sub-item">Memo</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('laporan-undangan.superadmin') ? 'active' : '' }}">
-                                <a href="{{ route('laporan-undangan.superadmin') }}">
-                                    <span class="sub-item">Undangan Rapat</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('laporan-risalah.superadmin') ? 'active' : '' }}">
-                                <a href="{{ route('laporan-risalah.superadmin') }}">
-                                    <span class="sub-item">Risalah Rapat</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            @endif
+            @endforeach
 
-            <!-- MANAGER -->
-            @if (Auth::user()->role->nm_role == 'manager')
-                <li class="nav-item {{ request()->routeIs('dashboard') ? 'active' : '' }}">
-                    <a href="{{ route('dashboard') }}" class="nav-link">
-                        <i class="fas fa-home"></i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
-
-
-                {{-- Memo --}}
-                <li
-                    class="nav-item
-                    {{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#memo">
-                        <i class="fas fa-file-alt"></i>
-                        <p>Memo</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse
-                        {{ request()->is('memo*') || request()->routeIs('memo.terkirim', 'memo.diterima') ? 'show' : '' }}"
-                        id="memo">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('memo.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('memo.terkirim') }}">
-                                    <span class="sub-item">Memo Keluar</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('memo.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('memo.diterima') }}">
-                                    <span class="sub-item">Memo Masuk</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-
-
-
-                <!-- Undangan Rapat (Lama) -->
-                {{-- <li class="nav-item {{ request()->routeIs('undangan.manager') ? 'active' : '' }}">
-                    <a href="{{ route('undangan.manager') }}" class="nav-link">
-                        <i class="fas fa-calendar-alt"></i>
-                        <p>Undangan Rapat</p>
-                    </a>
-                </li> --}}
-
-                <!-- Undangan (Manager: Masuk/Keluar) -->
-                <li
-                    class="nav-item {{ request()->is('undangan*') || request()->routeIs('undangan.terkirim', 'undangan.diterima') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#undangan-manager"
-                        aria-expanded="{{ request()->is('undangan*') || request()->routeIs('undangan.terkirim', 'undangan.diterima') ? 'true' : 'false' }}">
-                        <i class="fas fa-calendar-alt"></i>
-                        <p>Undangan Rapat</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse {{ request()->is('undangan*') || request()->routeIs('undangan.terkirim', 'undangan.diterima') ? 'show' : '' }}"
-                        id="undangan-manager">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('undangan.terkirim') ? 'active' : '' }}">
-                                <a href="{{ route('undangan.terkirim') }}">
-                                    <span class="sub-item">Undangan Keluar</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('undangan.diterima') ? 'active' : '' }}">
-                                <a href="{{ route('undangan.diterima') }}">
-                                    <span class="sub-item">Undangan Masuk</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-
-                <!-- Risalah Rapat -->
-                <li class="nav-item {{ request()->routeIs('risalah.index') ? 'active' : '' }}">
-                    <a href="{{ route('risalah.index') }}" class="nav-link">
-                        <i class="fas fa-clipboard-list"></i>
-                        <p>Risalah Rapat</p>
-                    </a>
-                </li>
-
-                <!-- Arsip -->
-                <li class="nav-item {{ request()->is('arsip*') ? 'active' : '' }}">
-                    <a data-bs-toggle="collapse" href="#arsip">
-                        <i class="fas fa-archive"></i>
-                        <p>Arsip</p>
-                        <span class="caret"></span>
-                    </a>
-                    <div class="collapse {{ request()->is('arsip*') ? 'show' : '' }}" id="arsip">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('arsip.memo') ? 'active' : '' }}">
-                                <a href="{{ route('arsip.memo') }}">
-                                    <span class="sub-item">Memo</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('arsip.undangan') ? 'active' : '' }}">
-                                <a href="{{ route('arsip.undangan') }}">
-                                    <span class="sub-item">Undangan Rapat</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('arsip.risalah') ? 'active' : '' }}">
-                                <a href="{{ route('arsip.risalah') }}">
-                                    <span class="sub-item">Risalah Rapat</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            @endif
-
-
-
-
-
-
-            <li class="nav-section">
-                <span class="sidebar-mini-icon">
-                    <i class="fa fa-ellipsis-h"></i>
-                </span>
-                <h4 class="text-section">LAINNYA</h4>
-            </li>
-            {{-- Pengaturan (SUPERADMIN & ADMIN) --}}
-            @if (Auth::user()->role->nm_role == 'superadmin' || Auth::user()->role->nm_role == 'admin')
-                <li
-                    class="nav-item
-                {{ request()->is('pengaturan*') ||
-                request()->routeIs('data-perusahaan', 'user.manage', 'organization.manageOrganization')
-                    ? 'active'
-                    : '' }}">
-                    <a data-bs-toggle="collapse" href="#pengaturan">
-                        <i class="fas fa-cogs"></i>
-                        <p>Pengaturan</p>
-                        <span class="caret"></span>
-                    </a>
-
-                    <div class="collapse
-                    {{ request()->is('pengaturan*') ||
-                    request()->routeIs('data-perusahaan', 'user.manage', 'organization.manageOrganization')
-                        ? 'show'
-                        : '' }}"
-                        id="pengaturan">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('data-perusahaan') ? 'active' : '' }}">
-                                <a href="{{ route('data-perusahaan') }}">
-                                    <span class="sub-item">Data Perusahaan</span>
-                                </a>
-                            </li>
-                            @if (Auth::user()->role->nm_role == 'superadmin')
-                                <li class="{{ request()->routeIs('kode-bagian.index') ? 'active' : '' }}">
-                                    <a href="{{ route('kode-bagian.index') }}">
-                                        <span class="sub-item">Manajemen Kode Bagian Kerja</span>
-                                    </a>
-                                </li>
-                                <li class="{{ request()->routeIs('user.manage') ? 'active' : '' }}">
-                                    <a href="{{ route('user.manage') }}">
-                                        <span class="sub-item">Manajemen Pengguna</span>
-                                    </a>
-                                </li>
-                                <li
-                                    class="{{ request()->routeIs('organization.manageOrganization') ? 'active' : '' }}">
-                                    <a href="{{ route('organization.manageOrganization') }}">
-                                        <span class="sub-item">Manajemen Struktur Organisasi</span>
-                                    </a>
-                                </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @endif
-
-            <!-- Pemulihan Superadmin -->
-            @if (Auth::user()->role->nm_role == 'superadmin')
-                <li
-                    class="nav-item
-                    {{ request()->is('pemulihan*') || request()->routeIs('memo.backup', 'undangan.backup', 'risalah.backup')
-                        ? 'active'
-                        : '' }}">
-                    <a data-bs-toggle="collapse" href="#pemulihan">
-                        <i class="fas fa-recycle"></i>
-                        <p>Pemulihan</p>
-                        <span class="caret"></span>
-                    </a>
-
-                    <div class="collapse
-                        {{ request()->is('pemulihan*') || request()->routeIs('memo.backup', 'undangan.backup', 'risalah.backup')
-                            ? 'show'
-                            : '' }}"
-                        id="pemulihan">
-                        <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('memo.backup') ? 'active' : '' }}">
-                                <a href="{{ route('memo.backup') }}">
-                                    <span class="sub-item">Memo</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('undangan.backup') ? 'active' : '' }}">
-                                <a href="{{ route('undangan.backup') }}">
-                                    <span class="sub-item">Undangan Rapat</span>
-                                </a>
-                            </li>
-                            <li class="{{ request()->routeIs('risalah.backup') ? 'active' : '' }}">
-                                <a href="{{ route('risalah.backup') }}">
-                                    <span class="sub-item">Risalah Rapat</span>
-                                </a>
-                            </li>
-                        </ul>
-                    </div>
-                </li>
-            @endif
-
-            <!-- Info -->
-            <li class="nav-item {{ request()->is('info') ? 'active' : '' }}">
-                <a href="{{ route('info') }}">
-                    <i class="fas fa-info-circle"></i>
-                    <p>Info</p>
-                </a>
-            </li>
         </ul>
     </div>
 </div>
