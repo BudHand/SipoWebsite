@@ -18,10 +18,13 @@ class NotifController extends Controller
             $user = Auth::user();
 
             if (!$user) {
-                return response()->json([
-                    'notifications' => [],
-                    'message' => 'Unauthorized',
-                ], 401);
+                return response()->json(
+                    [
+                        'notifications' => [],
+                        'message' => 'Unauthorized',
+                    ],
+                    401,
+                );
             }
 
             $role = (int) $user->role_id_role;
@@ -43,10 +46,13 @@ class NotifController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'notifications' => [],
-                'message' => 'Gagal memuat notifikasi',
-            ], 500);
+            return response()->json(
+                [
+                    'notifications' => [],
+                    'message' => 'Gagal memuat notifikasi',
+                ],
+                500,
+            );
         }
     }
 
@@ -56,15 +62,15 @@ class NotifController extends Controller
             $user = Auth::user();
 
             if (!$user) {
-                return response()->json([
-                    'count' => 0,
-                ], 401);
+                return response()->json(
+                    [
+                        'count' => 0,
+                    ],
+                    401,
+                );
             }
 
-            $count = Notifikasi::query()
-                ->where('id_user', $user->id)
-                ->where('dibaca', 0)
-                ->count();
+            $count = Notifikasi::query()->where('id_user', $user->id)->where('dibaca', 0)->count();
 
             return response()->json([
                 'count' => $count,
@@ -74,9 +80,12 @@ class NotifController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'count' => 0,
-            ], 500);
+            return response()->json(
+                [
+                    'count' => 0,
+                ],
+                500,
+            );
         }
     }
 
@@ -86,22 +95,25 @@ class NotifController extends Controller
             $user = Auth::user();
 
             if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 401);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Unauthorized',
+                    ],
+                    401,
+                );
             }
 
-            $notification = Notifikasi::query()
-                ->where('id_user', $user->id)
-                ->where('id_notifikasi', $id)
-                ->first();
+            $notification = Notifikasi::query()->where('id_user', $user->id)->where('id_notifikasi', $id)->first();
 
             if (!$notification) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Notifikasi tidak ditemukan',
-                ], 404);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Notifikasi tidak ditemukan',
+                    ],
+                    404,
+                );
             }
 
             if ((int) $notification->dibaca === 0) {
@@ -120,10 +132,13 @@ class NotifController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menandai notifikasi',
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal menandai notifikasi',
+                ],
+                500,
+            );
         }
     }
 
@@ -133,10 +148,13 @@ class NotifController extends Controller
             $user = Auth::user();
 
             if (!$user) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Unauthorized',
-                ], 401);
+                return response()->json(
+                    [
+                        'success' => false,
+                        'message' => 'Unauthorized',
+                    ],
+                    401,
+                );
             }
 
             Notifikasi::query()
@@ -155,10 +173,13 @@ class NotifController extends Controller
                 'trace' => $e->getTraceAsString(),
             ]);
 
-            return response()->json([
-                'success' => false,
-                'message' => 'Gagal menandai semua notifikasi',
-            ], 500);
+            return response()->json(
+                [
+                    'success' => false,
+                    'message' => 'Gagal menandai semua notifikasi',
+                ],
+                500,
+            );
         }
     }
 
@@ -172,14 +193,14 @@ class NotifController extends Controller
         $redirectUrl = '#';
 
         if (str_contains($judulNotif, 'memo')) {
-            $memo = Memo::query()
-                ->where('judul', $judulDocument)
-                ->first();
+            $memo = Memo::query()->where('judul', $judulDocument)->first();
 
             $documentId = $memo?->id_memo;
 
             if ($memo) {
-                if ($role === 3 && $memo->status === 'approve') {
+                if (str_contains($judulNotif, 'update') || str_contains($judulNotif, 'diupdate') || str_contains($judulNotif, 'berhasil di update') || str_contains($judulNotif, 'berhasil diupdate')) {
+                    $type = 'memo-terkirim';
+                } elseif ($role === 3 && $memo->status === 'approve') {
                     $type = 'memo-diterima';
                 } elseif ($role === 3) {
                     $type = 'memo-terkirim';
@@ -190,16 +211,12 @@ class NotifController extends Controller
                 $type = 'memo-null';
             }
         } elseif (str_contains($judulNotif, 'undangan')) {
-            $undangan = Undangan::query()
-                ->where('judul', $judulDocument)
-                ->first();
+            $undangan = Undangan::query()->where('judul', $judulDocument)->first();
 
             $documentId = $undangan?->id_undangan;
             $type = $undangan ? 'undangan' : 'undangan-null';
         } elseif (str_contains($judulNotif, 'risalah')) {
-            $risalah = Risalah::query()
-                ->where('judul', $judulDocument)
-                ->first();
+            $risalah = Risalah::query()->where('judul', $judulDocument)->first();
 
             $documentId = $risalah?->id_risalah;
             $type = $risalah ? 'risalah' : 'risalah-null';
@@ -228,7 +245,9 @@ class NotifController extends Controller
     {
         if ($documentId) {
             return match ($type) {
-                'memo' => route('view.memo-diterima', $documentId),
+                // 'memo' => route('view.memo-diterima', $documentId),
+                'memo-terkirim' => route('view.memo-terkirim', $documentId),
+                'memo-diterima' => route('view.memo-diterima', $documentId),
                 'undangan' => route('view.undangan', $documentId),
                 'risalah' => route('risalah.view', $documentId),
                 default => '#',
