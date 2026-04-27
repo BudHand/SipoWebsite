@@ -191,31 +191,12 @@ class NotifController extends Controller
         $documentId = $notification->id_document ?? null;
         $redirectUrl = '#';
 
-        if ($notification->jenis_document === 'App\Models\Memo' || str_contains($judulNotif, 'memo')) {
+        if ($notification->jenis_document === 'memo' || $notification->jenis_document === 'App\Models\Memo' || str_contains($judulNotif, 'memo')) {
             $memo = $documentId ? Memo::find($documentId) : null;
 
             if ($memo) {
-                if (
-                    str_contains($judulNotif, 'memo masuk') ||
-                    str_contains($judulNotif, 'masuk') ||
-                    str_contains($judulNotif, 'disetujui') ||
-                    str_contains($judulNotif, 'setujui') ||
-                    str_contains($judulNotif, 'approve') ||
-                    str_contains($judulNotif, 'approved')
-                ) {
+                if (str_contains($judulNotif, 'memo masuk')) {
                     $type = 'memo-diterima';
-                } elseif (
-                    str_contains($judulNotif, 'ditolak') ||
-                    str_contains($judulNotif, 'tolak') ||
-                    str_contains($judulNotif, 'diupdate') ||
-                    str_contains($judulNotif, 'update') ||
-                    str_contains($judulNotif, 'berhasil di update') ||
-                    str_contains($judulNotif, 'berhasil diupdate') ||
-                    str_contains($judulNotif, 'revisi') ||
-                    str_contains($judulNotif, 'terkirim') ||
-                    str_contains($judulNotif, 'dikirim')
-                ) {
-                    $type = 'memo-terkirim';
                 } else {
                     $type = 'memo-terkirim';
                 }

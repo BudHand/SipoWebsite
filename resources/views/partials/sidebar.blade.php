@@ -105,7 +105,7 @@
                                     <span class="sub-item">Memo Keluar</span>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('admin.memo.diterima') ? 'active' : '' }}">
+                            <li class="{{ request()->routeIs('memo.diterima') ? 'active' : '' }}">
                                 <a href="{{ route('memo.diterima') }}">
                                     <span class="sub-item">Memo Masuk</span>
                                 </a>
@@ -134,12 +134,12 @@
                     <div class="collapse {{ request()->routeIs('undangan.terkirim', 'undangan.diterima') ? 'show' : '' }}"
                         id="undangan-admin">
                         <ul class="nav nav-collapse">
-                            <li class="{{ request()->routeIs('admin.undangan.terkirim') ? 'active' : '' }}">
+                            <li class="{{ request()->routeIs('undangan.terkirim') ? 'active' : '' }}">
                                 <a href="{{ route('undangan.terkirim') }}">
                                     <span class="sub-item">Undangan Keluar</span>
                                 </a>
                             </li>
-                            <li class="{{ request()->routeIs('admin.undangan.diterima') ? 'active' : '' }}">
+                            <li class="{{ request()->routeIs('undangan.diterima') ? 'active' : '' }}">
                                 <a href="{{ route('undangan.diterima') }}">
                                     <span class="sub-item">Undangan Masuk</span>
                                 </a>
@@ -149,7 +149,7 @@
                 </li>
 
                 <!-- Risalah Rapat -->
-                <li class="nav-item {{ request()->routeIs('admin.risalah.index') ? 'active' : '' }}">
+                <li class="nav-item {{ request()->routeIs('risalah.index') ? 'active' : '' }}">
                     <a href="{{ route('risalah.index') }}" class="nav-link">
                         <i class="fas fa-clipboard-list"></i>
                         <p>Risalah Rapat</p>

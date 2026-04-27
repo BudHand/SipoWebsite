@@ -94,9 +94,26 @@ class DashboardController extends Controller
     */
     private function countMemoKeluar($user, array $arsipIds): int
     {
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($kodeBagianUser->isEmpty()) {
+            return 0;
+        }
+
         $query = Memo::query()
             ->whereNotIn('id_memo', $arsipIds)
-            ->where('kode_bagian', $user->kode_bagian);
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
+            });
 
         if ((int) $user->role_id_role === 2) {
             $query->where('pembuat', $user->id);
