@@ -123,4 +123,26 @@ class Undangan extends Model
                 ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
         });
     }
+
+    public function bisaDisposisi(User $user): bool
+    {
+        $uid = (string) $user->getKey();
+
+        $semuaPenerima = collect(explode(';', (string) ($this->tujuan   ?? '')))
+            ->merge(explode(';', (string) ($this->tembusan ?? '')))
+            ->merge(explode(';', (string) ($this->bcc      ?? '')))
+            ->map(fn($v) => trim($v))
+            ->filter()
+            ->unique();
+
+        return $semuaPenerima->contains($uid);
+    }
+
+    public function kandidatPenerimaDispo(User $user): \Illuminate\Support\Collection
+    {
+        return User::where('id', '!=', $user->getKey())
+            ->orderBy('firstname')
+            ->orderBy('lastname')
+            ->get();
+    }
 }

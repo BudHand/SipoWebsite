@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\RisalahApiController;
 use App\Http\Controllers\Api\AuthApiController;
 use App\Http\Controllers\Api\NotifApiController;
 use App\Http\Controllers\Api\ProfileApiController;
+use App\Http\Controllers\Api\DisposisiApiController;
 use Illuminate\Support\Facades\Http;
 
 // eksternal API
@@ -50,19 +51,23 @@ Route::get('/memos/{id}/lampiran/downloadAll', [MemoController::class, 'download
 Route::get('/mobile/risalah/pdf/{token}', [CetakPDFController::class, 'viewRisalahPdfMobile'])->name('mobile.risalah.pdf');
 
 Route::middleware('auth:sanctum')->group(function () {
-    Route::get('/memos', [MemoApiController::class, 'index']);
+
+    // ===== API Memo =====
+    Route::get('/memos', [MemoApiController::class, 'index']); // Index all memo, (old endpoint)
+    Route::get('/memos/keluar', [MemoApiController::class, 'memoKeluar']); //Filter Memo Keluar / Memo Terkirim, BE v2
+    Route::get('/memos/masuk', [MemoApiController::class, 'memoMasuk']); // Filter Memo Masuk / Memo Diterima, BE v2
     Route::get('/memos/kode', [MemoApiController::class, 'kodeFilter']);
     Route::get('/memos/{id}', [MemoApiController::class, 'show']);
-    Route::get('/users', [App\Http\Controllers\Api\UserManageApiController::class, 'index']);
 
-    // Endpoint lampiran utama (cek single / multiple)
-    Route::get('/memos/{id}/lampiran', [MemoController::class, 'lampiran'])->name('api.memo.lampiran');
+    Route::get('/memos/{id}/lampiran', [MemoController::class, 'lampiran'])->name('api.memo.lampiran'); // Endpoint lampiran utama (cek single / multiple)
     // Route::get('/memos/{id}/lampiran/downloadAll', [MemoController::class, 'downloadAll'])->name('api.memo.lampiran.downloadAll');
     // Endpoint untuk akses lampiran tertentu kalau multiple
     Route::get('/memos/{id}/lampiran/{index}', [MemoController::class, 'lampiranSingle'])->name('api.memo.lampiran.single');
     Route::put('/memos/{id}/update-status', [MemoApiController::class, 'updateStatus'])->name('api.memo.updateStatus');
     Route::get('/memos/{id}/pdf', [CetakPDFController::class, 'viewMemoPdfUrl']);
 
+
+    // ===== API Risalah =====
     Route::get('/risalahs', [RisalahApiController::class, 'index']);
     Route::get('/risalahs/kode', [RisalahApiController::class, 'kodeFilter']);
     Route::get('/risalahs/{id}', [RisalahApiController::class, 'show']);
@@ -72,7 +77,11 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/risalahs/{id}/pdf', [CetakPDFController::class, 'viewRisalahPdfUrl']);
     // Route::get('/mobile/risalah/pdf/{token}', [CetakPDFController::class, 'viewRisalahPdfMobile'])->name('mobile.risalah.pdf');
 
+
+    // ===== API Undangan =====
     Route::get('/undangans', [UndanganApiController::class, 'index']);
+    Route::get('/undangans/masuk', [UndanganApiController::class, 'undanganMasuk']);
+    Route::get('/undangans/keluar', [UndanganApiController::class, 'undanganKeluar']);
     Route::get('/undangans/kode', [UndanganApiController::class, 'kodeFilter']);
     Route::get('/undangans/{id}', [UndanganApiController::class, 'show']);
     Route::get('/undangans/{id}/lampiran', [UndanganApiController::class, 'lampiran'])->name('api.undangan.lampiran');
@@ -80,15 +89,44 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::put('/undangans/{id}/update-status', [UndanganApiController::class, 'updateStatus'])->name('api.undangan.updateStatus');
     Route::get('/undangans/{id}/pdf', [CetakPDFController::class, 'viewUndanganPdfUrl']);
 
-    Route::get('/profile', [ProfileApiController::class, 'profileDetails']);
 
-    Route::get('/notifikasi', [NotifApiController::class, 'index']);
-    Route::get('/notifikasi/status', [NotifApiController::class, 'notifAvailable']);
-    Route::post('/notifikasi/token', [NotifApiController::class, 'saveToken']);
-    Route::post('/notifikasi/{id}/read', [NotifApiController::class, 'markAsRead']);
-    Route::post('/notifikasi/read-all', [NotifApiController::class, 'markAllAsRead']);
+    // ===== DISPOSISI =====
+    Route::prefix('disposisi')->group(function () {
+        Route::get('/', [DisposisiApiController::class, 'index']);
+        Route::get('/cari-dokumen', [DisposisiApiController::class, 'cariDokumen']);
+        Route::post('/', [DisposisiApiController::class, 'store']);
 
+        Route::get('/{disposisi}', [DisposisiApiController::class, 'show']);
+        Route::patch('/{disposisi}/status', [DisposisiApiController::class, 'updateStatus']);
+        Route::post('/{disposisi}/teruskan', [DisposisiApiController::class, 'teruskan']);
+        Route::get('/{disposisi}/dokumen', [DisposisiApiController::class, 'lihatDokumen']);
+    });
+
+    // ===== NOTIFIKASI =====
+    Route::prefix('notifikasi')->group(function () {
+        Route::get('/', [NotifApiController::class, 'index']);
+        Route::get('/status', [NotifApiController::class, 'notifAvailable']);
+        Route::post('/token', [NotifApiController::class, 'saveToken']);
+        Route::post('/{id}/read', [NotifApiController::class, 'markAsRead']);
+        Route::post('/read-all', [NotifApiController::class, 'markAllAsRead']);
+    });
+
+
+    // // ===== API Notifikasi =====
+    // Route::get('/notifikasi', [NotifApiController::class, 'index']);
+    // Route::get('/notifikasi/status', [NotifApiController::class, 'notifAvailable']);
+    // Route::post('/notifikasi/token', [NotifApiController::class, 'saveToken']);
+    // Route::post('/notifikasi/{id}/read', [NotifApiController::class, 'markAsRead']);
+    // Route::post('/notifikasi/read-all', [NotifApiController::class, 'markAllAsRead']);
+
+    // ===== Endpoint Dashboard - Get all dashboard data =====
     Route::get('/dashboard', [DashboardApiController::class, 'index']);
+
+    // ===== Endpoint User =====
+    Route::get('/users', [App\Http\Controllers\Api\UserManageApiController::class, 'index']);
+
+    // ===== Endpoint Profile =====
+    Route::get('/profile', [ProfileApiController::class, 'profileDetails']);
 
     Route::get('/approval', [App\Http\Controllers\Api\ApprovalApiController::class, 'index']);
 });

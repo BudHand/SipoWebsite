@@ -17,6 +17,7 @@ use App\Models\Director;
 use App\Models\Department;
 use App\Models\BagianKerja;
 use App\Models\CounterNomorSurat;
+use App\Models\Disposisi;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage as StorageFacade;
 use Illuminate\Support\Facades\Validator;
@@ -32,125 +33,6 @@ use App\Services\NotifService;
 
 class MemoController extends Controller
 {
-    /**
-     * @mixin \Illuminate\Support\Facades\Log
-     */
-    // public function index(Request $request)
-    // {
-    //     $divisi = Divisi::all();
-    //     $seri = Seri::all();
-    //     $user = User::all();
-    //     $userId = Auth::id();
-
-    //     // Ambil ID memo yang sudah diarsipkan oleh user saat ini
-    //     $memoDiarsipkan = Arsip::where('user_id', Auth::id())->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
-    //     $sortBy = $request->get('sort_by', 'created_at'); // default ke created_at
-    //     $sortDirection = $request->get('sort_direction', 'desc') === 'asc' ? 'asc' : 'desc';
-
-    //     $allowedSortColumns = ['created_at', 'tgl_disahkan', 'tgl_dibuat', 'nomor_memo', 'judul'];
-    //     if (!in_array($sortBy, $allowedSortColumns)) {
-    //         $sortBy = 'created_at'; // fallback default
-    //     }
-
-    //     // Query memo dengan filter
-    //     $query = Memo::with('divisi')->whereNotIn('id_memo', $memoDiarsipkan); // Filter memo yang belum diarsipkan
-
-    //     // Filter by self (own/other/both) if requested
-    //     // Advanced filter: 3 types
-    //     // 1. both: memo milik sendiri dan kiriman orang lain
-    //     // 2. own: memo yang dibuat diri sendiri saja
-    //     // 3. received: memo yang dibuat orang lain saja
-
-    //     $filterType = $request->get('divisi_filter', 'both');
-
-    //     if ($filterType === 'own') {
-    //         // Only memos where current user is the sender
-    //         $query->whereHas('kirimDocument', function ($q) use ($userId) {
-    //             $q->where('id_pengirim', $userId)
-    //                 ->where('jenis_document', 'memo')
-    //                 ->whereHas('memo', function ($q) {
-    //                     $q->where('kode', $this->getDivDeptKode(Auth::user()));
-    //                 });
-    //         });
-    //     } elseif ($filterType === 'received' || $filterType === 'other') {
-    //         // Only memos received by current user
-    //         $query->whereHas('kirimDocument', function ($q) use ($userId) {
-    //             $q->where('id_penerima', $userId)->where(
-    //                 'jenis_document',
-    //                 'memo',
-    //                 //->whereHas('memo', function ($q) {
-    //                 //    $q->where('kode', '!=', $this->getDivDeptKode(Auth::user()));
-    //                 //})
-    //             );
-    //         });
-    //     } else {
-    //         // Both sent and received memos by the user
-    //         $query->whereHas('kirimDocument', function ($q) use ($userId) {
-    //             $q->where(function ($subQ) use ($userId) {
-    //                 $subQ->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-    //             })->where('jenis_document', 'memo');
-    //         });
-    //     }
-
-    //     // Filter berdasarkan status
-    //     if ($request->filled('status')) {
-    //         $query->where('status', $request->status);
-    //     }
-
-    //     // Filter berdasarkan tanggal dibuat
-    //     if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
-    //         $query->whereBetween('tgl_dibuat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
-    //     } elseif ($request->filled('tgl_dibuat_awal')) {
-    //         $query->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
-    //     } elseif ($request->filled('tgl_dibuat_akhir')) {
-    //         $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
-    //     }
-
-    //     // Ambil semua arsip memo berdasarkan user login
-    //     $arsipMemoQuery = Arsip::where('user_id', $userId)->where('jenis_document', 'memo')->with('document');
-
-    //     $query->orderBy($sortBy, $sortDirection);
-
-    //     $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
-    //     // Pencarian berdasarkan nama dokumen atau nomor memo
-    //     if ($request->filled('search')) {
-    //         $query->where(function ($q) use ($request) {
-    //             $q->where('judul', 'like', '%' . $request->search . '%')->orWhere('nomor_memo', 'like', '%' . $request->search . '%');
-    //         });
-    //     }
-    //     if ($request->filled('kode') && $request->kode != 'pilih') {
-    //         $query->where('kode', $request->kode);
-    //     }
-    //     // Pagination
-    //     $perPage = $request->get('per_page', 10); // Default ke 10 jika tidak ada input
-    //     $memos = $query->paginate($perPage);
-    //     // **Tambahkan status penerima untuk setiap memo**
-
-    //     $memos->getCollection()->transform(function ($memo) use ($userId) {
-    //         $creator = $memo->pembuat;
-
-    //         if ($creator == $userId || $memo->nama_bertandatangan == Auth::user()->fullname) {
-    //             $memo->final_status = $memo->status;
-    //             $memo->jenis = 'keluar'; // Memo diri sendiri
-    //         } else {
-    //             $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->where('id_penerima', $userId)->first();
-    //             $memo->final_status = $statusKirim ? $statusKirim->status : '-';
-    //             $memo->jenis = 'masuk';
-    //             // Cari status kiriman untuk user login
-    //         }
-    //         return $memo;
-    //     });
-    //     // Ambil id penerima dan pengirim melalui relasi user
-    //     $kirimDocuments = Kirim_Document::where('jenis_document', 'memo')
-    //         ->where(function ($query) use ($userId) {
-    //             $query->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-    //         })
-    //         ->with('memo') // eager-load related memo
-    //         ->orderBy('id_kirim_document', 'desc')
-    //         ->get();
-    //     return view(Auth::user()->role->nm_role . '.memo.index', compact('memos', 'divisi', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
-    // }
-
     /**
      * Memo Terkirim for logged in user (same logic as index but only memos where id_pengirim == auth user)
      */
@@ -561,30 +443,6 @@ class MemoController extends Controller
         return $base->merge($tujuan)->merge($tembusan)->merge($bcc)->map(fn($id) => (int) $id)->filter(fn($id) => $id > 0)->unique()->values()->all();
     }
 
-    //== Fungsi Nomor Seri dan Dokumen Otomatis ==//
-    // public function nextSeri()
-    // {
-    //     $user = Auth::user();
-    //     if ($user->position_id_position == 1) {
-    //         $idDirektur = Director::where('id_director', $user->director_id_director)->first();
-    //         $kodeDirektur = $idDirektur->kode_director;
-    //     } else {
-    //         $kodeDirektur = '';
-    //     }
-    //     // dd($user);
-
-    //     $divDeptKode = $this->getDivDeptKode($user);
-
-    //     // Ambil nomor seri berikutnya
-    //     $nextSeri = Seri::getNextSeri(false);
-    //     // Konversi bulan ke angka Romawi
-    //     $bulanRomawi = $this->convertToRoman(now()->month);
-    //     // Format nomor dokumen
-    //     $nomorDokumen = sprintf('%02d.%02d/REKA%s/GEN/%s/%s/%d', $nextSeri['seri_tahunan'], $nextSeri['seri_bulanan'], strtoupper($kodeDirektur), strtoupper($divDeptKode), $bulanRomawi, now()->year);
-
-    //     return $nomorDokumen;
-    // }
-
     //== Fungsi Nomor Seri dan Dokumen Manual==//
     public function nextSeri(Request $request)
     {
@@ -611,75 +469,6 @@ class MemoController extends Controller
         ];
     }
 
-    // public function create()
-    // {
-    //     //$divisiId = auth()->user()->divisi_id_divisi;
-
-    //     //$divisiName = auth()->user()->divisi->nm_divisi;
-    //     $divisiList = Divisi::all();
-
-    //     $user = Auth::user();
-
-    //     if ($user->position_id_position == 1) {
-    //         $idDirektur = Director::where('id_director', $user->director_id_director)->first();
-    //         $kodeDirektur = $idDirektur->kode_director;
-    //     } else {
-    //         $kodeDirektur = '';
-    //     }
-    //     // dd($user);
-
-    //     $divDeptKode = $this->getDivDeptKode($user);
-
-    //     // Ambil nomor seri berikutnya
-    //     $nextSeri = Seri::getNextSeri(false);
-    //     // Konversi bulan ke angka Romawi
-    //     $bulanRomawi = $this->convertToRoman(now()->month);
-    //     // Format nomor dokumen
-    //     $nomorDokumen = sprintf('%02d.%02d/REKA%s/GEN/%s/%s/%d', $nextSeri['seri_tahunan'], $nextSeri['seri_bulanan'], strtoupper($kodeDirektur), strtoupper($divDeptKode), $bulanRomawi, now()->year);
-
-    //     // Daftar manager yang satu divisi, department, section, dan unit dengan admin yg membuat suratnya
-    //     if ($user->role_id_role !== 1) {
-    //         $managers = User::with('position:id_position,nm_position')
-    //             ->where('role_id_role', 3)
-    //             // ->where('position_id_position', '!=', 9)
-    //             ->where(function ($q) use ($user) {
-    //                 $q->where(function ($q2) use ($user) {
-    //                     $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
-    //                 })
-    //                     ->orWhere(function ($q2) use ($user) {
-    //                         $q2->whereNotNull('department_id_department')->where('department_id_department', $user->department_id_department);
-    //                     })
-    //                     ->orWhere(function ($q2) use ($user) {
-    //                         $q2->whereNotNull('section_id_section')->where('section_id_section', $user->section_id_section);
-    //                     })
-    //                     ->orWhere(function ($q2) use ($user) {
-    //                         $q2->whereNotNull('unit_id_unit')->where('unit_id_unit', $user->unit_id_unit);
-    //                     });
-    //             })
-    //             ->get(['id', 'firstname', 'lastname', 'position_id_position']);
-    //     } else {
-    //         $managers = User::with('position:id_position,nm_position')
-    //             ->where('role_id_role', 3)
-    //             ->where('director_id_director', $user->director_id_director)
-    //             ->get(['id', 'firstname', 'lastname', 'position_id_position']);
-    //     }
-
-    //     // Ambil seluruh user dan struktur organisasi (untuk dropdown tree)
-    //     $users = User::select('id', 'firstname', 'lastname', 'divisi_id_divisi', 'department_id_department', 'section_id_section', 'unit_id_unit')->get();
-    //     $orgTree = $this->getOrgTreeWithUsers();
-    //     $jsTreeData = $this->convertToJsTree($orgTree);
-    //     $mainDirector = $orgTree[0] ?? null; // assuming the first node is the main director
-    //     return view(Auth::user()->role->nm_role . '.memo.add', [
-    //         'nomorSeriTahunan' => $nextSeri['seri_tahunan'],
-    //         'nomorDokumen' => $nomorDokumen,
-    //         'managers' => $managers,
-    //         'divisiList' => $divisiList,
-    //         'users' => $users,
-    //         'orgTree' => $orgTree,
-    //         'jsTreeData' => $jsTreeData,
-    //         'mainDirector' => $mainDirector,
-    //     ]);
-    // }
     private function getOrgTreeWithUsers()
     {
         $directors = Director::with(['users.position', 'divisi.users.position', 'divisi.department.users.position', 'divisi.department.section.users.position', 'divisi.department.section.unit.users.position', 'department.users.position', 'department.section.users.position', 'department.section.unit.users.position'])->get();
@@ -1000,253 +789,6 @@ class MemoController extends Controller
 
         return $names[$field] ?? ucfirst($field);
     }
-    // public function store(Request $request)
-    // {
-    //     $emojiErrors = $this->validateNoEmoji($request);
-    //     if (!empty($emojiErrors)) {
-    //         return redirect()->back()->withErrors($emojiErrors)->withInput();
-    //     }
-
-    //     if (!$request->nama_bertandatangan) {
-    //         $request->merge(['nama_bertandatangan' => User::where('id', $request->manager_user_id)->first()->firstname . ' ' . User::where('id', $request->manager_user_id)->first()->lastname]);
-    //     }
-
-    //     $validator = Validator::make(
-    //         $request->all(),
-    //         [
-    //             'judul' => 'required|string|max:255',
-    //             'isi_memo' => [
-    //                 'required',
-    //                 function ($attribute, $value, $fail) {
-    //                     $clean = strip_tags($value);
-    //                     $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-    //                     $clean = preg_replace('/\xc2\xa0|\s+/u', '', $clean);
-    //                     if ($clean === '') {
-    //                         $fail('Isi memo tidak boleh kosong.');
-    //                     }
-    //                 },
-    //             ],
-    //             'tujuan' => 'required|array|min:1',
-    //             'tujuanString' => 'required|array|min:1',
-    //             'nomor_memo' => 'required|string',
-    //             //'seri_surat' => 'required|string',
-    //             'nama_bertandatangan' => 'required|string|max:255',
-    //             'manager_user_id' => 'required|exists:users,id',
-    //             'pembuat' => 'required|string',
-    //             'catatan' => 'nullable|string|max:255',
-    //             'tgl_dibuat' => 'required|date',
-    //             'tgl_disahkan' => 'nullable|date',
-    //             'divisi_id_divisi' => 'nullable',
-    //             'lampiran' => 'nullable',
-    //             'lampiran.*' => 'file|mimes:pdf,jpg,jpeg,png|max:2048',
-    //             'barang' => 'sometimes|required|array|max:100',
-    //             'barang.*' => 'required|string|max:100',
-    //             'qty' => 'sometimes|required|array',
-    //             'qty.*' => 'required|numeric|min:1',
-    //             'satuan' => 'sometimes|required|array|max:50',
-    //             'satuan.*' => 'required|string|max:50',
-    //         ],
-    //         [
-    //             'judul.required' => 'Perihal memo harus diisi.',
-    //             'isi_memo.required' => 'Isi memo tidak boleh kosong.',
-    //             'lampiran.*.mimes' => 'File harus berupa PDF, JPG, atau PNG.',
-    //             'lampiran.*.max' => 'Ukuran tiap file tidak boleh lebih dari 2 MB.',
-    //             'barang.required' => 'Nama barang harus diisi.',
-    //             'qty.required' => 'Qty barang harus diisi.',
-    //             'satuan.required' => 'Satuan barang harus diisi.',
-    //             'barang.*.required' => 'Nama barang harus diisi.',
-    //             'qty.*.required' => 'Qty barang harus diisi.',
-    //             'satuan.*.required' => 'Satuan barang harus diisi.',
-    //         ],
-    //     );
-
-    //     if ($validator->fails()) {
-    //         return redirect()->back()->withErrors($validator)->withInput();
-    //     }
-
-    //     // TAMBAHKAN INI: Konversi newline ke <br> untuk isi_memo
-    //     $isiMemo = $request->input('isi_memo');
-    //     // Konversi berbagai format newline (\r\n, \n, \r) menjadi <br>
-    //     // $isiMemo = nl2br($isiMemo, false); // false agar tidak double <br />
-
-    //     $divDeptKode = $this->getDivDeptKode(Auth::user());
-    //     $tujuanId = $this->convertTujuanToUserId($request->tujuan);
-
-    //     if (!$tujuanId) {
-    //         return redirect()->back()->with('error', 'Tidak ada karyawan di dalam tujuan dokumen.');
-    //     }
-
-    //     // Proses file lampiran (jika ada)
-    //     $filePath = null;
-
-    //     if ($request->hasFile('lampiran')) {
-    //         $files = $request->file('lampiran');
-
-    //         if (is_array($files)) {
-    //             $encoded = [];
-    //             foreach ($files as $file) {
-    //                 $encoded[] = base64_encode(file_get_contents($file->getRealPath()));
-    //             }
-    //             $filePath = json_encode($encoded, JSON_UNESCAPED_SLASHES);
-    //         } else {
-    //             $filePath = base64_encode(file_get_contents($files->getRealPath()));
-    //         }
-    //     }
-
-    //     $memo = null;
-
-    //     while (true) {
-    //         try {
-    //             $memo = Memo::create([
-    //                 'judul' => $request->input('judul'),
-    //                 'tujuan' => implode(';', $tujuanId),
-    //                 'tujuan_string' => implode(';', $request->input('tujuanString')),
-    //                 'isi_memo' => $isiMemo, // UBAH INI: gunakan variable yang sudah dikonversi
-    //                 'nomor_memo' => $request->input('nomor_memo'),
-    //                 'seri_surat' => $request->input('seri_surat'),
-    //                 'tgl_dibuat' => $request->input('tgl_dibuat'),
-    //                 'tgl_disahkan' => $request->input('tgl_disahkan'),
-    //                 'kode' => $divDeptKode,
-    //                 'pembuat' => $request->input('pembuat'),
-    //                 'catatan' => $request->input('catatan'),
-    //                 'seri_surat' => $request->input('seri_surat'),
-    //                 'status' => 'pending',
-    //                 'nama_bertandatangan' => $request->input('nama_bertandatangan'),
-    //                 'lampiran' => $filePath,
-    //             ]);
-
-    //             break;
-    //         } catch (\Illuminate\Database\QueryException $e) {
-    //             if ($e->getCode() == '23000') {
-    //                 continue;
-    //             }
-    //             throw $e;
-    //         }
-    //     }
-    //     // dd($memo);
-    //     if ($request->has('jumlah_kolom') && !empty($request->nomor)) {
-    //         foreach ($request->nomor as $key => $nomor) {
-    //             kategori_barang::create([
-    //                 'memo_id_memo' => $memo->id_memo,
-    //                 'nomor' => $nomor, // Ambil dari array
-    //                 'barang' => $request->barang[$key] ?? null,
-    //                 'qty' => $request->qty[$key] ?? null,
-    //                 'satuan' => $request->satuan[$key] ?? null,
-    //             ]);
-    //         }
-    //     }
-
-    //     $creator = Auth::user();
-
-    //     $managers = User::where('id', $request->manager_user_id)->get();
-
-    //     $sentCount = 0;
-    //     $push = new NotifApiController();
-    //     // if ($creator->role_id_role == 2) {
-    //     foreach ($managers as $manager) {
-    //         $kirim = Kirim_document::create([
-    //             'id_document' => $memo->id_memo,
-    //             'jenis_document' => 'memo',
-    //             'id_pengirim' => $creator->id,
-    //             'id_penerima' => $manager->id,
-    //             'status' => 'pending',
-    //             'updated_at' => now(),
-    //         ]);
-    //         Notifikasi::create([
-    //             'judul' => 'Memo Dalam Proses Persetujuan',
-    //             'judul_document' => $memo->judul,
-    //             'id_user' => $memo->pembuat,
-    //             'updated_at' => now(),
-    //         ]);
-    //         $push->sendToUser($manager->id, 'Memo Menunggu Persetujuan', $memo->judul);
-    //         Notifikasi::create([
-    //             'judul' => 'Memo Menunggu Persetujuan',
-    //             'judul_document' => $memo->judul,
-    //             'id_user' => $manager->id,
-    //             'updated_at' => now(),
-    //         ]);
-    //         if ($kirim) {
-    //             $sentCount++;
-    //         }
-    //     }
-    //     // } elseif ($creator->role_id_role == 3) {
-    //     //     $kirim = Kirim_document::create([
-    //     //         'id_document' => $memo->id_memo,
-    //     //         'jenis_document' => 'memo',
-    //     //         'id_pengirim' => $creator->id,
-    //     //         'id_penerima' => $creator->id,
-    //     //         'status' => 'approve',
-    //     //         'updated_at' => now(),
-    //     //     ]);
-
-    //     //     Notifikasi::create([
-    //     //         'judul' => 'Memo Terkirim',
-    //     //         'judul_document' => $memo->judul,
-    //     //         'id_user' => $memo->pembuat,
-    //     //         'updated_at' => now(),
-    //     //     ]);
-    //     //     $memo->status = 'approve';
-    //     //     // Set tgl_disahkan terlebih dahulu agar timestamp yang sama digunakan di DB dan di QR
-    //     //     $tglDisahkan = now();
-    //     //     $memo->tgl_disahkan = $tglDisahkan;
-
-    //     //     $qrText = 'Disetujui oleh: ' . Auth::user()->firstname . ' ' . Auth::user()->lastname
-    //     //         . "\nNomor Memo: " . ($memo->nomor_memo ?? '-')
-    //     //         . "\nTanggal: " . $tglDisahkan->translatedFormat('l, d F Y H:i:s')
-    //     //         . "\nDikeluarkan oleh website SIPO PT Rekaindo Global Jasa";
-    //     //     $qrService = new QrCodeService();
-
-    //     //     try {
-    //     //         $qrImage = $qrService->generateWithLogo($qrText);
-
-    //     //         $memo->qr_approved_by = $qrImage;
-    //     //         $memo->save();
-    //     //     } catch (\Exception $e) {
-    //     //         return redirect()
-    //     //             ->back()
-    //     //             ->with('error', 'Gagal membuat QR Code : ' . $e->getMessage());
-    //     //     }
-
-    //     //     $tujuanUserIds = is_array($memo->tujuan) ? $memo->tujuan : explode(';', $memo->tujuan);
-    //     //     //dd($tujuanUserIds);
-    //     //     foreach ($tujuanUserIds as $userId) {
-    //     //         if ($userId == $creator->id) {
-    //     //             continue;
-    //     //         }
-    //     //         $recipients = User::where('id', $userId)->get();
-    //     //         foreach ($recipients as $recipient) {
-    //     //             Kirim_document::create([
-    //     //                 'id_document' => $memo->id_memo,
-    //     //                 'jenis_document' => 'memo',
-    //     //                 'id_pengirim' => $creator->id,
-    //     //                 'id_penerima' => $recipient->id,
-    //     //                 'status' => 'approve',
-    //     //                 'updated_at' => now(),
-    //     //             ]);
-
-    //     //             Notifikasi::create([
-    //     //                 'judul' => 'Memo Masuk',
-    //     //                 'judul_document' => $memo->judul,
-    //     //                 'id_user' => $recipient->id,
-    //     //                 'updated_at' => now(),
-    //     //             ]);
-    //     //             $push->sendToUser(
-    //     //                 $recipient->id,
-    //     //                 'Memo Masuk',
-    //     //                 $memo->judul
-    //     //             );
-    //     //         }
-    //     //     }
-    //     // }
-
-    //     if (Auth::user()->role_id_role == 2) {
-    //         return redirect()
-    //             ->route(Auth::user()->role->nm_role . '.memo.index')
-    //             ->with('success', 'Dokumen berhasil dibuat.');
-    //     } else {
-    //         return redirect()->route('memo.terkirim')->with('success', 'Dokumen berhasil dibuat.');
-    //     }
-    // }
 
     public function convertTujuanToUserId(array $rawTujuan)
     {
@@ -1682,12 +1224,6 @@ class MemoController extends Controller
                 } catch (\Exception $e) {
                     Log::error('Generate QR Code gagal: ' . $e->getMessage());
                 }
-                // try {
-                //     $memo->qr_approved_by = new QrCodeService()->generateWithLogo($qrText);
-                // } catch (\Exception $e) {
-                //     Log::error('Generate QR Code gagal: ' . $e->getMessage());
-                // }
-
                 // ----------------------------
                 // Kirim ke penerima (Memo Masuk) - idempotent
                 // ----------------------------
@@ -1817,199 +1353,6 @@ class MemoController extends Controller
         $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
         return view('memo.edit', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray'));
     }
-
-// public function update(Request $request, $id)
-// {
-//     $memo = Memo::findOrFail($id);
-
-//     $emojiErrors = $this->validateNoEmoji($request);
-//     if (!empty($emojiErrors)) {
-//         return redirect()->back()->withErrors($emojiErrors)->withInput();
-//     }
-
-//     $request->validate(
-//         [
-//             'judul' => 'required|string|max:255',
-//             'isi_memo' => [
-//                 'required',
-//                 function ($attribute, $value, $fail) {
-//                     $clean = strip_tags($value);
-//                     $clean = html_entity_decode($clean, ENT_QUOTES | ENT_HTML5, 'UTF-8');
-//                     $clean = preg_replace('/\xc2\xa0|\s+/u', '', $clean);
-//                     if ($clean === '') {
-//                         $fail('Isi memo tidak boleh kosong.');
-//                     }
-//                 },
-//             ],
-//             'tujuan' => 'required|array|min:1',
-//             'tujuanString' => 'required|array|min:1',
-//             'nomor_memo' => 'required|string|max:255',
-//             'nama_bertandatangan' => 'required|string|max:255',
-//             'tgl_dibuat' => 'required|date',
-//             'tgl_disahkan' => 'nullable|date',
-//             'kategori_barang' => 'sometimes|required|array|min:1',
-//             'kategori_barang.*.barang' => 'sometimes|required|string',
-//             'kategori_barang.*.qty' => 'sometimes|required|integer|min:1',
-//             'kategori_barang.*.satuan' => 'sometimes|required|string',
-//         ],
-//         [
-//             'kategori_barang.*.barang.required' => 'Nama barang harus diisi.',
-//             'kategori_barang.*.qty.required' => 'Qty barang harus diisi.',
-//             'kategori_barang.*.satuan.required' => 'Satuan barang harus diisi.',
-//         ],
-//     );
-
-//     if ($request->filled('judul')) {
-//         $memo->judul = $request->judul;
-//     }
-//     if ($request->filled('isi_memo')) {
-//         $memo->isi_memo = $request->isi_memo;
-//     }
-//     if ($request->filled('tujuan')) {
-//         $tujuanId = $this->convertTujuanToUserId($request->tujuan);
-//         $memo->tujuan = implode(';', $tujuanId);
-//     }
-//     if ($request->filled('tujuanString')) {
-//         $memo->tujuan_string = implode(';', $request->tujuanString);
-//     }
-//     if ($request->filled('nomor_memo')) {
-//         $memo->nomor_memo = $request->nomor_memo;
-//     }
-//     if ($request->filled('nama_bertandatangan')) {
-//         $memo->nama_bertandatangan = $request->nama_bertandatangan;
-//     }
-//     if ($request->filled('tgl_dibuat')) {
-//         $memo->tgl_dibuat = $request->tgl_dibuat;
-//     }
-//     if ($request->filled('seri_surat')) {
-//         $memo->seri_surat = $request->seri_surat;
-//     }
-//     if ($request->filled('tgl_disahkan')) {
-//         $memo->tgl_disahkan = $request->tgl_disahkan;
-//     }
-
-//     // kalau form edit mengirim manager_user_id, simpan di memo juga
-//     if ($request->filled('manager_user_id') && isset($memo->manager_user_id)) {
-//         $memo->manager_user_id = (int) $request->manager_user_id;
-//     }
-
-//     if ($request->hasFile('lampiran')) {
-//         $file = $request->file('lampiran');
-//         $memo->lampiran = file_get_contents($file->getRealPath());
-//     }
-
-//     $memo->status = 'pending';
-//     $memo->save();
-
-//     // =========================================================
-//     // NOTIF + PUSH LANGSUNG DARI DATA MEMO SAJA
-//     // =========================================================
-//     $notifService = app(NotifService::class);
-
-//     $recipientIds = collect();
-
-//     // pembuat memo
-//     if (!empty($memo->pembuat)) {
-//         $recipientIds->push((int) $memo->pembuat);
-//     }
-
-//     // penandatangan / approver
-//     $penandatanganUserId = null;
-
-//     // prioritas 1: pakai manager_user_id yang dikirim dari form
-//     if ($request->filled('manager_user_id')) {
-//         $penandatanganUserId = (int) $request->manager_user_id;
-//     }
-
-//     // prioritas 2: fallback dari kolom memo kalau ada
-//     if (!$penandatanganUserId && !empty($memo->manager_user_id)) {
-//         $penandatanganUserId = (int) $memo->manager_user_id;
-//     }
-
-//     // prioritas 3: fallback cocokkan nama_bertandatangan ke user.name
-//     $penandatangan = User::findByFullname($memo->nama_bertandatangan);
-
-// if ($penandatangan) {
-//     $penandatanganUserId = (int) $penandatangan->id;
-// }
-
-//     if (!empty($penandatanganUserId)) {
-//         $recipientIds->push((int) $penandatanganUserId);
-//     }
-
-//     $recipientIds = $recipientIds
-//         ->filter(fn($id) => (int) $id > 0)
-//         ->unique()
-//         ->values();
-
-//     foreach ($recipientIds as $recipientId) {
-//         $isPembuat = ((int) $recipientId === (int) $memo->pembuat);
-
-//         $judulNotif = $isPembuat
-//             ? 'Memo Anda Berhasil Diupdate'
-//             : 'Memo Menunggu Persetujuan';
-
-//         $bodyNotif = $memo->judul;
-
-//         Notifikasi::updateOrCreate(
-//             [
-//                 'id_user' => (int) $recipientId,
-//                 'judul' => $judulNotif,
-//                 'judul_document' => $memo->judul,
-//                 'id_document' => (int) $memo->id_memo,
-//             ],
-//             [
-//                 'dibaca' => 0,
-//                 'updated_at' => now(),
-//             ],
-//         );
-
-//         $notifService->createAndPush(
-//             (int) $recipientId,
-//             $judulNotif,
-//             $bodyNotif,
-//             (int) $memo->id_memo
-//         );
-//     }
-
-//     if ($request->has('kategori_barang')) {
-//         foreach ($request->kategori_barang as $dataBarang) {
-//             if (isset($dataBarang['id_kategori_barang']) && $dataBarang['id_kategori_barang'] != null) {
-//                 $barang = $memo->kategoriBarang()->find($dataBarang['id_kategori_barang']);
-//                 if ($barang) {
-//                     $barang->update([
-//                         'memo_id_memo' => $memo->id_memo,
-//                         'nomor' => $dataBarang['nomor'],
-//                         'barang' => $dataBarang['barang'],
-//                         'qty' => $dataBarang['qty'],
-//                         'satuan' => $dataBarang['satuan'],
-//                     ]);
-//                 }
-//             }
-//         }
-//     }
-//     Log::info('DEBUG UPDATE MEMO NOTIF', [
-//     'memo_id' => $memo->id_memo,
-//     'pembuat' => $memo->pembuat,
-//     'nama_bertandatangan' => $memo->nama_bertandatangan,
-//     'penandatanganUserId' => $penandatanganUserId,
-//     'recipientIds' => $recipientIds->toArray(),
-// ]);
-
-// dd([
-//     'pembuat' => $memo->pembuat,
-//     'nama_bertandatangan' => $memo->nama_bertandatangan,
-//     'penandatanganUserId' => $penandatanganUserId,
-//     'recipientIds' => $recipientIds->toArray(),
-// ]);
-//     if (Auth::user()->role_id_role == 1) {
-//         return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
-//     } else {
-//         return redirect()
-//             ->route(Auth::user()->role->nm_role . '.memo.terkirim')
-//             ->with('success', 'Memo berhasil diubah.');
-//     }
-// }
 
     public function update(Request $request, $id)
     {
@@ -2342,57 +1685,6 @@ class MemoController extends Controller
         }
 
         return view('memo.view-memoTerkirim', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
-        // $memo = Kirim_Document::where('jenis_document', 'memo')
-        //     ->where('id_document', $id)
-        //     ->with(['memo', 'penerima', 'pengirim'])
-        //     ->firstOrFail();
-
-        // $pembuat = User::where('id', $memo->memo->pembuat)->withTrashed()->first();
-        // $divDeptKode = $this->getDivDeptKode($pembuat);
-
-        // $memo2 = Memo::where('id_memo', $id)->firstOrFail();
-
-        // $lampiranData = [];
-        // if ($memo2->lampiran) {
-        //     // Coba decode sebagai JSON dulu (untuk data baru)
-        //     $jsonData = json_decode($memo2->lampiran, true);
-        //     if ($jsonData !== null && is_array($jsonData)) {
-        //         $lampiranData = $jsonData;
-        //     } else {
-        //         // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
-        //         $lampiranData = [];
-        //     }
-        // }
-
-        // $memoRujukan = null;
-        // if (!is_null($memo2->feedback)) {
-        //     $memoRujukan = Memo::find($memo2->feedback);
-        // }
-        // $userId = Auth::id(); // Ambil ID user yang sedang login (Manager divisi)
-
-        // $parentCreatorId = $memo2->pembuat;
-
-        // $balasanMemos = Memo::where('feedback', $memo2->id_memo)
-        //     ->where('status', 'approve')
-        //     ->get()
-        //     ->filter(function ($reply) use ($userId, $parentCreatorId) {
-        //         // tujuan disimpan sebagai "1;2;3"
-        //         $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
-
-        //         // Pembuat memo balasan
-        //         $replyCreatorId = $reply->pembuat;
-
-        //         // boleh lihat jika:
-        //         return in_array($userId, $tujuanArray)   // 1. ia adalah tujuan memo balasan
-        //             || $userId == $parentCreatorId       // 2. ia pembuat memo lama
-        //             || $userId == $replyCreatorId;       // 3. ia pembuat memo balasan
-        //     })
-        //     ->values();
-
-        // return view(
-        //     'manager.memo.view-memoTerkirim',
-        //     compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan')
-        // );
     }
 
     public function showDiterima($id)
@@ -2402,10 +1694,11 @@ class MemoController extends Controller
         $memo = Memo::with(['divisi', 'kirimDocument'])
             ->where('id_memo', $id)
             ->where('status', 'approve')
-            ->where(function ($query) use ($userId) {
+            ->where(function ($query) use ($userId, $id) {
                 $query
                     ->whereHas('kirimDocument', function ($sub) use ($userId) {
-                        $sub->where('jenis_document', 'memo')->where('id_penerima', $userId);
+                        $sub->where('jenis_document', 'memo')
+                            ->where('id_penerima', $userId);
                     })
                     ->orWhere(function ($sub) use ($userId) {
                         $sub->where('tembusan', 'like', $userId . ';%')
@@ -2418,6 +1711,13 @@ class MemoController extends Controller
                             ->orWhere('bcc', 'like', '%;' . $userId . ';%')
                             ->orWhere('bcc', 'like', '%;' . $userId)
                             ->orWhere('bcc', '=', (string) $userId);
+                    })
+                    ->orWhereExists(function ($sub) use ($userId, $id) {
+                        $sub->selectRaw(1)
+                            ->from('disposisi')
+                            ->where('document_type', 'memo')
+                            ->where('document_id', $id)
+                            ->whereRaw('JSON_CONTAINS(kepada_user_id, ?)', [json_encode((int) $userId)]);
                     });
             })
             ->firstOrFail();
@@ -2447,158 +1747,138 @@ class MemoController extends Controller
                 $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
                 $replyCreatorId = $reply->pembuat;
 
-                return in_array($userId, $tujuanArray) || $userId == $parentCreatorId || $userId == $replyCreatorId;
+                return in_array((string) $userId, $tujuanArray, true)
+                    || (int) $userId === (int) $parentCreatorId
+                    || (int) $userId === (int) $replyCreatorId;
             })
             ->values();
 
-        $canViewBcc = $userId === (int) $memo->pembuat;
+        $canViewBcc = (int) $userId === (int) $memo->pembuat;
         $bccDisplayList = [];
+
         if ($canViewBcc) {
             $bccUserIds = $this->parseRecipientUserIds($memo->bcc);
             $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
         }
 
         $isTembusan = collect(explode(';', (string) $memo->tembusan))
-            ->map(fn($item) => trim($item))
-            ->filter(fn($item) => $item !== '')
+            ->map(fn ($item) => trim($item))
+            ->filter(fn ($item) => $item !== '')
             ->contains((string) $userId);
 
-        $sumberDiterima = $memo->kirimDocument->where('jenis_document', 'memo')->where('id_penerima', $userId)->isNotEmpty()
-            ? 'penerima'
-            : ($isTembusan ? 'tembusan' : 'bcc');
+        $isBcc = collect(explode(';', (string) $memo->bcc))
+            ->map(fn ($item) => trim($item))
+            ->filter(fn ($item) => $item !== '')
+            ->contains((string) $userId);
 
-        return view('memo.view-memoDiterima', compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList', 'sumberDiterima'));
+        $isPenerimaLangsung = $memo->kirimDocument
+            ->where('jenis_document', 'memo')
+            ->where('id_penerima', $userId)
+            ->isNotEmpty();
+
+        $isPenerimaDisposisi = Disposisi::where('document_type', 'memo')
+            ->where('document_id', $memo->id_memo)
+            ->whereJsonContains('kepada_user_id', (int) $userId)
+            ->exists();
+
+        if ($isPenerimaLangsung) {
+            $sumberDiterima = 'penerima';
+        } elseif ($isTembusan) {
+            $sumberDiterima = 'tembusan';
+        } elseif ($isBcc) {
+            $sumberDiterima = 'bcc';
+        } elseif ($isPenerimaDisposisi) {
+            $sumberDiterima = 'disposisi';
+        } else {
+            $sumberDiterima = '-';
+        }
+
+        return view('memo.view-memoDiterima', compact(
+            'memo',
+            'pembuat',
+            'divDeptKode',
+            'lampiranData',
+            'balasanMemos',
+            'memoRujukan',
+            'canViewBcc',
+            'bccDisplayList',
+            'sumberDiterima'
+        ));
     }
     // public function showDiterima($id)
     // {
-    //     $userId = Auth::id(); // Ambil ID user yang sedang login (Manager divisi)
+    //     $userId = Auth::id();
 
-    //     $memo = Kirim_Document::where('jenis_document', 'memo')
-    //         ->where('id_penerima', $userId)
-    //         ->where('id_document', $id)
-    //         ->whereHas('memo')
-    //         ->with('memo') // Pastikan ada relasi 'memo' di model Kirim_Document
+    //     $memo = Memo::with(['divisi', 'kirimDocument'])
+    //         ->where('id_memo', $id)
+    //         ->where('status', 'approve')
+    //         ->where(function ($query) use ($userId) {
+    //             $query
+    //                 ->whereHas('kirimDocument', function ($sub) use ($userId) {
+    //                     $sub->where('jenis_document', 'memo')->where('id_penerima', $userId);
+    //                 })
+    //                 ->orWhere(function ($sub) use ($userId) {
+    //                     $sub->where('tembusan', 'like', $userId . ';%')
+    //                         ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
+    //                         ->orWhere('tembusan', 'like', '%;' . $userId)
+    //                         ->orWhere('tembusan', '=', (string) $userId);
+    //                 })
+    //                 ->orWhere(function ($sub) use ($userId) {
+    //                     $sub->where('bcc', 'like', $userId . ';%')
+    //                         ->orWhere('bcc', 'like', '%;' . $userId . ';%')
+    //                         ->orWhere('bcc', 'like', '%;' . $userId)
+    //                         ->orWhere('bcc', '=', (string) $userId);
+    //                 });
+    //         })
     //         ->firstOrFail();
 
-    //     $pembuat = User::where('id', $memo->memo->pembuat)->withTrashed()->first();
+    //     $pembuat = User::where('id', $memo->pembuat)->withTrashed()->first();
     //     $divDeptKode = $this->getDivDeptKode($pembuat);
 
-    //     $memo2 = Memo::where('id_memo', $id)->firstOrFail();
-
     //     $lampiranData = [];
-    //     if ($memo2->lampiran) {
-    //         $jsonData = json_decode($memo2->lampiran, true);
+    //     if ($memo->lampiran) {
+    //         $jsonData = json_decode($memo->lampiran, true);
     //         if ($jsonData !== null && is_array($jsonData)) {
     //             $lampiranData = $jsonData;
-    //         } else {
-    //             $lampiranData = [];
     //         }
     //     }
 
     //     $memoRujukan = null;
-    //     if (!is_null($memo2->feedback)) {
-    //         $memoRujukan = Memo::find($memo2->feedback);
+    //     if (!is_null($memo->feedback)) {
+    //         $memoRujukan = Memo::find($memo->feedback);
     //     }
 
-    //     $parentCreatorId = $memo2->pembuat;
+    //     $parentCreatorId = $memo->pembuat;
 
-    //     $balasanMemos = Memo::where('feedback', $memo2->id_memo)
+    //     $balasanMemos = Memo::where('feedback', $memo->id_memo)
     //         ->where('status', 'approve')
     //         ->get()
     //         ->filter(function ($reply) use ($userId, $parentCreatorId) {
-    //             // tujuan disimpan sebagai "1;2;3"
     //             $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
-
-    //             // Pembuat memo balasan
     //             $replyCreatorId = $reply->pembuat;
 
-    //             // boleh lihat jika:
-    //             return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
-    //                 $userId == $parentCreatorId || // 2. ia pembuat memo lama
-    //                 $userId == $replyCreatorId; // 3. ia pembuat memo balasan
+    //             return in_array($userId, $tujuanArray) || $userId == $parentCreatorId || $userId == $replyCreatorId;
     //         })
     //         ->values();
 
-    //     $canViewBcc = $userId === (int) $memo2->pembuat;
+    //     $canViewBcc = $userId === (int) $memo->pembuat;
     //     $bccDisplayList = [];
     //     if ($canViewBcc) {
-    //         $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
+    //         $bccUserIds = $this->parseRecipientUserIds($memo->bcc);
     //         $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
     //     }
 
-    //     return view('manager.memo.view-memoDiterima', compact('memo', 'memo2', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList'));
+    //     $isTembusan = collect(explode(';', (string) $memo->tembusan))
+    //         ->map(fn($item) => trim($item))
+    //         ->filter(fn($item) => $item !== '')
+    //         ->contains((string) $userId);
+
+    //     $sumberDiterima = $memo->kirimDocument->where('jenis_document', 'memo')->where('id_penerima', $userId)->isNotEmpty()
+    //         ? 'penerima'
+    //         : ($isTembusan ? 'tembusan' : 'bcc');
+
+    //     return view('memo.view-memoDiterima', compact('memo', 'pembuat', 'divDeptKode', 'lampiranData', 'balasanMemos', 'memoRujukan', 'canViewBcc', 'bccDisplayList', 'sumberDiterima'));
     // }
-
-    public function view($id)
-    {
-        $userId = Auth::id(); // Ambil ID user yang sedang login
-        $memo = Memo::where('id_memo', $id)->firstOrFail();
-
-        $pembuat = User::withTrashed()->where('id', $memo->pembuat)->first();
-        // get kode divisi/ department
-        $divDeptKode = $this->getDivDeptKode(Auth::user());
-        // Ubah menjadi Collection manual
-        $memoCollection = collect([$memo]); // Bungkus dalam collection
-
-        $memoCollection->transform(function ($memo) use ($userId) {
-            if ($memo->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
-                $memo->final_status = $memo->status; // Memo dari divisi sendiri
-            } else {
-                $statusKirim = Kirim_Document::where('id_document', $memo->id_memo)->where('jenis_document', 'memo')->where('id_penerima', $userId)->first();
-                $memo->final_status = $statusKirim ? $statusKirim->status : '-';
-            }
-            return $memo;
-        });
-
-        // Karena hanya satu memo, kita bisa mengambil dari collection lagi
-        $memo = $memoCollection->first();
-        $memo2 = Memo::where('id_memo', $id)->firstOrFail();
-        $lampiranData = [];
-        if ($memo2->lampiran) {
-            // Coba decode sebagai JSON dulu (untuk data baru)
-            $jsonData = json_decode($memo2->lampiran, true);
-            if ($jsonData !== null && is_array($jsonData)) {
-                $lampiranData = $jsonData;
-            } else {
-                // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
-                // atau bisa dikasih placeholder jika memang ada file
-                $lampiranData = [];
-            }
-        }
-
-        $memoRujukan = null;
-        if (!is_null($memo2->feedback)) {
-            $memoRujukan = Memo::find($memo2->feedback);
-        }
-
-        $parentCreatorId = $memo2->pembuat;
-
-        $balasanMemos = Memo::where('feedback', $memo2->id_memo)
-            ->where('status', 'approve')
-            ->get()
-            ->filter(function ($reply) use ($userId, $parentCreatorId) {
-                // tujuan disimpan sebagai "1;2;3"
-                $tujuanArray = array_filter(explode(';', $reply->tujuan ?? ''));
-
-                // Pembuat memo balasan
-                $replyCreatorId = $reply->pembuat;
-
-                // boleh lihat jika:
-                return in_array($userId, $tujuanArray) || // 1. ia adalah tujuan memo balasan
-                    $userId == $parentCreatorId || // 2. ia pembuat memo lama
-                    $userId == $replyCreatorId; // 3. ia pembuat memo balasan
-            })
-            ->values();
-
-        $canViewBcc = $userId === (int) $memo2->pembuat;
-        $bccDisplayList = [];
-        if ($canViewBcc) {
-            $bccUserIds = $this->parseRecipientUserIds($memo2->bcc);
-            $bccDisplayList = $this->buildGroupedRecipientDisplayList($bccUserIds);
-        }
-
-        return view('memo.show', compact('memo', 'divDeptKode', 'pembuat', 'lampiranData', 'memoRujukan', 'balasanMemos', 'canViewBcc', 'bccDisplayList'));
-    }
 
     public function updateStatusNotif(Request $request, $id)
     {
@@ -2878,38 +2158,6 @@ class MemoController extends Controller
         return response()->json(['message' => 'Tidak ada output yang dapat dihasilkan'], 404);
     }
 
-    // public function lampiran($id)
-    // {
-    //     $memo = Memo::findOrFail($id);
-
-    //     // Ambil data BLOB
-    //     $fileData = base64_decode($memo->lampiran);
-    //     // Kalau kosong
-    //     if (!$fileData) {
-    //         abort(404, 'Lampiran tidak ditemukan');
-    //     }
-
-    //     // Deteksi mime type
-    //     $finfo = finfo_open();
-    //     $mimeType = finfo_buffer($finfo, $fileData, FILEINFO_MIME_TYPE);
-    //     finfo_close($finfo);
-
-    //     // Default nama file
-    //     $extension = explode('/', $mimeType)[1] ?? 'bin';
-    //     $fileName = "lampiran_{$id}." . $extension;
-
-    //     // Kembalikan response
-    //     return Response::make($fileData, 200, [
-    //         'Content-Type' => $mimeType,
-    //         'Content-Disposition' => 'inline; filename="' . $fileName . '"',
-    //     ]);
-    // }
-
-    //ADD MEMO COBA
-    // Jangan lupa di atas file controller:
-    // use Illuminate\Http\Request;
-    // use App\Models\Memo;
-
     public function createCoba(Request $request)
     {
         //$divisiId = auth()->user()->divisi_id_divisi;
@@ -2955,23 +2203,6 @@ class MemoController extends Controller
                 ->where('role_id_role', 3)
                 ->orderBy('firstname')
                 ->get(['id', 'firstname', 'lastname', 'position_id_position']);
-            // ->where('role_id_role', 3)
-            // // ->where('position_id_position', '!=', 9)
-            // // ->where(function ($q) use ($user) {
-            // //     $q->where(function ($q2) use ($user) {
-            // //         $q2->whereNotNull('divisi_id_divisi')->where('divisi_id_divisi', $user->divisi_id_divisi);
-            // //     })
-            // //         ->orWhere(function ($q2) use ($user) {
-            // //             $q2->whereNotNull('department_id_department')->where('department_id_department', $user->department_id_department);
-            // //         })
-            // //         ->orWhere(function ($q2) use ($user) {
-            // //             $q2->whereNotNull('section_id_section')->where('section_id_section', $user->section_id_section);
-            // //         })
-            // //         ->orWhere(function ($q2) use ($user) {
-            // //             $q2->whereNotNull('unit_id_unit')->where('unit_id_unit', $user->unit_id_unit);
-            // //         });
-            // // })
-            // ->get(['id', 'firstname', 'lastname', 'position_id_position']);
         } else {
             $managers = User::with('position:id_position,nm_position')
                 ->where('role_id_role', 3)
@@ -3246,107 +2477,6 @@ class MemoController extends Controller
         ->with('success', 'Dokumen berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
     }
 
-    // public function editBaru($id)
-    // {
-    //     $memo = Memo::findOrFail($id);
-    //     $divisi = Divisi::all();
-    //     $divisiId = Auth::user()->divisi_id_divisi;
-    //     $seri = Seri::all();
-    //     $bagianKerja = BagianKerja::orderBy('kode_bagian')->get();
-
-    //     $parentMemo = null;
-    //     if ($memo->feedback) {
-    //         // sesuaikan dengan nama model & kolommu
-    //         $parentMemo = Memo::find($memo->feedback);
-    //     }
-
-    //     $managers = User::where('role_id_role', 3)->get(['id', 'firstname', 'lastname']);
-
-    //     $orgTree = $this->getOrgTreeWithUsers();
-    //     $jsTreeData = $this->convertToJsTree($orgTree);
-    //     $mainDirector = $orgTree[0] ?? null;
-
-    //     // $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
-    //     // Ganti baris ini:
-    //     $tujuanArray = $memo->tujuan_string ? explode(';', $memo->tujuan_string) : [];
-
-    //     // Menjadi ini:
-    //     $tujuanArray = [];
-    //     if ($memo->tujuan) {
-    //         $tujuanArray = collect(array_values(array_filter(explode(';', $memo->tujuan), fn($v) => trim($v) !== '')))
-    //             ->filter(fn($v) => is_numeric($v))
-    //             ->map(fn($v) => 'user-' . (int) $v)
-    //             ->values()
-    //             ->all();
-    //     }
-
-    //     // Parse lampiran data jika ada
-    //     $lampiranData = [];
-    //     if ($memo->lampiran) {
-    //         // Coba decode sebagai JSON dulu (untuk data baru)
-    //         $jsonData = json_decode($memo->lampiran, true);
-    //         if ($jsonData !== null && is_array($jsonData)) {
-    //             $lampiranData = $jsonData;
-    //         } else {
-    //             // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
-    //             // atau bisa dikasih placeholder jika memang ada file
-    //             $lampiranData = [];
-    //         }
-    //     }
-
-    //     $tembusan = [];
-
-    //     $directors = Director::all();
-    //     $division = Divisi::all();
-    //     $department = Department::all();
-    //     $section = Section::all();
-    //     $unit = Unit::all();
-
-    //     foreach ($directors as $director) {
-    //         $tembusan[] = [
-    //             'id' => 'director_' . $director->id_director,
-    //             'name' => $director->name_director,
-    //         ];
-    //     }
-    //     foreach ($division as $div) {
-    //         $tembusan[] = [
-    //             'id' => 'division_' . $div->id_divisi,
-    //             'name' => $div->nm_divisi,
-    //         ];
-    //     }
-    //     foreach ($department as $dept) {
-    //         $tembusan[] = [
-    //             'id' => 'department_' . $dept->id_department,
-    //             'name' => $dept->name_department,
-    //         ];
-    //     }
-    //     foreach ($section as $sect) {
-    //         $tembusan[] = [
-    //             'id' => 'section_' . $sect->id_section,
-    //             'name' => $sect->name_section,
-    //         ];
-    //     }
-    //     foreach ($unit as $u) {
-    //         $tembusan[] = [
-    //             'id' => 'unit_' . $u->id_unit,
-    //             'name' => $u->name_unit,
-    //         ];
-    //     }
-
-    //     $selectedTembusan = [];
-    //     if ($memo->tembusan) {
-    //         $cc = array_values(array_filter(explode(';', $memo->tembusan), fn($v) => trim($v) !== ''));
-    //         $selectedTembusan = collect($cc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
-    //     }
-
-    //     $selectedBcc = [];
-    //     if ($memo->bcc) {
-    //         $bcc = array_values(array_filter(explode(';', $memo->bcc), fn($v) => trim($v) !== ''));
-    //         $selectedBcc = collect($bcc)->filter(fn($v) => is_numeric($v))->map(fn($v) => 'user-' . (int) $v)->values()->all();
-    //     }
-
-    //     return view(Auth::user()->role->nm_role . '.memo.edit-baru', compact('memo', 'divisi', 'seri', 'managers', 'orgTree', 'jsTreeData', 'mainDirector', 'tujuanArray', 'lampiranData', 'parentMemo', 'tembusan', 'selectedTembusan', 'selectedBcc', 'bagianKerja'));
-    // }
     public function editBaru($id)
     {
         $memo = Memo::findOrFail($id);
@@ -3709,13 +2839,6 @@ class MemoController extends Controller
                     }
                 }
             }
-
-            // redirect sesuai role
-            // if (Auth::user()->role_id_role == 1) {
-            //     return redirect()->route('superadmin.memo.index')->with('success', 'Memo berhasil diubah.');
-            // } elseif (Auth::user()->role_id_role == 2) {
-            //     return redirect()->route('admin.memo.index')->with('success', 'Memo berhasil diubah.');
-            // }
 
                     return redirect()
         ->route('memo.terkirim')

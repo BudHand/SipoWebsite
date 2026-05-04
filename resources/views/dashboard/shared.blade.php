@@ -13,7 +13,7 @@
     $jumlahUndanganKeluar = (int) ($jumlahUndanganKeluar ?? 0);
     $jumlahUndanganMasuk  = (int) ($jumlahUndanganMasuk ?? 0);
     $jumlahRisalah        = (int) ($jumlahRisalah ?? 0);
-
+    $jumlahDisposisi      = (int) ($jumlahDisposisi ?? 0);
     // user display
     $first = auth()->user()->firstname ?? '';
     $last  = auth()->user()->lastname ?? '';
@@ -63,9 +63,17 @@
             'href'  => $routes['risalah'] ?? '#',
             'grad'  => 'linear-gradient(135deg, #fa709a 0%, #fee140 100%)',
             'icon'  => 'fas fa-clipboard-list',
-            'col'   => 'col-12 col-lg-12',
+            'col'   => 'col-12 col-sm-6 col-lg-6',
             'iconBoxP' => 'p-4',
             'icon2x' => true,
+        ],
+        [
+            'title' => 'Disposisi Masuk',
+            'count' => $jumlahDisposisi,
+            'href'  => $routes['disposisi_masuk'] ?? '#',
+            'grad'  => 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+            'icon'  => 'fas fa-file-alt',
+            'col'   => 'col-12 col-sm-6 col-lg-6',
         ],
     ];
 

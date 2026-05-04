@@ -22,6 +22,7 @@ use App\Http\Controllers\SupportController;
 use App\Http\Controllers\CounterNomorSuratController;
 use App\Http\Controllers\KodeBagianController;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\DisposisiController;
 
 // GUEST
 Route::get('/', function () {
@@ -47,13 +48,6 @@ Route::get('/reset-password/{token}', function (string $token) {
 })->name('password.reset');
 Route::post('/update-password', [ForgotPwController::class, 'updatePassword'])->name('password.update');
 
-// Route::get('/mail-test', function () {
-//     Mail::raw('This is a test email', function ($m) {
-//         $m->to('nauqi2208@gmail.com')->subject('Mail Test');
-//     });
-//     return 'Sent';
-// });
-
 Route::get('/support', [SupportController::class, 'index'])->name('support');
 
 // SEMUA
@@ -76,7 +70,7 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
     Route::post('/delete-photo', [ProfileController::class, 'deletePhoto'])->name('superadmin.deletePhoto');
     Route::post('/update-profile', [ProfileController::class, 'updateProfile'])->name('superadmin.updateProfile');
 
-        // Cetak PDF Controller
+    // Cetak PDF Controller
     Route::get('/format-cetakLaporan-memo', [CetakPDFController::class, 'laporanmemoPDF'])->name('format-cetakLaporan-memo');
     Route::get('/format-cetakLaporan-undangan', [CetakPDFController::class, 'laporanundanganPDF'])->name('format-cetakLaporan-undangan');
     Route::get('/format-cetakLaporan-risalah', [CetakPDFController::class, 'laporanrisalahPDF'])->name('format-cetakLaporan-risalah');
@@ -106,10 +100,6 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
     //data perusahaan
     Route::get('/data-perusahaan', [PerusahaanController::class, 'index'])->name('data-perusahaan');
 
-    //notifikasi
-    // Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
-    // Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
-    // Route::post('/notifications/{id}/tanda-dibaca', [NotifController::class, 'markAllAsRead'])->name('notifications.markAsRead');
     // notifikasi
     Route::get('/notifikasi', [NotifController::class, 'index'])->name('notifications.index');
     Route::get('/notifikasi/jumlah', [NotifController::class, 'getUnreadCount'])->name('notifications.count');
@@ -118,11 +108,41 @@ Route::middleware(['auth', 'role:1,2,3'])->group(function () {
 
     Route::get('/risalah/edit/{id}', [RisalahController::class, 'edit'])->name('risalah.edit');
     Route::put('/risalah/{id}', [RisalahController::class, 'update'])->name('risalah.update');
-        //Delete Lampiran Memo
+    //Delete Lampiran Memo
     Route::delete('/memo/lampiran-existing/{memoId}/{index}', [MemoController::class, 'deleteLampiranExisting'])->name('memo.lampiran.delete-existing');
 
     //Delete Lampiran Risalah
     Route::delete('/risalah/lampiran-existing/{id}/{index}', [RisalahController::class, 'deleteLampiranExisting'])->name('risalah.lampiran.delete-existing');
+
+    // ── Menu Disposisi ─────────────────────────────────────────────────────────
+    Route::prefix('disposisi')
+        ->name('disposisi.')
+        ->group(function () {
+            // Halaman utama (inbox + outbox)
+            Route::get('/', [DisposisiController::class, 'index'])->name('index');
+
+            // ── PENTING: route 'cari-dokumen' harus SEBELUM /{disposisi} ──
+            // supaya Laravel tidak menganggap 'cari-dokumen' sebagai {disposisi} param
+            Route::get('/cari-dokumen', [DisposisiController::class, 'cariDokumen'])->name('cariDokumen');
+
+            // Form buat disposisi (dari detail dokumen atau dari modal index)
+            Route::get('/create', [DisposisiController::class, 'create'])->name('create');
+
+            // Simpan disposisi baru
+            Route::post('/', [DisposisiController::class, 'store'])->name('store');
+
+            // Lihat dokumen terkait disposisi (memo/undangan)
+            Route::get('/{disposisi}/dokumen', [DisposisiController::class, 'lihatDokumen'])->name('lihatDokumen');
+
+            // Detail disposisi
+            Route::get('/{disposisi}', [DisposisiController::class, 'show'])->name('show');
+
+            // Ubah status (diterima / selesai)
+            Route::patch('/{disposisi}/status', [DisposisiController::class, 'updateStatus'])->name('updateStatus');
+
+            // Teruskan disposisi ke orang lain
+            Route::post('/{disposisi}/teruskan', [DisposisiController::class, 'teruskan'])->name('teruskan');
+        });
 });
 
 // SUPERADMIN
@@ -237,7 +257,6 @@ Route::middleware(['auth', 'role:1,2'])->group(function () {
 Route::middleware(['auth', 'role:2'])->group(function () {
     // dashboard
     // Route::get('/dashboard.admin', [DashboardController::class, 'index'])->name('admin.dashboard');
-
     // Route::get('/risalah/{id}/preview', [RisalahController::class, 'showFile'])->name('risalah.preview');
 });
 
@@ -255,7 +274,7 @@ Route::middleware(['auth', 'role:2,3'])->group(function () {
     Route::get('/memo/terkirim', [MemoController::class, 'memoTerkirim'])->name('memo.terkirim');
     Route::get('/memo/diterima', [MemoController::class, 'memoDiterima'])->name('memo.diterima');
     // Route::get('/memo', [MemoController::class, 'index'])->name('memo.index');
-        // memo
+    // memo
     Route::get('/view-memoDiterima/{id}', [MemoController::class, 'showDiterima'])->name('view.memo-diterima');
     Route::get('/view-memoTerkirim/{id}', [MemoController::class, 'showTerkirim'])->name('view.memo-terkirim');
     // Memo form shared untuk admin + manager (jalur UI yang sama)
@@ -284,7 +303,6 @@ Route::middleware(['auth', 'role:2,3'])->group(function () {
     Route::get('/undangan/edit/{id}', [UndanganController::class, 'edit'])->name('undangan.edit');
     Route::put('/undangan/update/{id_undangan}', [UndanganController::class, 'update'])->name('undangan/update');
     Route::delete('/undangan/lampiran-existing/{undanganId}/{index}', [UndanganController::class, 'deleteLampiranExisting'])->name('undangan.lampiran.delete-existing');
-
 
     // alias route lama undangan (backward-compat)
     // Route::get('/admin/undangan', [UndanganController::class, 'index'])->name('admin.undangan.index');

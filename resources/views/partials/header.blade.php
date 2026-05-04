@@ -203,6 +203,12 @@
                 return { icon: "fas fa-clipboard-list", badge: "primary" };
             }
 
+            if (lower.includes("disposisi")) {
+                if (lower.includes("selesai")) return { icon: "fas fa-check-circle", badge: "success" };
+                if (lower.includes("diteruskan")) return { icon: "fas fa-share", badge: "warning" };
+                return { icon: "fas fa-paper-plane", badge: "primary" };
+            }
+
             if (lower.includes("undangan")) {
                 if (lower.includes("tolak")) return { icon: "fas fa-calendar-check", badge: "danger" };
                 if (lower.includes("koreksi")) return { icon: "fas fa-calendar-check", badge: "warning" };

@@ -13,10 +13,18 @@ class Notifikasi extends Model
     protected $primaryKey = 'id_notifikasi';
     public $timestamps = false;
 
-    protected $fillable = ['judul', 'judul_document', 'id_user', 'updated_at', 'dibaca', 'id_document', 'jenis_document'];
+    protected $fillable = [
+        'judul',
+        'judul_document',
+        'id_user',
+        'updated_at',
+        'dibaca',
+        'id_document',
+        'jenis_document'
+    ];
 
     protected $attributes = [
-        'dibaca' => false, // Secara default 'dibaca' akan bernilai false
+        'dibaca' => false, // Default false
     ];
 
     protected $casts = [

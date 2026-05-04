@@ -52,6 +52,84 @@ class UndanganApiController extends Controller
         ]);
     }
 
+    public function undanganKeluar()
+    {
+        $user = Auth::user();
+        $userId = (int) $user->id;
+
+        $undanganDiarsipkan = Arsip::query()
+            ->where('user_id', $userId)
+            ->where('jenis_document', 'App\\Models\\Undangan')
+            ->pluck('document_id')
+            ->toArray();
+
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $query = Undangan::query()
+            ->with('user')
+            ->whereNotIn('id_undangan', $undanganDiarsipkan)
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
+            });
+
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $userId);
+        }
+
+        $undangans = $query
+            ->latest()
+            ->get();
+
+        $undangans->transform(function ($undangan) {
+            $undangan->final_status = $undangan->status;
+            $undangan->jenis = 'keluar';
+            return $undangan;
+        });
+
+        return $this->apiResponse(
+            UndanganResource::collection($undangans),
+            $undangans->isEmpty()
+                ? 'Belum ada undangan keluar'
+                : 'Daftar undangan keluar ditemukan'
+        );
+    }
+
+    public function undanganMasuk()
+    {
+        $user = Auth::user();
+        $uid = (string) $user->id;
+
+        $undanganDiarsipkan = Arsip::where('user_id', $user->id)
+            ->where('jenis_document', 'App\Models\Undangan')
+            ->pluck('document_id')
+            ->toArray();
+
+        $undangans = Undangan::with('user')
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
+            })
+            ->whereNotIn('id_undangan', $undanganDiarsipkan)
+            ->latest()
+            ->get();
+
+        return $this->apiResponse(
+            UndanganResource::collection($undangans),
+            $undangans->isEmpty() ? 'Belum ada undangan diterima' : 'Daftar undangan masuk ditemukan'
+        );
+    }
+
     public function kodeFilter()
     {
         $kode = Undangan::whereNotNull('kode')
@@ -375,5 +453,15 @@ class UndanganApiController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    function apiResponse($data, $message = '', $status = 'success')
+    {
+        return response()->json([
+            'status' => $status,
+            'message' => $message,
+            'data_count' => is_countable($data) ? count($data) : 1,
+            'data' => $data,
+        ]);
     }
 }

@@ -95,4 +95,45 @@ class Memo extends Model
             ->where('jenis_document', 'memo');
     }
 
+    // public function bisaDisposisi($user)
+    // {
+    //     // contoh sederhana: hanya penerima yang boleh disposisi
+    //     $tujuanIds = collect(explode(';', (string) $this->tujuan))
+    //         ->map(fn($id) => (int) trim($id))
+    //         ->filter();
+
+    //     return $tujuanIds->contains($user->id);
+    // }
+
+    // public function kandidatPenerimaDispo()
+    // {
+    //     return \App\Models\User::query()
+    //         ->where('id', '!=', auth()->id())
+    //         ->whereNull('deleted_at')
+    //         ->orderBy('firstname')
+    //         ->get();
+    // }
+    public function bisaDisposisi(User $user): bool
+    {
+        // Gunakan getKey() agar aman meski PK user berubah nama
+        $uid = (string) $user->getKey();
+
+        $semuaPenerima = collect(explode(';', (string) ($this->tujuan   ?? '')))
+            ->merge(explode(';', (string) ($this->tembusan ?? '')))
+            ->merge(explode(';', (string) ($this->bcc      ?? '')))
+            ->map(fn($v) => trim($v))
+            ->filter()   // buang string kosong
+            ->unique();
+
+        return $semuaPenerima->contains($uid);
+    }
+
+    public function kandidatPenerimaDispo(User $user): \Illuminate\Support\Collection
+    {
+        return User::where('id', '!=', $user->getKey())
+            ->orderBy('firstname')
+            ->orderBy('lastname')
+            ->get();
+    }
+
 }

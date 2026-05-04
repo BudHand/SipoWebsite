@@ -17,6 +17,7 @@ class NotifService
             'document_id' => $idDocument,
             'type' => $jenisDocument,
         ]);
+
         // Simpan / update notifikasi DB (tetap backward-compatible untuk pemanggilan lama)
         $notif = Notifikasi::updateOrCreate(
             [

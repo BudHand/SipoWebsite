@@ -22,47 +22,120 @@ use App\Models\User;
 class RisalahApiController extends Controller
 {
 
-
     public function index(Request $request)
     {
         $user = Auth::user();
+        $userId = (int) $user->id;
+        $uid = (string) $userId;
 
-        $risalahDiarsipkan = Arsip::where('user_id', $user->id)
+        $risalahDiarsipkan = Arsip::where('user_id', $userId)
             ->where('jenis_document', 'App\Models\Risalah')
-            ->pluck('document_id')->toArray();
+            ->pluck('document_id')
+            ->toArray();
 
-        $ownedDocs = Kirim_Document::where('jenis_document', 'risalah')
-            ->where(function ($q) use ($user) {
-                $q->where('id_penerima', $user->id)
-                    ->orWhere('id_pengirim', $user->id);
-            })
-            ->pluck('id_document')->unique()->toArray();
+        $allowedSortColumns = [
+            'created_at',
+            'tgl_disahkan',
+            'tgl_dibuat',
+            'nomor_risalah',
+            'judul',
+        ];
 
-        // eager load user
+        $sortBy = in_array($request->get('sort_by'), $allowedSortColumns)
+            ? $request->get('sort_by')
+            : 'created_at';
+
+        $sortDirection = $request->get('sort_direction', 'desc') === 'asc'
+            ? 'asc'
+            : 'desc';
+
         $query = Risalah::with('user')
-            //->where('nama_pemimpin_acara', $user->fullname)
             ->whereNotIn('id_risalah', $risalahDiarsipkan)
-            ->whereIn('id_risalah', $ownedDocs)
-            ->latest();
+            ->where(function ($q) use ($userId, $uid) {
+                $q->where(function ($sub) use ($userId) {
+                    $sub->where('status', '!=', 'approve')
+                        ->where(function ($x) use ($userId) {
+                            $x->where('pembuat', $userId)
+                                ->orWhere('pemimpin_acara_user_id', $userId)
+                                ->orWhere('notulis_acara_user_id', $userId);
+                        });
+                })
+                ->orWhere(function ($sub) use ($userId, $uid) {
+                    $sub->where('status', 'approve')
+                        ->where(function ($x) use ($userId, $uid) {
+                            $x->where('pembuat', $userId)
+                                ->orWhere('pemimpin_acara_user_id', $userId)
+                                ->orWhere('notulis_acara_user_id', $userId)
+                                ->orWhereRaw(
+                                    "FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))",
+                                    [$uid]
+                                );
+                        });
+                });
+            });
 
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
+
+        if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
+            $query->whereBetween('tgl_dibuat', [
+                $request->tgl_dibuat_awal,
+                $request->tgl_dibuat_akhir,
+            ]);
+        } elseif ($request->filled('tgl_dibuat_awal')) {
+            $query->whereDate('tgl_dibuat', '>=', $request->tgl_dibuat_awal);
+        } elseif ($request->filled('tgl_dibuat_akhir')) {
+            $query->whereDate('tgl_dibuat', '<=', $request->tgl_dibuat_akhir);
+        }
+
         if ($request->filled('kode') && $request->kode !== 'pilih') {
             $query->where('kode', $request->kode);
         }
-        if ($request->filled('approval')) {
-            $query->where('status', 'pending');
-            $query->where('nama_pemimpin_acara', $user->fullname);
+
+        if ($request->filled('search')) {
+            $query->where(function ($q) use ($request) {
+                $q->where('judul', 'like', '%' . $request->search . '%')
+                    ->orWhere('nomor_risalah', 'like', '%' . $request->search . '%');
+            });
         }
 
-        $risalahs = $query->get();
+        if ($request->filled('approval')) {
+            $query->where('status', 'pending')
+                ->where(function ($q) use ($userId) {
+                    $q->where('pemimpin_acara_user_id', $userId)
+                        ->orWhere('notulis_acara_user_id', $userId);
+                });
+        }
 
-        return RisalahResource::collection($risalahs)->additional([
-            'status' => 'success',
-            'message' => $risalahs->isEmpty() ? 'Belum ada risalah' : 'Daftar risalah ditemukan',
-        ]);
+        $perPage = $request->get('per_page');
+
+        if ($perPage) {
+            $risalahs = $query
+                ->orderBy($sortBy, $sortDirection)
+                ->paginate($perPage);
+        } else {
+            $risalahs = $query
+                ->orderBy($sortBy, $sortDirection)
+                ->get();
+        }
+
+        return $this->apiResponse(
+            RisalahResource::collection($risalahs),
+            $risalahs->isEmpty() ? 'Belum ada risalah' : 'Daftar risalah ditemukan'
+        );
+
+        // return RisalahResource::collection($risalahs)->additional([
+        //     'status' => 'success',
+        //     'message' => $risalahs->isEmpty() ? 'Belum ada risalah' : 'Daftar risalah ditemukan',
+        // ]);
     }
+
+    public function risalahKeluar(){
+
+    }
+
+
     public function kodeFilter()
     {
         $kode = Undangan::whereNotNull('kode')
@@ -456,4 +529,16 @@ class RisalahApiController extends Controller
             ], 500);
         }
     }
+
+    //current standard response format
+    function apiResponse($data, $message = '', $status = 'success')
+    {
+        return response()->json([
+            'status' => $status,
+            'message' => $message,
+            'data_count' => is_countable($data) ? count($data) : 1,
+            'data' => $data,
+        ]);
+    }
+
 }

@@ -7,6 +7,7 @@ use App\Models\Kirim_Document;
 use App\Models\Memo;
 use App\Models\Risalah;
 use App\Models\Undangan;
+use App\Models\Disposisi;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -52,11 +53,14 @@ class DashboardController extends Controller
         $jumlahMemoMasuk  = $this->countMemoMasuk($user, $memoDiarsipkan);
 
         // ===== HITUNG UNDANGAN =====
-        $jumlahUndanganKeluar = $this->countUndanganKeluar($userId, $isManager, $undanganDiarsipkan, $userKode, $fullname);
-        $jumlahUndanganMasuk  = $this->countUndanganMasuk($userId, $undanganDiarsipkan);
+        $jumlahUndanganKeluar = $this->countUndanganKeluar($user, $undanganDiarsipkan);
+        $jumlahUndanganMasuk  = $this->countUndanganMasuk($user, $undanganDiarsipkan);
 
         // ===== HITUNG RISALAH (1 angka saja, tidak ada masuk/keluar) =====
         $jumlahRisalah = $this->countRisalahTerkait($userId, $risalahDiarsipkan);
+
+        // ===== HITUNG DISPOSISI MASUK =====
+        $jumlahDisposisi = Disposisi::masuk($userId)->count();
 
         // ===== Notifikasi =====
         $notifikasi = DB::table('notifikasi')
@@ -82,6 +86,7 @@ class DashboardController extends Controller
             'jumlahUndanganKeluar' => $jumlahUndanganKeluar,
             'jumlahUndanganMasuk' => $jumlahUndanganMasuk,
             'jumlahRisalah' => $jumlahRisalah,
+            'jumlahDisposisi' => $jumlahDisposisi,
 
             'notifikasiByDate' => $notifikasiByDate,
         ]);
@@ -146,60 +151,51 @@ class DashboardController extends Controller
      * - Role 2: id_pengirim = userId (keluar milik dia)
      * - Role 3: semua undangan dengan (kode == userKode OR nama_bertandatangan == fullname)
      */
-    private function countUndanganKeluar(int $userId, bool $isManager, array $arsipIds, ?string $userKode, string $fullname): int
+    private function countUndanganKeluar($user, array $arsipIds): int
     {
-        $q = Kirim_Document::query()
-            ->where('jenis_document', 'undangan')
-            ->whereNotIn('id_document', $arsipIds)
-            ->whereIn('id_kirim_document', function ($sub) {
-                $sub->selectRaw('MIN(id_kirim_document)')
-                    ->from('kirim_document')
-                    ->where('jenis_document', 'undangan')
-                    ->groupBy('id_document');
-            })
-            ->whereHas('undangan', function ($uq) use ($isManager, $userKode, $fullname, $userId) {
-                $uq->where(function ($x) use ($userKode, $fullname) {
-                    if (!empty($userKode)) {
-                        $x->where('kode', $userKode);
-                    }
-                    $x->orWhere('nama_bertandatangan', $fullname);
-                });
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
 
-                if (!$isManager) {
-                    // undangan.pembuat di sistemmu numeric, tapi aman:
-                    $uq->where('pembuat', $userId);
-                }
-            })
-            ->with('undangan');
-
-        if (!$isManager) {
-            $q->where('id_pengirim', $userId);
+        if ($kodeBagianUser->isEmpty()) {
+            return 0;
         }
 
-        return (int) $q->count();
+        $query = Undangan::query()
+            ->whereNotIn('id_undangan', $arsipIds)
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
+            });
+
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $user->id);
+        }
+
+        return (int) $query->count();
     }
 
     /**
      * ====== UNDANGAN MASUK ======
      * Diambil dari kirim_document penerima, exclude arsip, 1 dokumen 1x
      */
-    private function countUndanganMasuk(int $userId, array $arsipIds): int
+    private function countUndanganMasuk($user, array $arsipIds): int
     {
+        $uid = (string) $user->id;
+
         return (int) Undangan::query()
             ->whereNotIn('id_undangan', $arsipIds)
             ->where('status', 'approve')
-            ->where(function ($query) use ($userId) {
-                $query->whereHas('kirimDocument', function ($sub) use ($userId) {
-                    $sub->where('jenis_document', 'undangan')
-                        ->where('id_penerima', $userId)
-                        ->where('status', 'approve');
-                })
-                ->orWhere(function ($sub) use ($userId) {
-                    $this->applySemicolonUserMatch($sub, 'tembusan', $userId);
-                })
-                ->orWhere(function ($sub) use ($userId) {
-                    $this->applySemicolonUserMatch($sub, 'bcc', $userId);
-                });
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                    ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                    ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
             })
             ->count();
     }
@@ -211,17 +207,33 @@ class DashboardController extends Controller
      */
     private function countRisalahTerkait(int $userId, array $arsipIds): int
     {
-        return (int) Kirim_Document::query()
-            ->where('jenis_document', 'risalah')
-            ->where(function ($q) use ($userId) {
-                $q->where('id_pengirim', $userId)
-                  ->orWhere('id_penerima', $userId);
+        $uid = (string) $userId;
+
+        return (int) Risalah::query()
+            ->whereNotIn('id_risalah', $arsipIds)
+            ->where(function ($q) use ($userId, $uid) {
+                $q->where(function ($sub) use ($userId) {
+                    $sub->where('status', '!=', 'approve')
+                        ->where(function ($x) use ($userId) {
+                            $x->where('pembuat', $userId)
+                                ->orWhere('pemimpin_acara_user_id', $userId)
+                                ->orWhere('notulis_acara_user_id', $userId);
+                        });
+                })
+                ->orWhere(function ($sub) use ($userId, $uid) {
+                    $sub->where('status', 'approve')
+                        ->where(function ($x) use ($userId, $uid) {
+                            $x->where('pembuat', $userId)
+                                ->orWhere('pemimpin_acara_user_id', $userId)
+                                ->orWhere('notulis_acara_user_id', $userId)
+                                ->orWhereRaw(
+                                    "FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))",
+                                    [$uid]
+                                );
+                        });
+                });
             })
-            ->whereNotIn('id_document', $arsipIds)
-            // Gunakan DISTINCT id_document agar sinkron dengan halaman index risalah
-            // (satu risalah dihitung sekali walau ada banyak record kirim_document).
-            ->distinct('id_document')
-            ->count('id_document');
+            ->count();
     }
 
     /**
@@ -237,6 +249,7 @@ class DashboardController extends Controller
                 'undangan_keluar' => route('undangan.terkirim'),
                 'undangan_masuk'  => route('undangan.diterima'),
                 'risalah'         => route('risalah.index'),
+                'disposisi_masuk'  => route('disposisi.index'),
             ];
         }
 
@@ -248,6 +261,7 @@ class DashboardController extends Controller
                 'undangan_keluar' => route('undangan.terkirim'),
                 'undangan_masuk'  => route('undangan.diterima'),
                 'risalah'         => route('risalah.index'),
+                'disposisi_masuk'  => route('disposisi.index'),
             ];
         }
 
@@ -258,6 +272,7 @@ class DashboardController extends Controller
             'undangan_keluar' => '#',
             'undangan_masuk'  => '#',
             'risalah'         => '#',
+            'disposisi_masuk'  => '#',
         ];
     }
 
@@ -271,6 +286,7 @@ class DashboardController extends Controller
         $jumlahMemoKeluar = Memo::whereNull('deleted_at')->count();
         $jumlahUndanganKeluar = Undangan::whereNull('deleted_at')->count();
         $jumlahRisalah = Risalah::whereNull('deleted_at')->count();
+        $jumlahDisposisi = Disposisi::count();
 
         $jumlahMemoMasuk = 0;
         $jumlahUndanganMasuk = 0;
@@ -293,6 +309,7 @@ class DashboardController extends Controller
             'jumlahUndanganKeluar',
             'jumlahUndanganMasuk',
             'jumlahRisalah',
+            'jumlahDisposisi',
             'notifikasiByDate',
             'chartData'
         ));

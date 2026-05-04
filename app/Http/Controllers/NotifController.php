@@ -6,6 +6,7 @@ use App\Models\Memo;
 use App\Models\Risalah;
 use App\Models\Undangan;
 use App\Models\Notifikasi;
+use App\Models\Disposisi;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -190,6 +191,25 @@ class NotifController extends Controller
         $type = 'unknown';
         $documentId = $notification->id_document ?? null;
         $redirectUrl = '#';
+
+        // =========================
+        // DISPOSISI (TAMBAHAN - AMAN)
+        // =========================
+        if (
+            $notification->jenis_document === 'disposisi'
+            || str_contains($judulNotif, 'disposisi')
+        ) {
+            return [
+                'id_notifikasi'  => $notification->id_notifikasi,
+                'judul'          => $notification->judul ?? 'Disposisi',
+                'judul_document' => $notification->judul_document ?? '-',
+                'dibaca'         => (int) ($notification->dibaca ?? 0),
+                'updated_at'     => $notification->updated_at,
+                'redirect_url'   => $documentId
+                    ? route('disposisi.show', $documentId)
+                    : route('disposisi.index'),
+            ];
+        }
 
         if ($notification->jenis_document === 'memo' || $notification->jenis_document === 'App\Models\Memo' || str_contains($judulNotif, 'memo')) {
             $memo = $documentId ? Memo::find($documentId) : null;

@@ -7,24 +7,14 @@
 {{-- ============================================================ --}}
 @once
     @php
-        /**
-         * Cek apakah role user boleh melihat item menu.
-         * Jika item tidak mendefinisikan 'roles', semua role boleh akses.
-         */
         function sidebarCanAccess(array $item, string $role): bool
         {
             if (! isset($item['roles'])) {
                 return true;
             }
-
             return in_array($role, $item['roles'], strict: true);
         }
 
-        /**
-         * Cek apakah salah satu pattern cocok dengan route/path saat ini.
-         *
-         * @param string|string[] $patterns
-         */
         function sidebarIsActive(string|array $patterns): bool
         {
             foreach ((array) $patterns as $pattern) {
@@ -32,13 +22,9 @@
                     return true;
                 }
             }
-
             return false;
         }
 
-        /**
-         * Buat collapse ID yang unik dan deterministik per menu item.
-         */
         function sidebarCollapseId(string $label, int $sectionIndex, int $itemIndex): string
         {
             return 'sidebar-' . md5("{$label}-{$sectionIndex}-{$itemIndex}");
@@ -51,6 +37,10 @@
 {{-- ============================================================ --}}
 @php
     $role = Auth::user()->role->nm_role;
+
+    $belumDibacaDisposisi = \App\Models\Disposisi::whereJsonContains('kepada_user_id', Auth::id())
+        ->whereNull('dibaca_at')
+        ->count();
 
     $menuSections = [
 
@@ -175,6 +165,17 @@
                     'active' => ['risalah.index'],
                 ],
 
+                // ── Disposisi — semua role, flat, badge belum dibaca ──────────
+                [
+                    'label'       => 'Disposisi',
+                    'icon'        => 'fas fa-paper-plane',
+                    'route'       => 'disposisi.index',
+                    'roles'       => ['superadmin', 'admin', 'manager'],
+                    'active'      => ['disposisi.*'],
+                    'badge'       => $belumDibacaDisposisi > 0 ? $belumDibacaDisposisi : null,
+                    'badge_class' => 'badge bg-danger ms-auto',
+                ],
+
                 // Arsip — semua role
                 [
                     'label'  => 'Arsip',
@@ -240,7 +241,6 @@
             'title' => 'LAINNYA',
             'items' => [
 
-                // Pengaturan — superadmin & admin
                 [
                     'label'  => 'Pengaturan',
                     'icon'   => 'fas fa-cogs',
@@ -256,31 +256,30 @@
                         [
                             'label'  => 'Data Perusahaan',
                             'route'  => 'data-perusahaan',
-                            'roles'  => ['superadmin', 'admin'], // kedua role boleh
+                            'roles'  => ['superadmin', 'admin'],
                             'active' => ['data-perusahaan'],
                         ],
                         [
                             'label'  => 'Manajemen Kode Bagian Kerja',
                             'route'  => 'kode-bagian.index',
-                            'roles'  => ['superadmin'], // superadmin saja
+                            'roles'  => ['superadmin'],
                             'active' => ['kode-bagian.index'],
                         ],
                         [
                             'label'  => 'Manajemen Pengguna',
                             'route'  => 'user.manage',
-                            'roles'  => ['superadmin'], // superadmin saja
+                            'roles'  => ['superadmin'],
                             'active' => ['user.manage'],
                         ],
                         [
                             'label'  => 'Manajemen Struktur Organisasi',
                             'route'  => 'organization.manageOrganization',
-                            'roles'  => ['superadmin'], // superadmin saja
+                            'roles'  => ['superadmin'],
                             'active' => ['organization.manageOrganization'],
                         ],
                     ],
                 ],
 
-                // Pemulihan — superadmin saja
                 [
                     'label'  => 'Pemulihan',
                     'icon'   => 'fas fa-recycle',
@@ -305,7 +304,6 @@
                     ],
                 ],
 
-                // Info — semua role
                 [
                     'label'  => 'Info',
                     'icon'   => 'fas fa-info-circle',
@@ -355,7 +353,6 @@
 
                 @if ($visibleItems->isNotEmpty())
 
-                    {{-- Heading section --}}
                     <li class="nav-section">
                         <span class="sidebar-mini-icon">
                             <i class="fa fa-ellipsis-h"></i>
@@ -368,10 +365,6 @@
                         @php
                             $hasChildren = ! empty($menu['children']);
 
-                            /*
-                             * Filter child berdasarkan role.
-                             * Child tanpa key 'roles' mewarisi role parent-nya.
-                             */
                             $visibleChildren = $hasChildren
                                 ? collect($menu['children'])
                                     ->filter(function ($child) use ($role, $menu) {
@@ -382,7 +375,6 @@
                                     ->values()
                                 : collect();
 
-                            // Cek apakah item ini atau salah satu child-nya sedang aktif
                             $isActive = sidebarIsActive($menu['active'] ?? [$menu['route'] ?? '']);
 
                             if ($hasChildren) {
@@ -394,14 +386,6 @@
                             $collapseId = sidebarCollapseId($menu['label'], $sectionIndex, $itemIndex);
                         @endphp
 
-                        {{--
-                            Kondisi render:
-                            A) Flat item  → tidak punya 'children' DAN punya 'route'
-                            B) Grup item  → punya 'children' yang visible
-                            C) Diabaikan  → punya 'children' tapi semua child tidak accessible
-                                            (misal: semua child hanya untuk superadmin, user adalah admin)
-                        --}}
-
                         {{-- A) Item TANPA sub-menu --}}
                         @if (! $hasChildren && isset($menu['route']))
 
@@ -409,6 +393,11 @@
                                 <a href="{{ route($menu['route']) }}" class="nav-link">
                                     <i class="{{ $menu['icon'] }}"></i>
                                     <p>{{ $menu['label'] }}</p>
+                                    @if (! empty($menu['badge']))
+                                        <span class="{{ $menu['badge_class'] ?? 'badge bg-danger ms-auto' }}">
+                                            {{ $menu['badge'] }}
+                                        </span>
+                                    @endif
                                 </a>
                             </li>
 
@@ -441,7 +430,6 @@
                                                 );
                                             @endphp
 
-                                            {{-- Guard: hanya render child yang punya route --}}
                                             @if (isset($child['route']))
                                                 <li class="{{ $childActive ? 'active' : '' }}">
                                                     <a href="{{ route($child['route']) }}">
@@ -455,7 +443,6 @@
 
                             </li>
 
-                        {{-- C) Item diabaikan — children ada tapi semua tidak accessible --}}
                         @endif
 
                     @endforeach

@@ -36,10 +36,13 @@ class UserManageApiController extends Controller
         // Ambil data semua user (tanpa pagination, untuk Android lebih praktis)
         $users = $query->get();
 
+        $users_count = $users->count();
+
         // Kembalikan response JSON
         return response()->json([
             'status' => true,
             'message' => 'Data users berhasil diambil',
+            'data_count' => $users_count,
             'data' => $users
         ]);
     }

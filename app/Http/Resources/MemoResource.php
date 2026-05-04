@@ -37,7 +37,7 @@ class MemoResource extends JsonResource
             'nama_bertandatangan' => $this->nama_bertandatangan,
 
             // ===== DIVISI & BAGIAN =====
-            'divisi' => optional($this->divisi)->nama_divisi,
+            // 'divisi' => optional($this->divisi)->nm_divisi,
             'kode_bagian' => $this->kode_bagian,
             'nama_bagian' => optional($this->bagianKerja)->nama_bagian ?? null,
 
@@ -64,6 +64,7 @@ class MemoResource extends JsonResource
             }),
 
             // ===== LAINNYA =====
+            'pdf_url' => route('view-memoPDF', $this->id_memo),
             'kode' => $this->kode,
             'catatan' => $this->catatan,
             'feedback' => $this->feedback,

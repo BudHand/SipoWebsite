@@ -102,10 +102,18 @@
 
                                         @if ($undangan->status == 'approve')
                                             <a href="{{ route('cetakundangan', ['id' => $undangan->id_undangan]) }}"
-                                                class="btn btn-sm btn-custom rounded-2">
+                                                class="btn btn-sm btn-custom rounded-2 me-2">
                                                 <i class="fa fa-download me-1"></i> Unduh
                                             </a>
                                         @endif
+
+                                        <a href="{{ route('disposisi.create', [
+                                                'document_type' => 'undangan',
+                                                'document_id' => $undangan->id_undangan,
+                                            ]) }}"
+                                            class="btn btn-sm btn-primary rounded-2">
+                                            <i class="fas fa-paper-plane me-1"></i> Disposisi
+                                        </a>
                                     </div>
                                 </div>
                                 @if ($lampiranData)

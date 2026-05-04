@@ -554,8 +554,16 @@
                                         </a>
 
                                         <a href="{{ route('cetakmemo', ['id' => $memo->id_memo]) }}"
-                                            class="btn btn-sm btn-custom rounded-2">
+                                            class="btn btn-sm btn-custom rounded-2 me-2">
                                             <i class="fa fa-download me-1"></i> Unduh
+                                        </a>
+
+                                        <a href="{{ route('disposisi.create', [
+                                                'document_type' => 'memo',
+                                                'document_id' => $memo->id_memo,
+                                            ]) }}"
+                                            class="btn btn-sm btn-primary rounded-2">
+                                            <i class="fas fa-paper-plane me-1"></i> Disposisi
                                         </a>
                                     </div>
                                 </div>

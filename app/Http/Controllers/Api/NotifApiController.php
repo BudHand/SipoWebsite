@@ -39,10 +39,15 @@ class NotifApiController extends Controller
 
         [$unread, $read] = $notificationsFilter->partition(fn($n) => ($n['dibaca'] ?? false) === false);
 
+        $unread_count = $unread->count();
+        $read_count = $read->count();
+
         return response()->json([
             'status' => true,
-            'message' => 'Daftar notifikasi',
+            'message' => 'Daftar Notifikasi',
             'data' => [
+                'unread_count' => $unread_count,
+                'read_count' => $read_count,
                 'unread' => $unread->values(),
                 'read' => $read->values(),
             ],

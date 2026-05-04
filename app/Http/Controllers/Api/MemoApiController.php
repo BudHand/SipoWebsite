@@ -22,7 +22,6 @@ class MemoApiController extends Controller
     // GET /api/memos
     public function index(Request $request)
     {
-        // eager load user
         $user = Auth::user();
 
         $memoDiarsipkan = Arsip::where('user_id', $user->id)
@@ -52,6 +51,85 @@ class MemoApiController extends Controller
             'status' => 'success',
             'message' => $memos->isEmpty() ? 'Belum ada memo' : 'Daftar memo ditemukan',
         ]);
+    }
+
+    public function memoKeluar()
+    {
+        $user = Auth::user();
+        $userId = (int) $user->id;
+
+        $memoDiarsipkan = Arsip::query()
+            ->where('user_id', $userId)
+            ->where('jenis_document', 'App\\Models\\Memo')
+            ->pluck('document_id')
+            ->toArray();
+
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+
+        $query = Memo::query()
+            ->with('user')
+            ->whereNotIn('id_memo', $memoDiarsipkan)
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
+            });
+
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $userId);
+        }
+
+        $memos = $query
+            ->latest()
+            ->get();
+
+        $memos->transform(function ($memo) {
+            $memo->final_status = $memo->status;
+            $memo->jenis = 'keluar';
+            return $memo;
+        });
+
+        return $this->apiResponse(
+            MemoResource::collection($memos),
+            $memos->isEmpty()
+                ? 'Belum ada memo keluar'
+                : 'Daftar memo keluar ditemukan'
+        );
+    }
+
+    public function memoMasuk()
+    {
+        $user = Auth::user();
+        $uid = (string) $user->id;
+
+        //filter memo yang tujuan/tembusan/bcc nya ada user ini, status approve, dan belum diarsipkan
+        $memoDiarsipkan = Arsip::where('user_id', $user->id)
+            ->where('jenis_document', 'App\Models\Memo')
+            ->pluck('document_id')
+            ->toArray();
+
+        $memos = Memo::with('user')
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
+            })
+            ->whereNotIn('id_memo', $memoDiarsipkan)
+            ->latest()
+            ->get();
+
+        return $this->apiResponse(
+            MemoResource::collection($memos),
+            $memos->isEmpty() ? 'Belum ada memo diterima' : 'Daftar memo diterima ditemukan'
+        );
     }
 
     public function kodeFilter()
@@ -330,5 +408,15 @@ class MemoApiController extends Controller
                 'message' => 'Terjadi kesalahan: ' . $e->getMessage(),
             ], 500);
         }
+    }
+
+    function apiResponse($data, $message = '', $status = 'success')
+    {
+        return response()->json([
+            'status' => $status,
+            'message' => $message,
+            'data_count' => is_countable($data) ? count($data) : 1,
+            'data' => $data,
+        ]);
     }
 }

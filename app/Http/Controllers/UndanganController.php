@@ -16,6 +16,8 @@ use App\Models\Kirim_Document;
 use App\Models\Memo;
 use App\Models\Section;
 use App\Models\Unit;
+use App\Models\Disposisi;
+use Illuminate\Support\Facades\DB;
 use App\Http\Controllers\CetakPDFController;
 use Illuminate\Support\Facades\Validator;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
@@ -26,8 +28,6 @@ use Illuminate\Support\Str;
 use App\Services\QrCodeService;
 use App\Models\BagianKerja;
 use App\Services\NotifService;
-
-
 use Illuminate\Http\Request;
 
 class UndanganController extends Controller
@@ -166,9 +166,9 @@ class UndanganController extends Controller
     public function undanganTerkirim(Request $request)
     {
         $seri = Seri::all();
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = (int) $user->id;
 
-        // Ambil undangan yang sudah diarsipkan oleh user login
         $undanganDiarsipkan = Arsip::where('user_id', $userId)
             ->where('jenis_document', 'App\\Models\\Undangan')
             ->pluck('document_id')
@@ -182,12 +182,26 @@ class UndanganController extends Controller
             $sortBy = 'tgl_rapat_diff';
         }
 
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+
         $query = Undangan::whereNotIn('id_undangan', $undanganDiarsipkan)
-            ->whereHas('kirimDocument', function ($q) use ($userId) {
-                $q->where('id_pengirim', $userId)->where('jenis_document', 'undangan');
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
             });
 
-        // Filter tambahan
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $userId);
+        }
+
         if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
@@ -207,9 +221,13 @@ class UndanganController extends Controller
             });
         }
 
-        $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+        $kode = (clone $query)
+            ->whereNotNull('kode')
+            ->pluck('kode')
+            ->filter()
+            ->unique()
+            ->values();
 
-        // Urutan
         if ($sortBy === 'tgl_rapat_diff') {
             $query->whereNotNull('tgl_rapat')
                 ->orderByRaw("
@@ -226,34 +244,30 @@ class UndanganController extends Controller
         $perPage = $request->get('per_page', 10);
         $undangans = $query->paginate($perPage);
 
-        $undangans->getCollection()->transform(function ($undangan) use ($userId) {
-            $statusKirim = Kirim_Document::where('id_document', $undangan->id_undangan)
-                ->where('jenis_document', 'undangan')
-                ->where(function ($q) use ($userId) {
-                    $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-                })
-                ->first();
-
-            $undangan->final_status = $statusKirim ? $statusKirim->status : '-';
+        $undangans->getCollection()->transform(function ($undangan) {
+            $undangan->final_status = $undangan->status;
+            $undangan->jenis = 'keluar';
             return $undangan;
         });
 
-        $kirimDocuments = Kirim_Document::where('jenis_document', 'undangan')
-            ->where(function ($q) use ($userId) {
-                $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-            })->get();
-
-        return view('undangan.undangan-terkirim', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('undangan.undangan-terkirim', compact(
+            'undangans',
+            'seri',
+            'sortDirection',
+            'kode'
+        ));
     }
 
     /**
-     * Undangan Diterima for logged in user (hanya undangan di mana id_penerima == auth user)
+     *
      */
     public function undanganDiterima(Request $request)
     {
         $seri = Seri::all();
-        $userId = Auth::id();
-        // Ambil undangan yang sudah diarsipkan oleh user login
+        $user = Auth::user();
+        $userId = (int) $user->id;
+        $uid = (string) $userId;
+
         $undanganDiarsipkan = Arsip::where('user_id', $userId)
             ->where('jenis_document', 'App\\Models\\Undangan')
             ->pluck('document_id')
@@ -268,29 +282,12 @@ class UndanganController extends Controller
         }
 
         $query = Undangan::whereNotIn('id_undangan', $undanganDiarsipkan)
-            ->where(function ($q) use ($userId) {
-                $q->whereHas('kirimDocument', function ($sub) use ($userId) {
-                    $sub->where('id_penerima', $userId)->where('jenis_document', 'undangan');
-                })
-                    ->orWhere(function ($sub) use ($userId) {
-                        $sub->where('tembusan', 'like', $userId . ';%')
-                            ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
-                            ->orWhere('tembusan', 'like', '%;' . $userId)
-                            ->orWhere('tembusan', '=', (string) $userId);
-                    })
-                    ->orWhere(function ($sub) use ($userId) {
-                        $sub->where('bcc', 'like', $userId . ';%')
-                            ->orWhere('bcc', 'like', '%;' . $userId . ';%')
-                            ->orWhere('bcc', 'like', '%;' . $userId)
-                            ->orWhere('bcc', '=', (string) $userId);
-                    });
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                    ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                    ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
             });
-
-
-        // Filter tambahan
-        if ($request->filled('status')) {
-            $query->where('status', $request->status);
-        }
 
         if ($request->filled('tgl_dibuat_awal') && $request->filled('tgl_dibuat_akhir')) {
             $query->whereBetween('tgl_rapat', [$request->tgl_dibuat_awal, $request->tgl_dibuat_akhir]);
@@ -307,9 +304,13 @@ class UndanganController extends Controller
             });
         }
 
-        $kode = $query->whereNotNull('kode')->pluck('kode')->filter()->unique()->values();
+        $kode = (clone $query)
+            ->whereNotNull('kode')
+            ->pluck('kode')
+            ->filter()
+            ->unique()
+            ->values();
 
-        // Urutan
         if ($sortBy === 'tgl_rapat_diff') {
             $query->whereNotNull('tgl_rapat')
                 ->orderByRaw("
@@ -327,22 +328,36 @@ class UndanganController extends Controller
         $undangans = $query->paginate($perPage);
 
         $undangans->getCollection()->transform(function ($undangan) use ($userId) {
-            $statusKirim = Kirim_Document::where('id_document', $undangan->id_undangan)
-                ->where('jenis_document', 'undangan')
-                ->where(function ($q) use ($userId) {
-                    $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-                })
-                ->first();
+            $undangan->final_status = $undangan->status;
+            $undangan->jenis = 'masuk';
 
-            $undangan->final_status = $statusKirim ? $statusKirim->status : '-';
+            $isTembusan = collect(explode(';', (string) $undangan->tembusan))
+                ->map(fn ($item) => trim($item))
+                ->filter(fn ($item) => $item !== '')
+                ->contains((string) $userId);
+
+            $isBcc = collect(explode(';', (string) $undangan->bcc))
+                ->map(fn ($item) => trim($item))
+                ->filter(fn ($item) => $item !== '')
+                ->contains((string) $userId);
+
+            if ($isTembusan) {
+                $undangan->sumber_diterima = 'tembusan';
+            } elseif ($isBcc) {
+                $undangan->sumber_diterima = 'bcc';
+            } else {
+                $undangan->sumber_diterima = 'tujuan';
+            }
+
             return $undangan;
         });
 
-        $kirimDocuments = Kirim_Document::where('jenis_document', 'undangan')
-            ->where(function ($q) use ($userId) {
-                $q->where('id_pengirim', $userId)->orWhere('id_penerima', $userId);
-            })->get();
-        return view('undangan.undangan-diterima', compact('undangans', 'seri', 'sortDirection', 'kirimDocuments', 'kode'));
+        return view('undangan.undangan-diterima', compact(
+            'undangans',
+            'seri',
+            'sortDirection',
+            'kode'
+        ));
     }
 
 
@@ -1231,7 +1246,7 @@ class UndanganController extends Controller
                 ->with('success', 'Undangan berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
         }
 
-        return redirect()->route(Auth::user()->role->nm_role . '.undangan.terkirim')
+        return redirect()->route('undangan.terkirim')
             ->with('success', 'Undangan berhasil dibuat dan menunggu persetujuan. Nomor surat akan diberikan setelah disetujui.');
     }
 
@@ -1776,28 +1791,56 @@ class UndanganController extends Controller
 
     public function view($id)
     {
-        $userId = Auth::id(); // Ambil ID user yang sedang login
-        $undangan = Undangan::where('id_undangan', $id)->firstOrFail();
+        $userId = Auth::id();
+
+        $undangan = Undangan::where('id_undangan', $id)
+            ->where(function ($query) use ($userId, $id) {
+                $query
+                    ->whereHas('kirimDocument', function ($sub) use ($userId) {
+                        $sub->where('jenis_document', 'undangan')
+                            ->where('id_penerima', $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('tembusan', 'like', $userId . ';%')
+                            ->orWhere('tembusan', 'like', '%;' . $userId . ';%')
+                            ->orWhere('tembusan', 'like', '%;' . $userId)
+                            ->orWhere('tembusan', '=', (string) $userId);
+                    })
+                    ->orWhere(function ($sub) use ($userId) {
+                        $sub->where('bcc', 'like', $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId . ';%')
+                            ->orWhere('bcc', 'like', '%;' . $userId)
+                            ->orWhere('bcc', '=', (string) $userId);
+                    })
+                    ->orWhere('pembuat', $userId)
+                    ->orWhereExists(function ($sub) use ($userId, $id) {
+                        $sub->selectRaw(1)
+                            ->from('disposisi')
+                            ->where('document_type', 'undangan')
+                            ->where('document_id', $id)
+                            ->whereRaw('JSON_CONTAINS(kepada_user_id, ?)', [json_encode((int) $userId)]);
+                    });
+            })
+            ->firstOrFail();
+
         $divDeptKode = $this->getDivDeptKode(Auth::user());
 
-        // EDIT: Tambahkan eager loading untuk relationship pembuat
-        // $undangan = Undangan::with('user')->findOrFail($id);
-
-        // Konversi tujuan ID menjadi array
         $idArray = is_array($undangan->tujuan)
             ? $undangan->tujuan
             : explode(';', $undangan->tujuan);
 
         $users = User::whereIn('id', $idArray)->with('position')->get();
+
         $pdfController = new CetakPDFController();
-        // Ambil user lengkap beserta relasi organisasi
+
         $listNama = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
             ->whereIn('id', $idArray)
             ->get()
-            ->map(function ($user, $key) use ($pdfController) {
+            ->map(function ($user) use ($pdfController) {
                 $level = $pdfController->detectLevel($user);
                 $user->level_kerja = $level;
                 $user->bagian_text = $pdfController->getBagianText($user, $level);
+
                 return $user;
             })
             ->sortBy(function ($user) {
@@ -1812,48 +1855,142 @@ class UndanganController extends Controller
                 . '(' . $user->firstname . ' ' . $user->lastname . ')';
         })->implode("\n");
 
-        $undanganCollection = collect([$undangan]); // Bungkus dalam collection
+        $undanganCollection = collect([$undangan]);
 
         $undanganCollection->transform(function ($undangan) use ($userId) {
-            if ($undangan->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
-                $undangan->final_status = $undangan->status; // Undangan dari divisi sendiri
+            $isPenerimaDisposisi = Disposisi::where('document_type', 'undangan')
+                ->where('document_id', $undangan->id_undangan)
+                ->whereJsonContains('kepada_user_id', (int) $userId)
+                ->exists();
+
+            if ($isPenerimaDisposisi) {
+                $undangan->final_status = 'disposisi';
+            } elseif ($undangan->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
+                $undangan->final_status = $undangan->status;
             } else {
                 $statusKirim = Kirim_Document::where('id_document', $undangan->id_undangan)
                     ->where('jenis_document', 'undangan')
                     ->where('id_penerima', $userId)
                     ->first();
+
                 $undangan->final_status = $statusKirim ? $statusKirim->status : '-';
             }
+
             return $undangan;
         });
 
-        // Karena hanya satu memo, kita bisa mengambil dari collection lagi
         $undangan = $undanganCollection->first();
 
-        // Parse lampiran data
         $lampiranData = [];
         if ($undangan->lampiran) {
-            // Coba decode sebagai JSON dulu (untuk data baru)
             $jsonData = json_decode($undangan->lampiran, true);
+
             if ($jsonData !== null && is_array($jsonData)) {
                 $lampiranData = $jsonData;
-            } else {
-                // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
-                // atau bisa dikasih placeholder jika memang ada file
-                $lampiranData = [];
             }
         }
 
-        $tembusanList = $this->buildGroupedRecipientDisplayList($this->parseRecipientUserIds($undangan->tembusan ?? null));
+        $tembusanList = $this->buildGroupedRecipientDisplayList(
+            $this->parseRecipientUserIds($undangan->tembusan ?? null)
+        );
 
         $canViewBcc = Auth::id() === (int) $undangan->pembuat;
         $bccDisplayList = [];
+
         if ($canViewBcc) {
-            $bccDisplayList = $this->buildGroupedRecipientDisplayList($this->parseRecipientUserIds($undangan->bcc ?? null));
+            $bccDisplayList = $this->buildGroupedRecipientDisplayList(
+                $this->parseRecipientUserIds($undangan->bcc ?? null)
+            );
         }
 
-        return view('undangan.view-undangan', compact('undangan', 'lampiranData', 'tembusanList', 'canViewBcc', 'bccDisplayList'));
+        return view('undangan.view-undangan', compact(
+            'undangan',
+            'lampiranData',
+            'tembusanList',
+            'canViewBcc',
+            'bccDisplayList'
+        ));
     }
+    // public function view($id)
+    // {
+    //     $userId = Auth::id(); // Ambil ID user yang sedang login
+    //     $undangan = Undangan::where('id_undangan', $id)->firstOrFail();
+    //     $divDeptKode = $this->getDivDeptKode(Auth::user());
+
+    //     // EDIT: Tambahkan eager loading untuk relationship pembuat
+    //     // $undangan = Undangan::with('user')->findOrFail($id);
+
+    //     // Konversi tujuan ID menjadi array
+    //     $idArray = is_array($undangan->tujuan)
+    //         ? $undangan->tujuan
+    //         : explode(';', $undangan->tujuan);
+
+    //     $users = User::whereIn('id', $idArray)->with('position')->get();
+    //     $pdfController = new CetakPDFController();
+    //     // Ambil user lengkap beserta relasi organisasi
+    //     $listNama = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
+    //         ->whereIn('id', $idArray)
+    //         ->get()
+    //         ->map(function ($user, $key) use ($pdfController) {
+    //             $level = $pdfController->detectLevel($user);
+    //             $user->level_kerja = $level;
+    //             $user->bagian_text = $pdfController->getBagianText($user, $level);
+    //             return $user;
+    //         })
+    //         ->sortBy(function ($user) {
+    //             return optional($user->position)->id_position;
+    //         })
+    //         ->values();
+
+    //     $undangan->tujuan = $listNama->map(function ($user, $index) {
+    //         return ($index + 1) . '. '
+    //             . $user->position->nm_position . ' '
+    //             . $user->bagian_text . ' '
+    //             . '(' . $user->firstname . ' ' . $user->lastname . ')';
+    //     })->implode("\n");
+
+    //     $undanganCollection = collect([$undangan]); // Bungkus dalam collection
+
+    //     $undanganCollection->transform(function ($undangan) use ($userId) {
+    //         if ($undangan->divisi_id_divisi === Auth::user()->divisi_id_divisi) {
+    //             $undangan->final_status = $undangan->status; // Undangan dari divisi sendiri
+    //         } else {
+    //             $statusKirim = Kirim_Document::where('id_document', $undangan->id_undangan)
+    //                 ->where('jenis_document', 'undangan')
+    //                 ->where('id_penerima', $userId)
+    //                 ->first();
+    //             $undangan->final_status = $statusKirim ? $statusKirim->status : '-';
+    //         }
+    //         return $undangan;
+    //     });
+
+    //     // Karena hanya satu memo, kita bisa mengambil dari collection lagi
+    //     $undangan = $undanganCollection->first();
+
+    //     // Parse lampiran data
+    //     $lampiranData = [];
+    //     if ($undangan->lampiran) {
+    //         // Coba decode sebagai JSON dulu (untuk data baru)
+    //         $jsonData = json_decode($undangan->lampiran, true);
+    //         if ($jsonData !== null && is_array($jsonData)) {
+    //             $lampiranData = $jsonData;
+    //         } else {
+    //             // Jika bukan JSON, ini kemungkinan data BLOB lama - skip untuk sekarang
+    //             // atau bisa dikasih placeholder jika memang ada file
+    //             $lampiranData = [];
+    //         }
+    //     }
+
+    //     $tembusanList = $this->buildGroupedRecipientDisplayList($this->parseRecipientUserIds($undangan->tembusan ?? null));
+
+    //     $canViewBcc = Auth::id() === (int) $undangan->pembuat;
+    //     $bccDisplayList = [];
+    //     if ($canViewBcc) {
+    //         $bccDisplayList = $this->buildGroupedRecipientDisplayList($this->parseRecipientUserIds($undangan->bcc ?? null));
+    //     }
+
+    //     return view('undangan.view-undangan', compact('undangan', 'lampiranData', 'tembusanList', 'canViewBcc', 'bccDisplayList'));
+    // }
 
     public function updateStatus(Request $request, $id)
     {

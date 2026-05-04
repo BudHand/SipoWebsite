@@ -12,189 +12,10 @@ use Illuminate\Support\Facades\DB;
 
 class DashboardApiController extends Controller
 {
-
-    // public function index()
-    // {
-    //     $user = Auth::user();
-    //     $userId = (int) $user->id;
-    //     $now = Carbon::now();
-
-    //     $archivedMemo = Arsip::query()
-    //         ->where('user_id', $userId)
-    //         ->where('jenis_document', Memo::class)
-    //         ->pluck('document_id')
-    //         ->toArray();
-
-    //     $archivedUndangan = Arsip::query()
-    //         ->where('user_id', $userId)
-    //         ->where('jenis_document', Undangan::class)
-    //         ->pluck('document_id')
-    //         ->toArray();
-
-    //     $archivedRisalah = Arsip::query()
-    //         ->where('user_id', $userId)
-    //         ->where('jenis_document', Risalah::class)
-    //         ->pluck('document_id')
-    //         ->toArray();
-
-    //     $memoCount = Memo::query()
-    //         ->whereNotIn('id_memo', $archivedMemo)
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where(function ($sub) use ($userId) {
-    //                 $sub->where('id_pengirim', $userId)
-    //                     ->orWhere('id_penerima', $userId);
-    //             });
-    //         })
-    //         ->count();
-
-    //     $undanganCount = Undangan::query()
-    //         ->whereNotIn('id_undangan', $archivedUndangan)
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where(function ($sub) use ($userId) {
-    //                 $sub->where('id_pengirim', $userId)
-    //                     ->orWhere('id_penerima', $userId);
-    //             });
-    //         })
-    //         ->count();
-
-    //     $risalahCount = Risalah::query()
-    //         ->whereNotIn('id_risalah', $archivedRisalah)
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where(function ($sub) use ($userId) {
-    //                 $sub->where('id_pengirim', $userId)
-    //                     ->orWhere('id_penerima', $userId);
-    //             });
-    //         })
-    //         ->count();
-
-    //     $undangan = Undangan::query()
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where(function ($sub) use ($userId) {
-    //                 $sub->where('id_penerima', $userId)
-    //                     ->orWhere('id_pengirim', $userId);
-    //             });
-    //         })
-    //         ->where('status', 'approve')
-    //         ->whereDate('tgl_rapat', '>=', $now)
-    //         ->selectRaw('*, DATEDIFF(tgl_rapat, ?) as selisih_hari', [$now->toDateString()])
-    //         ->orderByRaw('selisih_hari')
-    //         ->limit(5)
-    //         ->get();
-
-    //     foreach ($undangan as $u) {
-    //         $u->waktu = $u->waktu_mulai . ' - ' . $u->waktu_selesai;
-    //     }
-
-    //     $recentMemo = Memo::query()
-    //         ->with(['kirimDocument' => function ($query) use ($userId) {
-    //             $query->where('id_penerima', $userId)
-    //                 ->where('status', 'pending')
-    //                 ->orderBy('id_kirim_document', 'desc');
-    //         }])
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where('id_penerima', $userId)
-    //                 ->where('status', 'pending');
-    //         })
-    //         ->get()
-    //         ->map(function ($memo) {
-    //             $kirim = $memo->kirimDocument->sortByDesc('id_kirim_document')->first();
-
-    //             if (!$kirim) {
-    //                 return null;
-    //             }
-
-    //             $item = (object) $kirim->toArray();
-    //             $item->id = $memo->id_memo;
-    //             $item->judul = $memo->judul ?? 'Dokumen tidak ditemukan';
-    //             $item->tgl_dokumen = $memo->updated_at ?? $memo->tgl_dibuat;
-    //             $item->tipe = 'memo';
-
-    //             return $item;
-    //         })
-    //         ->filter();
-
-    //     $recentUndangan = Undangan::query()
-    //         ->with(['kirimDocument' => function ($query) use ($userId) {
-    //             $query->where('id_penerima', $userId)
-    //                 ->where('status', 'pending')
-    //                 ->orderBy('id_kirim_document', 'desc');
-    //         }])
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where('id_penerima', $userId)
-    //                 ->where('status', 'pending');
-    //         })
-    //         ->get()
-    //         ->map(function ($undangan) {
-    //             $kirim = $undangan->kirimDocument->sortByDesc('id_kirim_document')->first();
-
-    //             if (!$kirim) {
-    //                 return null;
-    //             }
-
-    //             $item = (object) $kirim->toArray();
-    //             $item->id = $undangan->id_undangan;
-    //             $item->judul = $undangan->judul ?? 'Dokumen tidak ditemukan';
-    //             $item->tgl_dokumen = $undangan->tgl_rapat ?? $undangan->tgl_dibuat;
-    //             $item->tipe = 'undangan';
-
-    //             return $item;
-    //         })
-    //         ->filter();
-
-    //     $recentRisalah = Risalah::query()
-    //         ->with(['kirimDocument' => function ($query) use ($userId) {
-    //             $query->where('id_penerima', $userId)
-    //                 ->where('status', 'pending')
-    //                 ->orderBy('id_kirim_document', 'desc');
-    //         }])
-    //         ->whereHas('kirimDocument', function ($query) use ($userId) {
-    //             $query->where('id_penerima', $userId)
-    //                 ->where('status', 'pending');
-    //         })
-    //         ->get()
-    //         ->map(function ($risalah) {
-    //             $kirim = $risalah->kirimDocument->sortByDesc('id_kirim_document')->first();
-
-    //             if (!$kirim) {
-    //                 return null;
-    //             }
-
-    //             $item = (object) $kirim->toArray();
-    //             $item->id = $risalah->id_risalah;
-    //             $item->judul = $risalah->judul ?? 'Dokumen tidak ditemukan';
-    //             $item->tgl_dokumen = $risalah->updated_at ?? $risalah->tgl_dibuat;
-    //             $item->tipe = 'risalah';
-
-    //             return $item;
-    //         })
-    //         ->filter();
-
-    //     $recentDocs = collect()
-    //         ->merge($recentMemo)
-    //         ->merge($recentUndangan)
-    //         ->merge($recentRisalah)
-    //         ->sortByDesc('id_kirim_document')
-    //         ->take(10)
-    //         ->values();
-
-    //     return response()->json([
-    //         'status' => 'success',
-    //         'data' => [
-    //             'fullname' => $user->firstname,
-    //             'memo_count' => $memoCount,
-    //             'risalah_count' => $risalahCount,
-    //             'undangan_count' => $undanganCount,
-    //             'undangan' => $undangan,
-    //             'recent_docs' => $recentDocs,
-    //         ],
-    //     ]);
-    // }
-
-    //index lama dengan Kirim_Document
-
     public function index()
     {
         $user = Auth::user();
+
         $archivedMemo = Arsip::where('user_id', $user->id)->where('jenis_document', 'App\Models\Memo')->pluck('document_id')->toArray();
 
         $memoCount = Kirim_Document::where('jenis_document', 'memo')
@@ -232,14 +53,13 @@ class DashboardApiController extends Controller
             ->count();
 
         $now = Carbon::now();
+        // $ownedUndangan = Kirim_Document::where('id_penerima', $user->id)->orWhere('id_pengirim', $user->id)->where('jenis_document', 'undangan')->pluck('id_document');
 
-        $ownedUndangan = Kirim_Document::where('id_penerima', $user->id)->orWhere('id_pengirim', $user->id)->where('jenis_document', 'undangan')->pluck('id_document');
-
-        $undangan = Undangan::whereIn('id_undangan', $ownedUndangan)
+        $undangan = Undangan::visibleTo($user->id)
             ->where('status', 'approve')
-            ->whereDate('tgl_rapat', '>=', $now)
-            ->selectRaw('*, DATEDIFF(tgl_rapat, ?) as selisih_hari', [$now])
-            ->orderByRaw('selisih_hari')
+            ->whereDate('tgl_rapat', '>=', $now->toDateString())
+            ->selectRaw('undangan.*, DATEDIFF(tgl_rapat, ?) as selisih_hari', [$now->toDateString()])
+            ->orderByRaw('selisih_hari ASC')
             ->limit(5)
             ->get();
 
@@ -247,54 +67,245 @@ class DashboardApiController extends Controller
             $u->waktu = $u->waktu_mulai . ' - ' . $u->waktu_selesai;
         }
 
-        $recentDocs = Kirim_Document::where('id_penerima', $user->id)->limit(10)->orderBy('id_kirim_document', 'desc')->where('status', 'pending')->get();
+        // ===== RECENT DOCS WAITING APPROVAL -- LOGIC LAMA ======
+        // $recentDocs = Kirim_Document::where('id_penerima', $user->id)->limit(10)->orderBy('id_kirim_document', 'desc')->where('status', 'pending')->get();
 
-        foreach ($recentDocs as $d) {
-            switch ($d->jenis_document) {
-                case 'memo':
-                    $doc = Memo::find($d->id_document);
-                    $d->id = $doc ? $doc->id_memo : null;
-                    $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = $doc ? $doc->updated_at ?? $doc->tgl_dibuat : null;
-                    $d->tipe = 'memo';
-                    break;
-                case 'undangan':
-                    $doc = Undangan::find($d->id_document);
-                    $d->id = $doc ? $doc->id_undangan : null;
-                    $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = $doc ? $doc->tgl_rapat ?? $doc->tgl_dibuat : null;
-                    $d->tipe = 'undangan';
-                    break;
-                case 'risalah':
-                    $doc = Risalah::find($d->id_document);
-                    $d->id = $doc ? $doc->id_risalah : null;
-                    $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = $doc ? $doc->updated_at ?? $doc->tgl_dibuat : null;
-                    $d->tipe = 'risalah';
-                    break;
-                default:
-                    $d->judul = 'Dokumen tidak ditemukan';
-                    $d->tgl_dokumen = null;
-                    break;
-            }
-        }
-        // dd([
-        //     'db_host' => config('database.connections.mysql.host'),
-        //     'db_name' => DB::connection()->getDatabaseName(),
-        //     'env' => app()->environment(),
-        // ]);
+        // // ganti menggunakan tabel masing-masing dokumen, tidak dengan kirim_document
+        // foreach ($recentDocs as $d) {
+        //     switch ($d->jenis_document) {
+        //         case 'memo':
+        //             $doc = Memo::find($d->id_document);
+        //             $d->id = $doc ? $doc->id_memo : null;
+        //             $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
+        //             $d->tgl_dokumen = $doc ? $doc->updated_at ?? $doc->tgl_dibuat : null;
+        //             $d->tipe = 'memo';
+        //             break;
+        //         case 'undangan':
+        //             $doc = Undangan::find($d->id_document);
+        //             $d->id = $doc ? $doc->id_undangan : null;
+        //             $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
+        //             $d->tgl_dokumen = $doc ? $doc->tgl_rapat ?? $doc->tgl_dibuat : null;
+        //             $d->tipe = 'undangan';
+        //             break;
+        //         case 'risalah':
+        //             $doc = Risalah::find($d->id_document);
+        //             $d->id = $doc ? $doc->id_risalah : null;
+        //             $d->judul = $doc ? $doc->judul : 'Dokumen tidak ditemukan';
+        //             $d->tgl_dokumen = $doc ? $doc->updated_at ?? $doc->tgl_dibuat : null;
+        //             $d->tipe = 'risalah';
+        //             break;
+        //         default:
+        //             $d->judul = 'Dokumen tidak ditemukan';
+        //             $d->tgl_dokumen = null;
+        //             break;
+        //     }
+        // }
+
+        // JUMLAH MEMO
+        $jumlahMemoKeluar = $this->countMemoKeluar($user, $archivedMemo);
+        $jumlahMemoMasuk  = $this->countMemoMasuk($user, $archivedMemo);
+
+        // JUMLAH UNDANGAN
+        $jumlahUndanganKeluar = $this->countUndanganKeluar($user, $archivedUndangan);
+        $jumlahUndanganMasuk  = $this->countUndanganMasuk($user, $archivedUndangan);
+
+        // JUMLAH RISALAH
+        $jumlahRisalah = $this->countRisalahTerkait($user, $archivedRisalah);
+
+        $recentDocs = $this->waitingApproval($user);
+
+        $fullname = $user->firstname . ' ' . $user->lastname;
 
         return response()->json([
             'status' => 'success',
             'data' => [
-                'fullname' => $user->firstname,
+                'fullname' => $fullname,
                 'memo_count' => $memoCount,
-                'risalah_count' => $risalahCount,
+                'memo_keluar_count' => $jumlahMemoKeluar,
+                'memo_masuk_count' => $jumlahMemoMasuk,
+                'risalah_count' => $jumlahRisalah,
                 'undangan_count' => $undanganCount,
+                'undangan_keluar_count' => $jumlahUndanganKeluar,
+                'undangan_masuk_count' => $jumlahUndanganMasuk,
                 'undangan' => $undangan,
                 'recent_docs' => $recentDocs,
             ],
         ]);
+    }
+
+    private function countMemoKeluar($user, array $arsipIds): int
+    {
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($kodeBagianUser->isEmpty()) {
+            return 0;
+        }
+
+        $query = Memo::query()
+            ->whereNotIn('id_memo', $arsipIds)
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
+            });
+
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $user->id);
+        }
+
+        return (int) $query->count();
+    }
+
+    private function countMemoMasuk($user, array $arsipIds): int
+    {
+        $uid = (string) $user->id;
+
+        return (int) Memo::query()
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
+            })
+            ->whereNotIn('id_memo', $arsipIds)
+            ->count();
+    }
+
+    private function countUndanganKeluar($user, array $arsipIds): int
+    {
+        $kodeBagianUser = collect(explode(';', (string) $user->kode_bagian))
+            ->map(fn ($kode) => trim($kode))
+            ->filter()
+            ->unique()
+            ->values();
+
+        if ($kodeBagianUser->isEmpty()) {
+            return 0;
+        }
+
+        $query = Undangan::query()
+            ->whereNotIn('id_undangan', $arsipIds)
+            ->where(function ($q) use ($kodeBagianUser) {
+                foreach ($kodeBagianUser as $kodeBagian) {
+                    $q->orWhereRaw(
+                        "FIND_IN_SET(?, REPLACE(COALESCE(kode_bagian, ''), ';', ','))",
+                        [$kodeBagian]
+                    );
+                }
+            });
+
+        if ((int) $user->role_id_role === 2) {
+            $query->where('pembuat', $user->id);
+        }
+
+        return (int) $query->count();
+    }
+
+    private function countUndanganMasuk($user, array $arsipIds): int
+    {
+        $uid = (string) $user->id;
+
+        return (int) Undangan::query()
+            ->whereNotIn('id_undangan', $arsipIds)
+            ->where('status', 'approve')
+            ->where(function ($q) use ($uid) {
+                $q->whereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))", [$uid])
+                    ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(tembusan, ''), ';', ','))", [$uid])
+                    ->orWhereRaw("FIND_IN_SET(?, REPLACE(COALESCE(bcc, ''), ';', ','))", [$uid]);
+            })
+            ->count();
+    }
+
+    private function countRisalahTerkait($user, array $arsipIds): int
+    {
+        $uid = (string) $user->id;
+
+        return (int) Risalah::query()
+            ->whereNotIn('id_risalah', $arsipIds)
+            ->where(function ($q) use ($user, $uid) {
+                $q->where(function ($sub) use ($user) {
+                    $sub->where('status', '!=', 'approve')
+                        ->where(function ($x) use ($user) {
+                            $x->where('pembuat', $user->id)
+                                ->orWhere('pemimpin_acara_user_id', $user->id)
+                                ->orWhere('notulis_acara_user_id', $user->id);
+                        });
+                })
+                ->orWhere(function ($sub) use ($user, $uid) {
+                    $sub->where('status', 'approve')
+                        ->where(function ($x) use ($user, $uid) {
+                            $x->where('pembuat', $user->id)
+                                ->orWhere('pemimpin_acara_user_id', $user->id)
+                                ->orWhere('notulis_acara_user_id', $user->id)
+                                ->orWhereRaw(
+                                    "FIND_IN_SET(?, REPLACE(COALESCE(tujuan, ''), ';', ','))",
+                                    [$uid]
+                                );
+                        });
+                });
+            })
+            ->count();
+    }
+
+    private function waitingApproval($user)
+    {
+        $userId = $user->id;
+
+        $memos = Memo::where('status', 'pending')
+            ->where('manager_user_id', $userId)
+            ->get()
+            ->map(function ($doc) {
+                return (object) [
+                    'id' => $doc->id_memo,
+                    'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
+                    'tgl_dokumen' => $doc->updated_at ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
+                    'tipe' => 'memo',
+                    'status' => $doc->status,
+                ];
+            });
+
+        $undangans = Undangan::where('status', 'pending')
+            ->where('manager_user_id', $userId)
+            ->get()
+            ->map(function ($doc) {
+                return (object) [
+                    'id' => $doc->id_undangan,
+                    'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
+                    'tgl_dokumen' => $doc->tgl_rapat ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
+                    'tipe' => 'undangan',
+                    'status' => $doc->status,
+                ];
+            });
+
+        $risalahs = Risalah::where('status', 'pending')
+            ->where(function ($q) use ($userId) {
+                $q->where('pemimpin_acara_user_id', $userId)
+                ->orWhere('notulis_acara_user_id', $userId);
+            })
+            ->get()
+            ->map(function ($doc) {
+                return (object) [
+                    'id' => $doc->id_risalah,
+                    'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
+                    'tgl_dokumen' => $doc->updated_at ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
+                    'tipe' => 'risalah',
+                    'status' => $doc->status,
+                ];
+            });
+
+        return $memos
+            ->merge($undangans)
+            ->merge($risalahs)
+            ->sortByDesc('tgl_dokumen')
+            ->take(10)
+            ->values();
     }
 
     /**
