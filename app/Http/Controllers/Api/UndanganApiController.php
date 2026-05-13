@@ -15,6 +15,7 @@ use App\Services\QrCodeService;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use App\Models\CounterNomorSurat;
+use App\Models\BagianKerja;
 
 class UndanganApiController extends Controller
 {
@@ -132,8 +133,9 @@ class UndanganApiController extends Controller
 
     public function kodeFilter()
     {
-        $kode = Undangan::whereNotNull('kode')
-            ->pluck('kode')
+        $kode = BagianKerja::query()
+            ->whereNotNull('kode_bagian')
+            ->pluck('kode_bagian')
             ->filter()
             ->unique()
             ->values();
@@ -143,6 +145,7 @@ class UndanganApiController extends Controller
             'data' => $kode,
         ], 200);
     }
+
     public function getAll()
     {
         $undangans = Undangan::with('user')->latest()->get();

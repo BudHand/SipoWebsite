@@ -10,6 +10,7 @@ use Illuminate\Http\Request;
 use SimpleSoftwareIO\QrCode\Facades\QrCode;
 use App\Models\Notifikasi;
 use App\Models\Kirim_Document;
+use App\Models\BagianKerja;
 use Illuminate\Support\Facades\Auth;
 use App\Services\QrCodeService;
 use App\Models\CounterNomorSurat;
@@ -134,10 +135,16 @@ class MemoApiController extends Controller
 
     public function kodeFilter()
     {
-        $kode = Memo::whereNotNull('kode')
-            ->pluck('kode')
-            ->filter()
-            ->unique()
+        $kode = BagianKerja::query()
+            ->select('kode_bagian')
+            ->whereNotNull('kode_bagian')
+            ->distinct()
+            ->orderBy('kode_bagian')
+            ->get()
+            ->map(fn ($item) => [
+                'label' => $item->kode_bagian,
+                'value' => $item->kode_bagian,
+            ])
             ->values();
 
         return response()->json([

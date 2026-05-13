@@ -3,88 +3,88 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Memo;
+use App\Models\Undangan;
+use App\Models\Risalah;
 use Illuminate\Http\Request;
-use App\Models\{Kirim_Document, Memo, Undangan, Risalah};
-use Illuminate\Support\Facades\Auth;
 
 class ApprovalApiController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    public function index()
+    public function index(Request $request)
     {
-        $user = Auth::user();
-        $latestMemo = Kirim_Document::where('id_penerima', $user->id)
-            ->where('jenis_document', 'memo')
-            ->where('status', 'pending')
-            ->orderBy('updated_at', 'desc')
-            ->first();
-      if ($latestMemo){
-            $memo = Memo::where('id_memo', $latestMemo->id_document)->select('judul', 'updated_at')->first();
-        } else {
-            $memo = null;
-        }
-        
-        $latestRisalah = Kirim_Document::where('id_penerima', $user->id)
-            ->where('jenis_document', 'risalah')
-            ->where('status', 'pending')
-            ->orderBy('updated_at', 'desc')
-            ->first();
-            if($latestRisalah){
-        $risalah = Risalah::where('id_risalah', $latestRisalah->id_document)->select('judul', 'updated_at')->first();
-        } else {
-           $risalah = null;
-        }
-        $latestUndangan = Kirim_Document::where('id_penerima', $user->id)
-            ->where('jenis_document', 'undangan')
-            ->where('status', 'pending')
-            ->orderBy('updated_at', 'desc')
-            ->first();
-            if($latestUndangan){
-        $undangan = Undangan::where('id_undangan', $latestUndangan->id_document)->select('judul', 'updated_at')->first();
-        } else {
-            $undangan = null;
-        }
+        $user = $request->user();
+
+        $data = $this->waitingApproval($user);
+
+        return $this->apiResponse(
+            $data,
+            $data->isEmpty()
+                ? 'Belum ada dokumen menunggu approval'
+                : 'Daftar dokumen menunggu approval ditemukan'
+        );
+    }
+
+    private function waitingApproval($user)
+    {
+        $userId = $user->id;
+
+        $memos = Memo::where('status', 'pending')
+            ->where('manager_user_id', $userId)
+            ->get()
+            ->map(function ($doc) {
+                return (object) [
+                    'id' => $doc->id_memo,
+                    'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
+                    'tgl_dokumen' => $doc->updated_at ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
+                    'tipe' => 'memo',
+                    'status' => $doc->status,
+                ];
+            });
+
+        $undangans = Undangan::where('status', 'pending')
+            ->where('manager_user_id', $userId)
+            ->get()
+            ->map(function ($doc) {
+                return (object) [
+                    'id' => $doc->id_undangan,
+                    'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
+                    'tgl_dokumen' => $doc->tgl_rapat ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
+                    'tipe' => 'undangan',
+                    'status' => $doc->status,
+                ];
+            });
+
+        $risalahs = Risalah::where('status', 'pending')
+            ->where(function ($q) use ($userId) {
+                $q->where('pemimpin_acara_user_id', $userId)
+                    ->orWhere('notulis_acara_user_id', $userId);
+            })
+            ->get()
+            ->map(function ($doc) {
+                return (object) [
+                    'id' => $doc->id_risalah,
+                    'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
+                    'tgl_dokumen' => $doc->updated_at ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
+                    'tipe' => 'risalah',
+                    'status' => $doc->status,
+                ];
+            });
+
+        return collect()
+            ->merge(collect($memos))
+            ->merge(collect($undangans))
+            ->merge(collect($risalahs))
+            ->sortByDesc('tgl_dokumen')
+            ->values();
+    }
+
+    function apiResponse($data, $message = '', $status = 'success')
+    {
         return response()->json([
-            'status' => 'success',
-            'data' => [
-                'memo' => $memo,
-                'risalah' => $risalah,
-                'undangan' => $undangan,
-            ],
+            'status' => $status,
+            'message' => $message,
+            'data_count' => is_countable($data) ? count($data) : 1,
+            'data' => $data,
         ]);
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
-    public function store(Request $request)
-    {
-        //
-    }
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
-    {
-        //
-    }
-
-    /**
-     * Update the specified resource in storage.
-     */
-    public function update(Request $request, string $id)
-    {
-        //
-    }
-
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
-    {
-        //
     }
 }

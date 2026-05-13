@@ -12,6 +12,7 @@ use App\Models\Risalah;
 use App\Models\Undangan;
 use App\Models\Arsip;
 use App\Models\Notifikasi;
+use App\Models\BagianKerja;
 use App\Models\Kirim_Document;
 use App\Services\QrCodeService;
 use Illuminate\Support\Facades\DB;
@@ -138,10 +139,16 @@ class RisalahApiController extends Controller
 
     public function kodeFilter()
     {
-        $kode = Undangan::whereNotNull('kode')
-            ->pluck('kode')
-            ->filter()
-            ->unique()
+        $kode = BagianKerja::query()
+            ->select('kode_bagian')
+            ->whereNotNull('kode_bagian')
+            ->distinct()
+            ->orderBy('kode_bagian')
+            ->get()
+            ->map(fn ($item) => [
+                'label' => $item->kode_bagian,
+                'value' => $item->kode_bagian,
+            ])
             ->values();
 
         return response()->json([

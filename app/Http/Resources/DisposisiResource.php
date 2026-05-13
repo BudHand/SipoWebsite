@@ -36,6 +36,7 @@ class DisposisiResource extends JsonResource
             'deadline' => $this->deadline,
             'status' => $this->status,
             'dibaca' => (bool) $this->dibaca,
+            'dibaca_at' => $this->dibaca_at,
 
             'parent_id' => $this->parent_id,
             'created_at' => $this->created_at,

@@ -523,4 +523,53 @@ class DisposisiApiController extends Controller
 
         return false;
     }
+
+    public function kandidatPenerima(Request $request)
+    {
+        $user = Auth::user();
+
+        if (!$user) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $validated = $request->validate([
+            'document_type' => ['required', Rule::in(['memo', 'undangan'])],
+            'document_id' => ['required', 'integer'],
+        ]);
+
+        $dokumen = $this->findDokumen(
+            $validated['document_type'],
+            (int) $validated['document_id']
+        );
+
+        if (!$dokumen) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Dokumen tidak ditemukan.',
+            ], 404);
+        }
+
+        if (!$dokumen->bisaDisposisi($user)) {
+            return response()->json([
+                'status' => false,
+                'message' => 'Anda tidak memiliki akses.',
+            ], 403);
+        }
+
+        $kandidat = $dokumen->kandidatPenerimaDispo($user)
+            ->map(fn ($u) => [
+                'id' => $u->id,
+                'nama' => trim(($u->firstname ?? '') . ' ' . ($u->lastname ?? '')),
+            ])
+            ->values();
+
+        return response()->json([
+            'status' => true,
+            'message' => 'Daftar kandidat penerima disposisi',
+            'data' => $kandidat,
+        ]);
+    }
 }

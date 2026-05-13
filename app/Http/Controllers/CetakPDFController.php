@@ -438,62 +438,26 @@ class CetakPDFController extends Controller
     {
         try {
             $memo = Memo::findOrFail($id_memo);
-            $tujuanNames = explode(';', (string) $memo->tujuan_string);
 
-            $manager = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-                ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$memo->nama_bertandatangan])
-                ->first();
-
-            if ($manager) {
-                $level = $this->detectLevel($manager);
-                $manager->level_kerja = $level;
-                $manager->bagian_text = $this->getBagianText($manager, $level);
-            }
-
-            $headerPath = public_path('assets/img/bheader.png');
-            $footerPath = public_path('assets/img/bfooter.png');
-            $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
-            $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
-
-            $formatMemoPdf = $this->loadPdfView('format-surat.format-memo', [
-                'memo' => $memo,
-                'headerImage' => $headerBase64,
-                'footerImage' => $footerBase64,
-                'tujuanNames' => $tujuanNames,
-                'manager' => $manager,
-                'isPdf' => true,
-                'docStatus' => $memo->status,
-            ])->setPaper('A4', 'portrait');
-            $tempPath = storage_path('app/temp_format_undangan_' . $memo->id_memo . '.pdf');
-            $formatMemoPdf->save($tempPath);
-
-            $attPdfs = $this->createTempPdfsFromAnyMany($memo->lampiran ?? null, $memo->id_memo, 'memo');
-            $finalFileName = $this->sanitizeFileName($memo->judul) . ' - ' . $memo->id_memo . '.pdf';
-            $finalPath = storage_path('app/public/pdf/' . $finalFileName);
-
-            if (!file_exists(dirname($finalPath))) {
-                mkdir(dirname($finalPath), 0755, true);
-            }
-
-            if ($this->mergeAllPdfs($tempPath, $attPdfs, $finalPath)) {
-                $this->cleanupTempFiles([$tempPath]);
-            } else {
-                rename($tempPath, $finalPath);
-                $this->cleanupTempFiles($attPdfs);
-            }
-
-            $fileUrl = asset('storage/pdf/' . $finalFileName);
+            $token = $this->makeMobilePdfToken([
+                'id_memo' => $memo->id_memo,
+                'expired_at' => now()->addMinutes(10)->timestamp,
+            ]);
 
             return response()->json([
                 'status' => 'success',
-                'file_name' => $finalFileName,
-                'url' => $fileUrl,
+                'url' => route('mobile.memo.pdf', ['token' => $token]),
             ]);
         } catch (\Throwable $e) {
-            Log::error('Error in viewmemoPDF: ' . $e->getMessage());
-            return response()->json(['error' => 'Gagal menampilkan PDF: ' . $e->getMessage()], 500);
+            Log::error('Error in viewMemoPdfUrl: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil URL PDF memo',
+            ], 500);
         }
     }
+
     // Tambahkan method helper untuk sanitize filename
     private function sanitizeFileName($filename, $maxLength = 80)
     {
@@ -715,95 +679,28 @@ class CetakPDFController extends Controller
         }
     }
 
-    public function viewUndanganPdfUrl($id)
+    public function viewUndanganPdfUrl($id_undangan)
     {
-        $undangan = Undangan::findOrFail($id);
-        $headerPath = public_path('assets/img/bheader.png');
-        $footerPath = public_path('assets/img/bfooter.png');
-        $headerBase64 = file_exists($headerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath)) : null;
-        $footerBase64 = file_exists($footerPath) ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath)) : null;
-        $cleanTag = html_entity_decode(strip_tags((string) $undangan->isi_undangan), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $tujuanIds = explode(';', (string) $undangan->tujuan);
-        $tujuanUsers = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-            ->whereIn('id', $tujuanIds)
-            ->get()
-            ->map(function ($user) {
-                $level = $this->detectLevel($user);
-                $user->level_kerja = $level;
-                $user->bagian_text = $this->getBagianText($user, $level);
+        try {
+            $undangan = Undangan::findOrFail($id_undangan);
 
-                if (isset($user->position->nm_position)) {
-                    $raw = $user->position->nm_position;
-                    $fmt = preg_replace('/\s*\([^)]*\)\s*/', ' ', $raw);
-                    $fmt = trim(preg_replace('/\s+/', ' ', $fmt));
-                    if (!in_array($fmt, ['Staff', 'Direktur'])) {
-                        $abbr = [
-                            'Penanggung Jawab Senior Manager' => 'PJ SM',
-                            'Penanggung Jawab Manager' => 'PJ M',
-                            'Penanggung Jawab Supervisor' => 'PJ SPV',
-                            'Senior Manager' => 'SM',
-                            'General Manager' => 'GM',
-                            'Manager' => 'M',
-                            'Supervisor' => 'SPV',
-                        ];
-                        foreach ($abbr as $full => $a) {
-                            if (strpos($fmt, $full) !== false) {
-                                $fmt = str_replace($full, $a, $fmt);
-                                break;
-                            }
-                        }
-                    }
-                    $user->position->nm_position = $fmt;
-                }
-                return $user;
-            })
-            ->sortBy(fn($u) => optional($u->position)->id_position)
-            ->values();
+            $token = $this->makeMobilePdfToken([
+                'id_undangan' => $undangan->id_undangan,
+                'expired_at' => now()->addMinutes(10)->timestamp,
+            ]);
 
-        $manager = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
-            ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$undangan->nama_bertandatangan])
-            ->first();
-        if ($manager) {
-            $level = $this->detectLevel($manager);
-            $manager->level_kerja = $level;
-            $manager->bagian_text = $this->getBagianText($manager, $level);
+            return response()->json([
+                'status' => 'success',
+                'url' => route('mobile.undangan.pdf', ['token' => $token]),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error in viewUndanganPdfUrl: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil URL PDF undangan',
+            ], 500);
         }
-        $formatUndanganPdf = $this->loadPdfView('format-surat.format-undangan', [
-            'undangan' => $undangan,
-            'tujuanUsers' => $tujuanUsers,
-            'cleanTag' => $cleanTag,
-            'manager' => $manager,
-            'headerImage' => $headerBase64,
-            'footerImage' => $footerBase64,
-            'isPdf' => true,
-            'docStatus' => $undangan->status,
-        ])->setPaper('A4', 'portrait');
-
-        $tempPath = storage_path('app/temp_format_undangan_' . $undangan->id_undangan . '.pdf');
-        $formatUndanganPdf->save($tempPath);
-
-        $attPdfs = $this->createTempPdfsFromAnyMany($undangan->lampiran ?? null, $undangan->id_undangan, 'undangan');
-        $finalFileName = $this->sanitizeFileName($undangan->judul) . ' - ' . $undangan->id_undangan . '.pdf';
-        $finalPath = storage_path('app/public/pdf/' . $finalFileName);
-
-        if (!file_exists(dirname($finalPath))) {
-            mkdir(dirname($finalPath), 0755, true);
-        }
-
-        if ($this->mergeAllPdfs($tempPath, $attPdfs, $finalPath)) {
-            $this->cleanupTempFiles([$tempPath]);
-        } else {
-            rename($tempPath, $finalPath);
-            $this->cleanupTempFiles($attPdfs);
-        }
-
-        $fileUrl = asset('storage/pdf/' . $finalFileName);
-
-        return response()->json([
-            'status' => 'success',
-            'file_name' => $finalFileName,
-            'url' => $fileUrl,
-        ]);
     }
 
     public function laporanmemoPDF(Request $request)
@@ -1097,41 +994,38 @@ class CetakPDFController extends Controller
             );
         }
     }
+
     public function viewRisalahPdfUrl($id)
     {
         try {
             $risalah = Risalah::findOrFail($id);
 
-            $payload = [
+            $token = $this->makeMobilePdfToken([
                 'id_risalah' => $risalah->id_risalah,
                 'expired_at' => now()->addMinutes(10)->timestamp,
-            ];
-
-            $token = urlencode(Crypt::encryptString(json_encode($payload)));
+            ]);
 
             return response()->json([
                 'status' => 'success',
-                'file_name' => $this->sanitizeFileName($risalah->judul) . ' - ' . $risalah->id_risalah . '.pdf',
                 'url' => route('mobile.risalah.pdf', ['token' => $token]),
             ]);
         } catch (\Throwable $e) {
             Log::error('Error in viewRisalahPdfUrl: ' . $e->getMessage());
 
-            return response()->json(
-                [
-                    'status' => 'error',
-                    'message' => 'Gagal mengambil URL PDF risalah',
-                ],
-                500,
-            );
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal mengambil URL PDF risalah',
+            ], 500);
         }
     }
+
+
     public function viewRisalahPdfMobile($token)
     {
         try {
-            $payload = json_decode(Crypt::decryptString(urldecode($token)), true);
+            $payload = $this->readMobilePdfToken($token);
 
-            if (!$payload || !isset($payload['id_risalah']) || !isset($payload['expired_at'])) {
+            if (!isset($payload['id_risalah']) || !isset($payload['expired_at'])) {
                 abort(403, 'Token tidak valid');
             }
 
@@ -1147,6 +1041,289 @@ class CetakPDFController extends Controller
             ]);
         } catch (\Throwable $e) {
             Log::error('Error in viewRisalahPdfMobile: ' . $e->getMessage());
+
+            abort(403, 'Link tidak valid atau sudah kedaluwarsa');
+        }
+    }
+
+    // View PDF Memo dengan URL untuk diakses langsung tanpa download
+    private function generateMemoPdfFile($id_memo)
+    {
+        $memo = Memo::findOrFail($id_memo);
+
+        $tujuanNames = explode(';', (string) $memo->tujuan_string);
+
+        $manager = User::with(['position', 'director', 'divisi', 'department', 'section', 'unit'])
+            ->whereRaw("LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))", [$memo->nama_bertandatangan])
+            ->first();
+
+        if ($manager) {
+            $level = $this->detectLevel($manager);
+            $manager->level_kerja = $level;
+            $manager->bagian_text = $this->getBagianText($manager, $level);
+        }
+
+        $headerPath = public_path('assets/img/bheader.png');
+        $footerPath = public_path('assets/img/bfooter.png');
+
+        $headerBase64 = file_exists($headerPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath))
+            : null;
+
+        $footerBase64 = file_exists($footerPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath))
+            : null;
+
+        $cleanIsi = html_entity_decode(
+            strip_tags((string) ($memo->isi_memo ?? $memo->isi ?? '')),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+
+        $formatMemoPdf = $this->loadPdfView('format-surat.format-memo', [
+            'memo' => $memo,
+            'tujuanNames' => $tujuanNames,
+            'manager' => $manager,
+            'cleanIsi' => $cleanIsi,
+            'qrCode' => $memo->qr_approved_by,
+            'headerImage' => $headerBase64,
+            'footerImage' => $footerBase64,
+            'isPdf' => true,
+            'docStatus' => $memo->status,
+        ])->setPaper('A4', 'portrait');
+
+        $tempMainPath = storage_path('app/temp_format_memo_mobile_' . $memo->id_memo . '.pdf');
+        $formatMemoPdf->save($tempMainPath);
+
+        $attPdfs = $this->createTempPdfsFromAnyMany(
+            $memo->lampiran ?? null,
+            $memo->id_memo,
+            'memo_mobile'
+        );
+
+        $finalFileName = $this->sanitizeFileName($memo->judul) . ' - ' . $memo->id_memo . '.pdf';
+
+        $finalPath = storage_path('app/private_pdf/' . $finalFileName);
+
+        if (!file_exists(dirname($finalPath))) {
+            mkdir(dirname($finalPath), 0755, true);
+        }
+
+        if (!empty($attPdfs)) {
+            if ($this->mergeAllPdfs($tempMainPath, $attPdfs, $finalPath)) {
+                $this->cleanupTempFiles([$tempMainPath]);
+            } else {
+                rename($tempMainPath, $finalPath);
+                $this->cleanupTempFiles($attPdfs);
+            }
+        } else {
+            rename($tempMainPath, $finalPath);
+        }
+
+        return [
+            'memo' => $memo,
+            'file_name' => $finalFileName,
+            'file_path' => $finalPath,
+        ];
+    }
+
+    public function viewMemoPdfMobile($token)
+    {
+        try {
+            Log::info('viewMemoPdfMobile TOKEN RAW: ' . $token);
+
+            $payload = $this->readMobilePdfToken($token);
+
+            Log::info('viewMemoPdfMobile PAYLOAD: ' . json_encode($payload));
+
+            if (!isset($payload['id_memo']) || !isset($payload['expired_at'])) {
+                abort(403, 'Token tidak valid');
+            }
+
+            if (now()->timestamp > $payload['expired_at']) {
+                abort(403, 'Link PDF sudah kedaluwarsa');
+            }
+
+            $result = $this->generateMemoPdfFile($payload['id_memo']);
+
+            return response()->file($result['file_path'], [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $result['file_name'] . '"',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error in viewMemoPdfMobile DETAIL: ' . $e->getMessage());
+            Log::error('Error in viewMemoPdfMobile TRACE: ' . $e->getTraceAsString());
+
+            abort(403, 'Link tidak valid atau sudah kedaluwarsa');
+        }
+    }
+
+// View PDF Undangan dengan URL untuk diakses langsung tanpa download
+    private function generateUndanganPdfFile($id_undangan)
+    {
+        $undangan = Undangan::findOrFail($id_undangan);
+
+        $headerPath = public_path('assets/img/bheader.png');
+        $footerPath = public_path('assets/img/bfooter.png');
+
+        $headerBase64 = file_exists($headerPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($headerPath))
+            : null;
+
+        $footerBase64 = file_exists($footerPath)
+            ? 'data:image/png;base64,' . base64_encode(file_get_contents($footerPath))
+            : null;
+
+        $tujuanIds = collect(explode(';', (string) $undangan->tujuan))
+            ->map(fn ($id) => trim($id))
+            ->filter()
+            ->values()
+            ->all();
+
+        $tujuanUsers = User::with([
+            'position',
+            'director',
+            'divisi',
+            'department',
+            'section',
+            'unit',
+        ])
+            ->whereIn('id', $tujuanIds)
+            ->get()
+            ->map(function ($user) {
+                $level = $this->detectLevel($user);
+                $user->level_kerja = $level;
+                $user->bagian_text = $this->getBagianText($user, $level);
+
+                if (isset($user->position->nm_position)) {
+                    $raw = $user->position->nm_position;
+                    $fmt = preg_replace('/\s*\([^)]*\)\s*/', ' ', $raw);
+                    $fmt = trim(preg_replace('/\s+/', ' ', $fmt));
+
+                    if (!in_array($fmt, ['Staff', 'Direktur'])) {
+                        $abbr = [
+                            'Penanggung Jawab Senior Manager' => 'PJ SM',
+                            'Penanggung Jawab Manager' => 'PJ M',
+                            'Penanggung Jawab Supervisor' => 'PJ SPV',
+                            'Senior Manager' => 'SM',
+                            'General Manager' => 'GM',
+                            'Manager' => 'M',
+                            'Supervisor' => 'SPV',
+                        ];
+
+                        foreach ($abbr as $full => $a) {
+                            if (strpos($fmt, $full) !== false) {
+                                $fmt = str_replace($full, $a, $fmt);
+                                break;
+                            }
+                        }
+                    }
+
+                    $user->position->nm_position = $fmt;
+                }
+
+                return $user;
+            })
+            ->sortBy(fn ($u) => optional($u->position)->id_position)
+            ->values();
+
+        $manager = User::with([
+            'position',
+            'director',
+            'divisi',
+            'department',
+            'section',
+            'unit',
+        ])
+            ->whereRaw(
+                "LOWER(TRIM(CONCAT_WS(' ', firstname, lastname))) = LOWER(TRIM(?))",
+                [$undangan->nama_bertandatangan]
+            )
+            ->first();
+
+        if ($manager) {
+            $level = $this->detectLevel($manager);
+            $manager->level_kerja = $level;
+            $manager->bagian_text = $this->getBagianText($manager, $level);
+        }
+
+        $cleanTag = html_entity_decode(
+            strip_tags((string) ($undangan->isi_undangan ?? $undangan->isi ?? '')),
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+
+        $formatUndanganPdf = $this->loadPdfView('format-surat.format-undangan', [
+            'undangan' => $undangan,
+            'tujuanUsers' => $tujuanUsers,
+            'cleanTag' => $cleanTag,
+            'manager' => $manager,
+            'headerImage' => $headerBase64,
+            'footerImage' => $footerBase64,
+            'isPdf' => true,
+            'docStatus' => $undangan->status,
+        ])->setPaper('A4', 'portrait');
+
+        $tempMainPath = storage_path('app/temp_format_undangan_mobile_' . $undangan->id_undangan . '.pdf');
+        $formatUndanganPdf->save($tempMainPath);
+
+        $attPdfs = $this->createTempPdfsFromAnyMany(
+            $undangan->lampiran ?? null,
+            $undangan->id_undangan,
+            'undangan_mobile'
+        );
+
+        $finalFileName = $this->sanitizeFileName($undangan->judul) . ' - ' . $undangan->id_undangan . '.pdf';
+        $finalPath = storage_path('app/private_pdf/' . $finalFileName);
+
+        if (!file_exists(dirname($finalPath))) {
+            mkdir(dirname($finalPath), 0755, true);
+        }
+
+        if (!empty($attPdfs)) {
+            if ($this->mergeAllPdfs($tempMainPath, $attPdfs, $finalPath)) {
+                $this->cleanupTempFiles([$tempMainPath]);
+            } else {
+                rename($tempMainPath, $finalPath);
+                $this->cleanupTempFiles($attPdfs);
+            }
+        } else {
+            rename($tempMainPath, $finalPath);
+        }
+
+        return [
+            'undangan' => $undangan,
+            'file_name' => $finalFileName,
+            'file_path' => $finalPath,
+        ];
+    }
+
+    public function viewUndanganPdfMobile($token)
+    {
+        try {
+            Log::info('viewUndanganPdfMobile TOKEN RAW: ' . $token);
+
+            $payload = $this->readMobilePdfToken($token);
+
+            Log::info('viewUndanganPdfMobile PAYLOAD: ' . json_encode($payload));
+
+            if (!isset($payload['id_undangan']) || !isset($payload['expired_at'])) {
+                abort(403, 'Token tidak valid');
+            }
+
+            if (now()->timestamp > $payload['expired_at']) {
+                abort(403, 'Link PDF sudah kedaluwarsa');
+            }
+
+            $result = $this->generateUndanganPdfFile($payload['id_undangan']);
+
+            return response()->file($result['file_path'], [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => 'inline; filename="' . $result['file_name'] . '"',
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('Error in viewUndanganPdfMobile DETAIL: ' . $e->getMessage());
+            Log::error('Error in viewUndanganPdfMobile TRACE: ' . $e->getTraceAsString());
 
             abort(403, 'Link tidak valid atau sudah kedaluwarsa');
         }
@@ -2392,5 +2569,36 @@ class CetakPDFController extends Controller
             Log::error('Error in downloadAllAttachmentsZipRisalah: ' . $e->getMessage());
             return response()->json(['error' => 'Gagal mengunduh lampiran: ' . $e->getMessage()], 500);
         }
+    }
+
+    private function makeMobilePdfToken(array $payload): string
+    {
+        $encrypted = Crypt::encryptString(json_encode($payload));
+
+        return rtrim(strtr(base64_encode($encrypted), '+/', '-_'), '=');
+    }
+
+    private function readMobilePdfToken(string $token): array
+    {
+        $base64 = strtr($token, '-_', '+/');
+
+        $padding = strlen($base64) % 4;
+        if ($padding > 0) {
+            $base64 .= str_repeat('=', 4 - $padding);
+        }
+
+        $encrypted = base64_decode($base64, true);
+
+        if (!$encrypted) {
+            throw new \RuntimeException('Token tidak valid');
+        }
+
+        $payload = json_decode(Crypt::decryptString($encrypted), true);
+
+        if (!is_array($payload)) {
+            throw new \RuntimeException('Payload token tidak valid');
+        }
+
+        return $payload;
     }
 }

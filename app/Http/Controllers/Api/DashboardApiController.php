@@ -262,7 +262,7 @@ class DashboardApiController extends Controller
             ->where('manager_user_id', $userId)
             ->get()
             ->map(function ($doc) {
-                return (object) [
+                return [
                     'id' => $doc->id_memo,
                     'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
                     'tgl_dokumen' => $doc->updated_at ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
@@ -275,7 +275,7 @@ class DashboardApiController extends Controller
             ->where('manager_user_id', $userId)
             ->get()
             ->map(function ($doc) {
-                return (object) [
+                return [
                     'id' => $doc->id_undangan,
                     'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
                     'tgl_dokumen' => $doc->tgl_rapat ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
@@ -291,7 +291,7 @@ class DashboardApiController extends Controller
             })
             ->get()
             ->map(function ($doc) {
-                return (object) [
+                return [
                     'id' => $doc->id_risalah,
                     'judul' => $doc->judul ?? 'Dokumen tidak ditemukan',
                     'tgl_dokumen' => $doc->updated_at ?? $doc->tgl_disahkan ?? $doc->tgl_dibuat,
@@ -300,7 +300,8 @@ class DashboardApiController extends Controller
                 ];
             });
 
-        return $memos
+        return collect()
+            ->merge($memos)
             ->merge($undangans)
             ->merge($risalahs)
             ->sortByDesc('tgl_dokumen')

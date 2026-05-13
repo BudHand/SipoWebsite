@@ -48,7 +48,11 @@ Route::post('/save-token-manual', [NotifApiController::class, 'saveTokenManual']
 // });
 
 Route::get('/memos/{id}/lampiran/downloadAll', [MemoController::class, 'downloadAll'])->name('api.memo.lampiran.downloadAll');
+
+// View dokumen from mobile
 Route::get('/mobile/risalah/pdf/{token}', [CetakPDFController::class, 'viewRisalahPdfMobile'])->name('mobile.risalah.pdf');
+Route::get('/mobile/memo/pdf/{token}', [CetakPDFController::class, 'viewMemoPdfMobile'])->name('mobile.memo.pdf');
+Route::get('/mobile/undangan/pdf/{token}', [CetakPDFController::class, 'viewUndanganPdfMobile'])->name('mobile.undangan.pdf');
 
 Route::middleware('auth:sanctum')->group(function () {
 
@@ -95,6 +99,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/', [DisposisiApiController::class, 'index']);
         Route::get('/cari-dokumen', [DisposisiApiController::class, 'cariDokumen']);
         Route::post('/', [DisposisiApiController::class, 'store']);
+        Route::get('/kandidat-penerima', [DisposisiApiController::class, 'kandidatPenerima']);
 
         Route::get('/{disposisi}', [DisposisiApiController::class, 'show']);
         Route::patch('/{disposisi}/status', [DisposisiApiController::class, 'updateStatus']);
