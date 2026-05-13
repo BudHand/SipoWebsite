@@ -5,7 +5,7 @@ SIPO Web adalah aplikasi sistem informasi persuratan online berbasis web yang di
 ## ✨ Fitur Utama
 
 * Autentikasi dan manajemen pengguna
-* Role-based access control (Super Admin, Admin, Manager, Staff)
+* Role-based access control (Super Admin, Admin, Manager)
 * Pengelolaan surat masuk dan surat keluar
 * Disposisi surat
 * Dashboard monitoring
@@ -123,8 +123,8 @@ http://127.0.0.1:8000
 Jika project menyediakan seeder akun default, gunakan kredensial berikut (sesuaikan jika berbeda):
 
 ```text
-Email    : admin@example.com
-Password : password
+NIP    : 123123123
+Password : 123123123
 ```
 
 ---
@@ -146,9 +146,8 @@ Password : password
 ## 🔐 Role Pengguna
 
 * **Super Admin** → Akses penuh ke seluruh modul.
-* **Admin** → Mengelola data operasional tertentu.
-* **Manager** → Melihat dan memproses disposisi sesuai departemen.
-* **Staff** → Mengelola surat sesuai kewenangan.
+* **Admin** → Mengelola dokumen surat.
+* **Manager** → Melihat, Apptoval dan memproses disposisi sesuai departemen.
 
 ---
 
